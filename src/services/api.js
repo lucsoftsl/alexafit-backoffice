@@ -1,0 +1,199 @@
+// API service for fetching program subscribers
+const API_BASE_URL = 'https://foodsync-api.vercel.app/backoffice'
+const API_AUTH = 'c29aWGZHd0o6ZT54LXVUZi1GOGohaVFyVHFy'
+
+export const fetchProgramSubscribers = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/getProgramSubscribers`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({})
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error fetching program subscribers:', error)
+    throw error
+  }
+}
+
+export const fetchUserDailyNutrition = async (userId, dateApplied) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/getUserDailyNutrition`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: userId,
+        dateApplied: dateApplied
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error fetching user daily nutrition:', error)
+    throw error
+  }
+}
+
+export const formatSubscriptionStatus = (subscriber) => {
+  // Check subscription whitelist details first
+  if (subscriber.subscriptionWhitelistDetails?.isPro === 'true') {
+    return {
+      status: 'active',
+      plan: 'Program Plan',
+      expiresAt: subscriber.subscriptionWhitelistDetails?.activeUntil || 'N/A'
+    }
+  }
+
+  // Check subscription details
+  if (subscriber.subscriptionDetails?.Pro?.isActive) {
+    return {
+      status: 'active',
+      plan: 'Pro Plan',
+      expiresAt: subscriber.subscriptionDetails.Pro.expirationDate || 'N/A'
+    }
+  }
+
+  return {
+    status: 'inactive',
+    plan: 'No Plan',
+    expiresAt: 'N/A'
+  }
+}
+
+export const formatUserData = (subscriber) => {
+  const userData = subscriber.userData || {}
+  const loginDetails = subscriber.loginDetails || {}
+  
+  // Try to get name from multiple sources
+  let name = 'Unknown'
+  if (userData.name) {
+    name = userData.name
+  } else if (subscriber.firstName && subscriber.lastName) {
+    name = `${subscriber.firstName} ${subscriber.lastName}`.trim()
+  } else if (loginDetails.displayName) {
+    name = loginDetails.displayName
+  } else if (subscriber.firstName) {
+    name = subscriber.firstName
+  } else if (subscriber.lastName) {
+    name = subscriber.lastName
+  }
+  
+  return {
+    name: name,
+    email: subscriber.email || 'N/A',
+    phone: subscriber.phoneNumber || 'N/A',
+    country: subscriber.country || 'N/A',
+    gender: userData.selectedGender || 'N/A',
+    age: userData.selectedBirthDate ? 
+      new Date().getFullYear() - new Date(userData.selectedBirthDate).getFullYear() : 'N/A',
+    height: userData.selectedHeight ? `${userData.selectedHeight} cm` : 'N/A',
+    weight: userData.selectedWeight ? `${userData.selectedWeight} kg` : 'N/A',
+    goal: userData.selectedGoalType || 'N/A',
+    activity: userData.selectedActivityType || 'N/A'
+  }
+}
+
+export const formatPaymentData = (subscriber) => {
+  const payment = subscriber.paymentDetails || {}
+  return {
+    status: payment.status || 'N/A',
+    amount: payment.paymentSuccess ? 'Paid' : 'Not Paid',
+    date: payment.paymentDate || 'N/A',
+    country: payment.detectedCountry || 'N/A'
+  }
+}
+
+export const sendPushNotification = async (pushNotificationToken, notificationTitle, notificationBody) => {
+  try {
+    const response = await fetch('https://foodsync-api.vercel.app/notifications/sendPushNotification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        pushNotificationToken,
+        notificationTitle,
+        notificationBody
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error sending push notification:', error)
+    throw error
+  }
+}
+
+export const searchFoodItems = async (searchText, userId, onlyNonRecipes = false, countryCode = null) => {
+  try {
+    const response = await fetch('https://foodsync-api.vercel.app/foodsync/elasticSearch', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId,
+        searchTerm: searchText,
+        itemType: 'FOOD',
+        onlyNonRecipes,
+        countryCode: countryCode || 'RO'
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.data?.data || []
+  } catch (error) {
+    console.error('Error searching food items:', error)
+    throw error
+  }
+}
+
+export const createMenu = async (menuData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/foodsync/createMenu`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(menuData)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error creating menu:', error)
+    throw error
+  }
+}
