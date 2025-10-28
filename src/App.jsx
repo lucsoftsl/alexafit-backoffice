@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import Subscribers from './pages/Subscribers'
+import UnapprovedItems from './pages/UnapprovedItems'
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard')
@@ -15,6 +16,8 @@ function App() {
         return <Users />
       case 'subscribers':
         return <Subscribers />
+      case 'unapprovedItems':
+        return <UnapprovedItems />
       default:
         return <Dashboard />
     }

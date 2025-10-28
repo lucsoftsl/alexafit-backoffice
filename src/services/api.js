@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // API service for fetching program subscribers
 const API_BASE_URL = 'https://foodsync-api.vercel.app/backoffice'
 const API_AUTH = 'c29aWGZHd0o6ZT54LXVUZi1GOGohaVFyVHFy'
@@ -7,8 +8,8 @@ export const fetchProgramSubscribers = async () => {
     const response = await fetch(`${API_BASE_URL}/getProgramSubscribers`, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${API_AUTH}`,
-        'Content-Type': 'application/json',
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({})
     })
@@ -30,8 +31,8 @@ export const fetchUserDailyNutrition = async (userId, dateApplied) => {
     const response = await fetch(`${API_BASE_URL}/getUserDailyNutrition`, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${API_AUTH}`,
-        'Content-Type': 'application/json',
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         userId: userId,
@@ -51,7 +52,7 @@ export const fetchUserDailyNutrition = async (userId, dateApplied) => {
   }
 }
 
-export const formatSubscriptionStatus = (subscriber) => {
+export const formatSubscriptionStatus = subscriber => {
   // Check subscription whitelist details first
   if (subscriber.subscriptionWhitelistDetails?.isPro === 'true') {
     return {
@@ -77,10 +78,10 @@ export const formatSubscriptionStatus = (subscriber) => {
   }
 }
 
-export const formatUserData = (subscriber) => {
+export const formatUserData = subscriber => {
   const userData = subscriber.userData || {}
   const loginDetails = subscriber.loginDetails || {}
-  
+
   // Try to get name from multiple sources
   let name = 'Unknown'
   if (userData.name) {
@@ -94,15 +95,17 @@ export const formatUserData = (subscriber) => {
   } else if (subscriber.lastName) {
     name = subscriber.lastName
   }
-  
+
   return {
     name: name,
     email: subscriber.email || 'N/A',
     phone: subscriber.phoneNumber || 'N/A',
     country: subscriber.country || 'N/A',
     gender: userData.selectedGender || 'N/A',
-    age: userData.selectedBirthDate ? 
-      new Date().getFullYear() - new Date(userData.selectedBirthDate).getFullYear() : 'N/A',
+    age: userData.selectedBirthDate
+      ? new Date().getFullYear() -
+        new Date(userData.selectedBirthDate).getFullYear()
+      : 'N/A',
     height: userData.selectedHeight ? `${userData.selectedHeight} cm` : 'N/A',
     weight: userData.selectedWeight ? `${userData.selectedWeight} kg` : 'N/A',
     goal: userData.selectedGoalType || 'N/A',
@@ -110,7 +113,7 @@ export const formatUserData = (subscriber) => {
   }
 }
 
-export const formatPaymentData = (subscriber) => {
+export const formatPaymentData = subscriber => {
   const payment = subscriber.paymentDetails || {}
   return {
     status: payment.status || 'N/A',
@@ -120,19 +123,26 @@ export const formatPaymentData = (subscriber) => {
   }
 }
 
-export const sendPushNotification = async (pushNotificationToken, notificationTitle, notificationBody) => {
+export const sendPushNotification = async (
+  pushNotificationToken,
+  notificationTitle,
+  notificationBody
+) => {
   try {
-    const response = await fetch('https://foodsync-api.vercel.app/notifications/sendPushNotification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        pushNotificationToken,
-        notificationTitle,
-        notificationBody
-      })
-    })
+    const response = await fetch(
+      'https://foodsync-api.vercel.app/notifications/sendPushNotification',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          pushNotificationToken,
+          notificationTitle,
+          notificationBody
+        })
+      }
+    )
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -146,22 +156,30 @@ export const sendPushNotification = async (pushNotificationToken, notificationTi
   }
 }
 
-export const searchFoodItems = async (searchText, userId, onlyNonRecipes = false, countryCode = null) => {
+export const searchFoodItems = async (
+  searchText,
+  userId,
+  onlyNonRecipes = false,
+  countryCode = null
+) => {
   try {
-    const response = await fetch('https://foodsync-api.vercel.app/foodsync/elasticSearch', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${API_AUTH}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        searchTerm: searchText,
-        itemType: 'FOOD',
-        onlyNonRecipes,
-        countryCode: countryCode || 'RO'
-      })
-    })
+    const response = await fetch(
+      'https://foodsync-api.vercel.app/foodsync/elasticSearch',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${API_AUTH}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId,
+          searchTerm: searchText,
+          itemType: 'FOOD',
+          onlyNonRecipes,
+          countryCode: countryCode || 'RO'
+        })
+      }
+    )
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -175,13 +193,13 @@ export const searchFoodItems = async (searchText, userId, onlyNonRecipes = false
   }
 }
 
-export const createMenu = async (menuData) => {
+export const createMenu = async menuData => {
   try {
     const response = await fetch(`${API_BASE_URL}/foodsync/createMenu`, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${API_AUTH}`,
-        'Content-Type': 'application/json',
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(menuData)
     })
@@ -194,6 +212,57 @@ export const createMenu = async (menuData) => {
     return data
   } catch (error) {
     console.error('Error creating menu:', error)
+    throw error
+  }
+}
+
+export const getUnapprovedItems = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/getUnapprovedItems`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return (
+      data?.data || { foodItems: { items: [] }, exerciseItems: { items: [] } }
+    )
+  } catch (error) {
+    console.error('Error getting unapproved items:', error)
+    throw error
+  }
+}
+
+export const setItemVerifiedStatus = async ({ itemId, verified, itemType }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/setItemVerifiedStatus`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        itemId,
+        verified,
+        itemType
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error setting item verified status:', error)
     throw error
   }
 }

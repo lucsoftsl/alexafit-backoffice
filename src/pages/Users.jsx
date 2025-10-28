@@ -1,5 +1,6 @@
+/* eslint-disable max-len */
 import { useState } from 'react'
-import { 
+import {
   MagnifyingGlassIcon,
   FunnelIcon,
   PencilIcon,
@@ -63,12 +64,12 @@ const Users = () => {
       lastActive: '2024-01-15',
       subscription: 'Basic',
       avatar: 'DB'
-    },
+    }
   ]
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = filterStatus === 'all' || user.status === filterStatus
     return matchesSearch && matchesFilter
   })
@@ -218,7 +219,7 @@ const Users = () => {
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
           <div className="flex-1 flex justify-between sm:hidden">

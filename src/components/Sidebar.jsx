@@ -3,13 +3,15 @@ import {
   UsersIcon, 
   UserGroupIcon,
   ChartBarIcon,
-  CogIcon
+  CogIcon,
+  ListBulletIcon
 } from '@heroicons/react/24/outline'
 
 const Sidebar = ({ activePage, setActivePage }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon },
     { id: 'users', label: 'Users', icon: UsersIcon },
+    { id: 'unapprovedItems', label: 'Unapproved Items', icon: ListBulletIcon },
     { id: 'subscribers', label: 'Subscribers', icon: UserGroupIcon },
     { id: 'analytics', label: 'Analytics', icon: ChartBarIcon },
     { id: 'settings', label: 'Settings', icon: CogIcon },
