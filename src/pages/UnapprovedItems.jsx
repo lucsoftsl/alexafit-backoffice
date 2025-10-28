@@ -54,7 +54,6 @@ const UnapprovedItems = () => {
         setLoading(false)
       }
     }
-
     loadUnapprovedItems()
   }, [])
 
