@@ -388,7 +388,7 @@ export const assignMenuTemplateToUser = async ({
   userId,
   menuTemplateId,
   dateApplied,
-  replaceExisting = false
+  replaceExisting = true
 }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/assignMenuTemplateToUser`, {
@@ -524,11 +524,12 @@ export const getUserByUserId = async ({ userId }) => {
 export const getUsers = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/getUsers`, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         Authorization: `Basic ${API_AUTH}`,
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({})
     })
 
     if (!response.ok) {

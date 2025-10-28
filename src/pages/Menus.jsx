@@ -14,6 +14,10 @@ import {
     updateMenuTemplate,
     getAllMenuTemplates,
     deleteMenuTemplateById,
+    getUsers,
+    assignMenuTemplateToUser,
+    getUserMenus,
+    removeMenuFromUser,
 } from '../services/api'
 
 const defaultPlans = { breakfastPlan: [], lunchPlan: [], dinnerPlan: [], snackPlan: [] }
@@ -41,6 +45,20 @@ const Menus = () => {
     const [loadingTemplates, setLoadingTemplates] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
     const [editingTemplateId, setEditingTemplateId] = useState(null)
+    const [users, setUsers] = useState([])
+    const [selectedUserId, setSelectedUserId] = useState(null)
+    const [loadingUsers, setLoadingUsers] = useState(false)
+    const [userMenus, setUserMenus] = useState([])
+    const [loadingUserMenus, setLoadingUserMenus] = useState(false)
+    const [assignmentDate, setAssignmentDate] = useState(new Date().toISOString().split('T')[0])
+    const [assigningMenu, setAssigningMenu] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [usersPerPage, setUsersPerPage] = useState(5)
+    const [userSearchTerm, setUserSearchTerm] = useState('')
+    const [userMenusSortField, setUserMenusSortField] = useState('dateApplied')
+    const [userMenusSortDirection, setUserMenusSortDirection] = useState('desc')
+    const [removingMenu, setRemovingMenu] = useState(false)
+    const [viewingUserMenu, setViewingUserMenu] = useState(null)
 
     const loadTemplates = async () => {
         try {
@@ -56,7 +74,134 @@ const Menus = () => {
 
     useEffect(() => {
         loadTemplates()
+        loadUsers()
     }, [])
+
+    useEffect(() => {
+        if (selectedUserId) {
+            loadUserMenus(selectedUserId)
+        } else {
+            setUserMenus([])
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedUserId])
+
+    const loadUsers = async () => {
+        try {
+            // Check if data exists in localStorage first
+            const cachedData = localStorage.getItem('users')
+            if (cachedData) {
+                const data = JSON.parse(cachedData)
+                setUsers(Array.isArray(data?.data) ? data.data : (data?.users || []))
+                return
+            }
+
+            setLoadingUsers(true)
+            const data = await getUsers()
+            data?.users?.sort((a, b) => new Date(b.dateTimeUpdated) - new Date(a.dateTimeUpdated))
+            const usersArray = Array.isArray(data?.data) ? data.data : (data?.users || [])
+            setUsers(usersArray)
+            localStorage.setItem('users', JSON.stringify(data))
+        } catch (e) {
+            console.error('Failed to load users', e)
+        } finally {
+            setLoadingUsers(false)
+        }
+    }
+
+    const refreshUsers = async () => {
+        try {
+            localStorage.removeItem('users')
+            setLoadingUsers(true)
+            const data = await getUsers()
+            data?.users?.sort((a, b) => new Date(b.dateTimeUpdated) - new Date(a.dateTimeUpdated))
+
+            const usersArray = Array.isArray(data?.data) ? data.data : (data?.users || [])
+            setUsers(usersArray)
+            localStorage.setItem('users', JSON.stringify(data))
+            setCurrentPage(1) // Reset to first page after refresh
+        } catch (e) {
+            console.error('Failed to refresh users', e)
+        } finally {
+            setLoadingUsers(false)
+        }
+    }
+
+    const loadUserMenus = async (userId) => {
+        try {
+            setLoadingUserMenus(true)
+            const data = await getUserMenus({ userId })
+            setUserMenus(Array.isArray(data?.data) ? data.data : (data?.menus || []))
+        } catch (e) {
+            console.error('Failed to load user menus', e)
+            setUserMenus([])
+        } finally {
+            setLoadingUserMenus(false)
+        }
+    }
+
+    const handleAssignMenuTemplate = async () => {
+        if (!editingTemplateId || !selectedUserId) {
+            alert('Please select both a menu template and a user')
+            return
+        }
+
+        try {
+            setAssigningMenu(true)
+            await assignMenuTemplateToUser({
+                userId: selectedUserId,
+                menuTemplateId: editingTemplateId,
+                dateApplied: assignmentDate,
+            })
+            alert('Menu template assigned successfully!')
+            // Refresh user menus after assignment
+            await loadUserMenus(selectedUserId)
+        } catch (e) {
+            console.error('Failed to assign menu template', e)
+            alert('Failed to assign menu template')
+        } finally {
+            setAssigningMenu(false)
+        }
+    }
+
+    const handleRemoveMenu = async (menu) => {
+        if (!selectedUserId) {
+            alert('Please select a user first')
+            return
+        }
+
+        const confirmed = confirm(`Are you sure you want to remove this menu template from the user?`)
+        if (!confirmed) {
+            return
+        }
+
+        try {
+            setRemovingMenu(true)
+            const menuTemplateId = menu?.menuTemplateId || menu?.id
+            const dateApplied = menu?.dateApplied
+
+            if (!dateApplied) {
+                alert('Date applied is missing for this menu')
+                return
+            }
+
+            await removeMenuFromUser({
+                userId: selectedUserId,
+                dateApplied: dateApplied,
+                menuTemplateId: menuTemplateId
+            })
+            alert('Menu removed successfully!')
+            // wait 1.5 seconds
+            await new Promise(resolve => setTimeout(resolve, 1500))
+            // Refresh user menus after removal
+            loadUserMenus(selectedUserId)
+        } catch (e) {
+            console.error('Failed to remove menu', e)
+            alert('Failed to remove menu')
+        } finally {
+            setRemovingMenu(false)
+        }
+    }
 
     const handleSearch = async () => {
         if (!searchText.trim()) return
@@ -218,12 +363,18 @@ const Menus = () => {
             snackPlan: template?.snackPlan || template?.snackPlan || [],
         })
         setExpanded(true)
+        setCurrentPage(1) // Reset to first page when selecting a template
+        setSelectedUserId(null) // Clear selected user when switching templates
+        setUserSearchTerm('') // Clear search term when selecting a template
     }
 
     const handleCancelEdit = () => {
         setEditingTemplateId(null)
         setMenuName('')
         setPlans(defaultPlans)
+        setCurrentPage(1) // Reset to first page
+        setSelectedUserId(null) // Clear selected user
+        setUserSearchTerm('') // Clear search term
     }
 
     const handleDeleteTemplate = async (templateId) => {
@@ -269,6 +420,134 @@ const Menus = () => {
             perMeal: { bp, lp, dp, sp }
         }
     }, [plans])
+
+    const formatUserData = (user) => {
+        const userData = user?.userData || {}
+        const loginDetails = user?.loginDetails || {}
+
+        // Try to get name from multiple sources
+        let name = 'Unknown'
+        if (userData?.name) {
+            name = userData.name
+        } else if (user?.firstName && user?.lastName) {
+            name = `${user.firstName} ${user.lastName}`.trim()
+        } else if (loginDetails?.displayName) {
+            name = loginDetails.displayName
+        } else if (user?.firstName) {
+            name = user.firstName
+        } else if (user?.lastName) {
+            name = user.lastName
+        }
+
+        // Get email
+        const email = user?.email || loginDetails?.providerData?.[0]?.email || loginDetails?.email || 'N/A'
+
+        // Determine status
+        let status = 'Unknown'
+        if (user?.subscriptionWhitelistDetails?.isPro === 'true') {
+            status = 'Pro (Whitelist)'
+        } else if (user?.subscriptionDetails?.Pro?.isActive) {
+            status = 'Pro'
+        } else {
+            status = 'Free'
+        }
+
+        return { name, email, status }
+    }
+
+    // Sort user menus based on selected field and direction
+    const sortedUserMenus = useMemo(() => {
+        const menus = [...userMenus]
+        return menus.sort((a, b) => {
+            let factor = 1
+            if (userMenusSortDirection === 'desc') {
+                factor = -1
+            }
+
+            switch (userMenusSortField) {
+                case 'dateApplied':
+                    const dateA = a?.dateApplied ? new Date(a.dateApplied).getTime() : 0
+                    const dateB = b?.dateApplied ? new Date(b.dateApplied).getTime() : 0
+                    return (dateA - dateB) * factor
+
+                case 'templateName':
+                    const nameA = (() => {
+                        const templateId = a?.menuTemplateId || a?.id
+                        const template = templates.find(t => {
+                            const tId = t?.id || t?._id || t?.menuTemplateId
+                            return tId === templateId
+                        })
+                        return (template?.name || 'Unknown Template').toLowerCase()
+                    })()
+                    const nameB = (() => {
+                        const templateId = b?.menuTemplateId || b?.id
+                        const template = templates.find(t => {
+                            const tId = t?.id || t?._id || t?.menuTemplateId
+                            return tId === templateId
+                        })
+                        return (template?.name || 'Unknown Template').toLowerCase()
+                    })()
+                    return nameA.localeCompare(nameB) * factor
+
+                case 'breakfast':
+                    return ((a?.breakfastPlan || []).length - (b?.breakfastPlan || []).length) * factor
+
+                case 'lunch':
+                    return ((a?.lunchPlan || []).length - (b?.lunchPlan || []).length) * factor
+
+                case 'dinner':
+                    return ((a?.dinnerPlan || []).length - (b?.dinnerPlan || []).length) * factor
+
+                case 'snack':
+                    return ((a?.snackPlan || []).length - (b?.snackPlan || []).length) * factor
+
+                default:
+                    return 0
+            }
+        })
+    }, [userMenus, userMenusSortField, userMenusSortDirection, templates])
+
+    const handleUserMenusSort = (field) => {
+        if (userMenusSortField === field) {
+            // Toggle direction if same field
+            setUserMenusSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+        } else {
+            // Set new field and default to ascending
+            setUserMenusSortField(field)
+            setUserMenusSortDirection('asc')
+        }
+    }
+
+    // Filter users based on search term
+    const filteredUsers = useMemo(() => {
+        if (!userSearchTerm.trim()) {
+            return users
+        }
+        const search = userSearchTerm.toLowerCase()
+        return users.filter(user => {
+            const { name, email } = formatUserData(user)
+            const userId = (user?.userId || user?.id || '').toString().toLowerCase()
+            return name.toLowerCase().includes(search) ||
+                email.toLowerCase().includes(search) ||
+                userId.includes(search)
+        })
+    }, [users, userSearchTerm])
+
+    // Pagination logic for users
+    const getCurrentUsers = () => {
+        const startIndex = (currentPage - 1) * usersPerPage
+        const endIndex = startIndex + usersPerPage
+        return filteredUsers.slice(startIndex, endIndex)
+    }
+
+    const getTotalUserPages = () => {
+        return Math.ceil(filteredUsers.length / usersPerPage)
+    }
+
+    // Reset to page 1 when search term or users per page changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [userSearchTerm, usersPerPage])
 
     return (
         <div className="space-y-6">
@@ -616,6 +895,428 @@ const Menus = () => {
                     </table>
                 </div>
             </div>
+
+
+            <div className="card p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Users</h2>
+                    <button
+                        onClick={refreshUsers}
+                        disabled={loadingUsers}
+                        className="btn-secondary text-sm"
+                    >
+                        {loadingUsers ? 'Refreshing...' : 'Refresh Users'}
+                    </button>
+                </div>
+
+                {/* Search Controls */}
+                <div className="mb-4">
+                    <div className="relative">
+                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            placeholder="Search by name, email, or user ID..."
+                            value={userSearchTerm}
+                            onChange={(e) => setUserSearchTerm(e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                </div>
+
+                {/* Assignment Date Picker */}
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Assignment Date
+                    </label>
+                    <input
+                        type="date"
+                        value={assignmentDate}
+                        onChange={(e) => setAssignmentDate(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscrition Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {getCurrentUsers().map((user) => {
+                                const { name, email, status } = formatUserData(user)
+                                const userId = user?.userId || user?.id
+                                const isSelected = selectedUserId === userId
+                                return (
+                                    <tr
+                                        key={userId}
+                                        className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{userId}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{email}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.includes('Pro') ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${user?.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                {user?.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setSelectedUserId(null)
+                                                    } else {
+                                                        setSelectedUserId(userId)
+                                                    }
+                                                }}
+                                                className={`${isSelected
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                                    } px-4 py-2 rounded-md text-sm transition-colors`}
+                                            >
+                                                {isSelected ? 'Selected' : 'Select'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                )
+                            })}
+                            {getCurrentUsers().length === 0 && users.length === 0 && (
+                                <tr>
+                                    <td className="px-6 py-4 text-sm text-gray-500 text-center" colSpan="6">
+                                        {loadingUsers ? 'Loading users...' : 'No users found'}
+                                    </td>
+                                </tr>
+                            )}
+                            {getCurrentUsers().length === 0 && users.length > 0 && (
+                                <tr>
+                                    <td className="px-6 py-4 text-sm text-gray-500 text-center" colSpan="6">
+                                        {userSearchTerm ? `No users found matching "${userSearchTerm}"` : 'No users to display'}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Pagination Controls */}
+                {users.length > 0 && (
+                    <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
+                        <div className="flex items-center gap-4">
+                            <label className="text-sm text-gray-700">Items per page:</label>
+                            <select
+                                value={usersPerPage}
+                                onChange={(e) => {
+                                    setUsersPerPage(Number(e.target.value))
+                                    setCurrentPage(1)
+                                }}
+                                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                            >
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+
+                            <span className="text-sm text-gray-700">
+                                Page {currentPage} of {getTotalUserPages() || 1}
+                            </span>
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(getTotalUserPages(), prev + 1))}
+                                disabled={currentPage >= getTotalUserPages()}
+                                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+
+                        <div className="text-sm text-gray-700">
+                            Showing {filteredUsers.length > 0 ? ((currentPage - 1) * usersPerPage) + 1 : 0} to {Math.min(currentPage * usersPerPage, filteredUsers.length)} of{' '}
+                            {filteredUsers.length} results
+                            {userSearchTerm && ` (filtered from ${users.length} total)`}
+                        </div>
+                    </div>
+                )}
+
+                {/* Assign Button */}
+                {selectedUserId && (
+                    <div className="mt-4 flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                        <div>
+                            <p className="text-sm font-medium text-gray-900">
+                                Selected User: {selectedUserId}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">
+                                {users.find(u => (u?.userId || u?.id) === selectedUserId) && (
+                                    <>Name: {formatUserData(users.find(u => (u?.userId || u?.id) === selectedUserId)).name}</>
+                                )}
+                            </p>
+                        </div>
+                        {editingTemplateId && (
+                            <button
+                                onClick={handleAssignMenuTemplate}
+                                disabled={assigningMenu}
+                                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+                            >
+                                {assigningMenu ? 'Assigning...' : 'Assign Menu Template to User'}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* User Menus Table - Only show when a user is selected */}
+            {selectedUserId && (
+                <div className="card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">User Menus</h2>
+                        {loadingUserMenus && (
+                            <span className="text-sm text-gray-500">Loading...</span>
+                        )}
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th
+                                        onClick={() => handleUserMenusSort('templateName')}
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Template Name
+                                            {userMenusSortField === 'templateName' && (
+                                                userMenusSortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Template ID</th>
+                                    <th
+                                        onClick={() => handleUserMenusSort('dateApplied')}
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Date Applied
+                                            {userMenusSortField === 'dateApplied' && (
+                                                userMenusSortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                    </th>
+                                    <th
+                                        onClick={() => handleUserMenusSort('breakfast')}
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Breakfast
+                                            {userMenusSortField === 'breakfast' && (
+                                                userMenusSortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                    </th>
+                                    <th
+                                        onClick={() => handleUserMenusSort('lunch')}
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Lunch
+                                            {userMenusSortField === 'lunch' && (
+                                                userMenusSortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                    </th>
+                                    <th
+                                        onClick={() => handleUserMenusSort('dinner')}
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Dinner
+                                            {userMenusSortField === 'dinner' && (
+                                                userMenusSortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                    </th>
+                                    <th
+                                        onClick={() => handleUserMenusSort('snack')}
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Snack
+                                            {userMenusSortField === 'snack' && (
+                                                userMenusSortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                                            )}
+                                        </div>
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {sortedUserMenus.map((menu) => {
+                                    const id = menu?.id || menu?._id || menu?.menuTemplateId
+                                    const templateId = menu?.menuTemplateId || id
+                                    const template = templates.find(t => {
+                                        const tId = t?.id || t?._id || t?.menuTemplateId
+                                        return tId === templateId
+                                    })
+                                    const templateName = template?.name || 'Unknown Template'
+
+                                    const isViewing = viewingUserMenu?.id === id
+                                    return (
+                                        <tr
+                                            key={id}
+                                            className={`hover:bg-gray-50 cursor-pointer ${isViewing ? 'bg-blue-50' : ''}`}
+                                            onClick={() => {
+                                                if (isViewing) {
+                                                    setViewingUserMenu(null)
+                                                } else {
+                                                    setViewingUserMenu(menu)
+                                                }
+                                            }}
+                                        >
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{templateName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{templateId}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {menu?.dateApplied ? new Date(menu.dateApplied).toLocaleDateString() : 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {(menu?.breakfastPlan || []).length} items
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {(menu?.lunchPlan || []).length} items
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {(menu?.dinnerPlan || []).length} items
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {(menu?.snackPlan || []).length} items
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => handleRemoveMenu(menu)}
+                                                    disabled={removingMenu}
+                                                    className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Remove menu"
+                                                >
+                                                    <TrashIcon className="w-5 h-5" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                                {userMenus.length === 0 && (
+                                    <tr>
+                                        <td className="px-6 py-4 text-sm text-gray-500 text-center" colSpan="8">
+                                            {loadingUserMenus ? 'Loading user menus...' : 'No menus assigned to this user'}
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* User Menu Viewer - Display selected menu details */}
+            {viewingUserMenu && (
+                <div className="card p-6">
+                    <div className="flex items-center justify-between cursor-pointer mb-4" onClick={() => setViewingUserMenu(null)}>
+                        <div>
+                            <h2 className="text-xl font-semibold text-gray-900">
+                                User Menu Details
+                            </h2>
+                            <p className="text-gray-500 text-sm">
+                                {viewingUserMenu?.dateApplied ? `Date Applied: ${new Date(viewingUserMenu.dateApplied).toLocaleDateString()}` : 'Menu Template Details'}
+                            </p>
+                        </div>
+                        <ChevronUpIcon className="w-5 h-5 text-gray-600" />
+                    </div>
+
+                    <div className="mt-6 space-y-6">
+                        <div>
+                            <h3 className="text-base font-semibold text-gray-900 mb-3">Menu Items</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {mealTypeOptions.map(opt => {
+                                    const items = viewingUserMenu[opt.id] || []
+                                    return (
+                                        <div key={opt.id} className="border border-gray-200 rounded-lg">
+                                            <div className="px-3 py-2 bg-gray-50 border-b text-sm font-medium text-gray-700">{opt.label}</div>
+                                            <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
+                                                {items.length === 0 && (
+                                                    <div className="text-sm text-gray-500">No items</div>
+                                                )}
+                                                {items.map((it, i) => {
+                                                    const isRecipeItem = detectIsRecipe(it)
+                                                    const servings = it?.numberOfServings || 1
+                                                    const adjustedCalories = Number(it?.totalCalories) || 0
+                                                    const adjustedNutrients = it?.totalNutrients || {}
+
+                                                    return (
+                                                        <div key={i} className="p-2 rounded bg-white shadow-sm">
+                                                            <div className="min-w-0">
+                                                                <div className="text-sm font-medium text-gray-900 truncate">{it?.name || it?.title || 'Unnamed'}</div>
+                                                                <div className="text-xs text-gray-500 truncate">{isRecipeItem ? 'Recipe' : 'Food'}</div>
+                                                            </div>
+                                                            {isRecipeItem && (
+                                                                <div className="mt-1 mb-1 text-xs text-gray-600">
+                                                                    <span className="font-medium">Servings:</span> {servings}
+                                                                </div>
+                                                            )}
+                                                            <div className="mt-1 text-xs text-gray-600">
+                                                                <span className="font-medium">Calories:</span> {adjustedCalories}
+                                                                <span className="mx-2">|</span>
+                                                                <span className="font-medium">Proteins:</span> {Math.round(Number(adjustedNutrients?.proteinsInGrams) || 0)} g
+                                                                <span className="mx-2">|</span>
+                                                                <span className="font-medium">Carbs:</span> {Math.round(Number(adjustedNutrients?.carbohydratesInGrams) || 0)} g
+                                                                <span className="mx-2">|</span>
+                                                                <span className="font-medium">Fat:</span> {Math.round(Number(adjustedNutrients?.fatInGrams) || 0)} g
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                                {items.length > 0 && (() => {
+                                                    const mealTotals = computeMealTotals(items)
+                                                    return (
+                                                        <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-900">
+                                                            <span className="font-medium">{opt.label} subtotal:</span>
+                                                            <span className="ml-1">{Math.round(mealTotals.calories)} cal</span>
+                                                            <span className="mx-2">|</span>
+                                                            <span>P {Math.round(mealTotals.proteinsInGrams)} g</span>
+                                                            <span className="mx-2">|</span>
+                                                            <span>C {Math.round(mealTotals.carbohydratesInGrams)} g</span>
+                                                            <span className="mx-2">|</span>
+                                                            <span>F {Math.round(mealTotals.fatInGrams)} g</span>
+                                                        </div>
+                                                    )
+                                                })()}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
