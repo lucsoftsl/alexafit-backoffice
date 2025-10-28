@@ -156,30 +156,27 @@ export const sendPushNotification = async (
   }
 }
 
-export const searchFoodItems = async (
+export const searchFoodItems = async ({
   searchText,
   userId,
-  onlyNonRecipes = false,
+  onlyRecipes = false,
   countryCode = null
-) => {
+}) => {
   try {
-    const response = await fetch(
-      'https://foodsync-api.vercel.app/foodsync/elasticSearch',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${API_AUTH}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId,
-          searchTerm: searchText,
-          itemType: 'FOOD',
-          onlyNonRecipes,
-          countryCode: countryCode || 'RO'
-        })
-      }
-    )
+    const response = await fetch(`${API_BASE_URL}/elasticSearch`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId,
+        searchTerm: searchText,
+        itemType: 'FOOD',
+        onlyRecipes,
+        countryCode: countryCode || 'RO'
+      })
+    })
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -193,15 +190,15 @@ export const searchFoodItems = async (
   }
 }
 
-export const createMenu = async menuData => {
+export const getItemsByIds = async ({ ids }) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/foodsync/createMenu`, {
+    const response = await fetch(`${API_BASE_URL}/getItemsByIds`, {
       method: 'POST',
       headers: {
         Authorization: `Basic ${API_AUTH}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(menuData)
+      body: JSON.stringify({ ids })
     })
 
     if (!response.ok) {
@@ -211,7 +208,7 @@ export const createMenu = async menuData => {
     const data = await response.json()
     return data
   } catch (error) {
-    console.error('Error creating menu:', error)
+    console.error('Error getting items by ids:', error)
     throw error
   }
 }
@@ -263,6 +260,285 @@ export const setItemVerifiedStatus = async ({ itemId, verified, itemType }) => {
     return data
   } catch (error) {
     console.error('Error setting item verified status:', error)
+    throw error
+  }
+}
+
+export const getAllMenuTemplates = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/getAllMenuTemplates`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error getting all menu templates:', error)
+    throw error
+  }
+}
+
+export const addMenuTemplate = async ({
+  breakfastPlan,
+  lunchPlan,
+  dinnerPlan,
+  snackPlan,
+  name
+}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/addMenuTemplate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        breakfastPlan,
+        lunchPlan,
+        dinnerPlan,
+        snackPlan,
+        name
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error adding menu template:', error)
+    throw error
+  }
+}
+
+export const updateMenuTemplate = async ({
+  menuTemplateId,
+  breakfastPlan,
+  lunchPlan,
+  dinnerPlan,
+  snackPlan,
+  name
+}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/updateMenuTemplate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        menuTemplateId,
+        breakfastPlan,
+        lunchPlan,
+        dinnerPlan,
+        snackPlan,
+        name
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error updating menu template:', error)
+    throw error
+  }
+}
+
+export const deleteMenuTemplateById = async ({ menuTemplateId }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/deleteMenuTemplateById`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        menuTemplateId
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error deleting menu template by id:', error)
+    throw error
+  }
+}
+
+export const assignMenuTemplateToUser = async ({
+  userId,
+  menuTemplateId,
+  dateApplied,
+  replaceExisting = false
+}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/assignMenuTemplateToUser`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId,
+        menuTemplateId,
+        dateApplied,
+        replaceExisting
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error assigning menu template to user:', error)
+    throw error
+  }
+}
+
+export const removeMenuFromUser = async ({
+  userId,
+  dateApplied,
+  menuTemplateId
+}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/removeMenuFromUser`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        userId,
+        dateApplied,
+        menuTemplateId
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error removing menu from user:', error)
+    throw error
+  }
+}
+
+export const getUserMenus = async ({ userId }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/getUserMenus`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error getting user menus:', error)
+    throw error
+  }
+}
+
+export const deleteMenuTemplateItemById = async ({
+  itemId,
+  itemType,
+  menuTemplateId
+}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/deleteMenuTemplateItemById`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId, itemType, menuTemplateId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error deleting menu template item by id:', error)
+    throw error
+  }
+}
+
+export const getUserByUserId = async ({ userId }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/getUserByUserId`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error getting user by user id:', error)
+    throw error
+  }
+}
+
+export const getUsers = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/getUsers`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error getting users:', error)
     throw error
   }
 }

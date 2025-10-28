@@ -5,7 +5,8 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { getUnapprovedItems, setItemVerifiedStatus } from '../services/api'
+import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
+import UserDetailModal from '../components/UserDetailModal'
 
 const UnapprovedItems = () => {
   const [foodItems, setFoodItems] = useState([])
@@ -29,6 +30,10 @@ const UnapprovedItems = () => {
   // For image modal
   const [selectedImage, setSelectedImage] = useState(null)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+
+  // For user detail modal
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false)
 
   useEffect(() => {
     const loadUnapprovedItems = async () => {
@@ -325,6 +330,18 @@ const UnapprovedItems = () => {
     )
   }
 
+  const handleShowUser = async (userId) => {
+    try {
+      const data = await getUserByUserId({ userId })
+      const user = data?.data || data
+      setSelectedUser(user)
+      setIsUserModalOpen(true)
+    } catch (error) {
+      console.error('Error loading user data:', error)
+      alert('Failed to load user data')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -535,7 +552,14 @@ const UnapprovedItems = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.countryCode || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate" title={item.createdByUserId}>
-                      {item.createdByUserId || 'N/A'}
+                      {item.createdByUserId ? (
+                        <button
+                          onClick={() => handleShowUser(item.createdByUserId)}
+                          className="text-blue-600 hover:text-blue-900 underline cursor-pointer"
+                        >
+                          {item.createdByUserId}
+                        </button>
+                      ) : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.ingredients ? (
@@ -858,6 +882,17 @@ const UnapprovedItems = () => {
           </div>
         </div>
       )}
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        isOpen={isUserModalOpen}
+        onClose={() => {
+          setIsUserModalOpen(false)
+          setSelectedUser(null)
+        }}
+        user={selectedUser}
+        fromPage="unapprovedItems"
+      />
     </div>
   )
 }

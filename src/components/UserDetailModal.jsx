@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { 
+import {
   XMarkIcon,
   CalendarIcon,
   ChartBarIcon,
@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { fetchUserDailyNutrition, sendPushNotification } from '../services/api'
 
-const UserDetailModal = ({ isOpen, onClose, user }) => {
+const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [nutritionData, setNutritionData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -60,10 +60,10 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
 
     try {
       setSendingNotification(true)
-      
+
       // Use the already calculated values from the component
       const goalsForScore = nutritionData.goalNutrients?.userGoals || {}
-      
+
       const notificationTitle = `Scorul tău zilnic: ${dailyScore}%`
       const notificationBody = `${notificationMessage}\n\nCalorii: ${actualTotals.totalCalories.toFixed(0)}/${goalsForScore.totalCalories || 0}\nProteine: ${actualTotals.totalProtein.toFixed(1)}g/${goalsForScore.proteinsInGrams || 0}g`
 
@@ -72,7 +72,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
         notificationTitle,
         notificationBody
       )
-      
+
       alert('Notification sent successfully!')
       setNotificationMessage('')
     } catch (err) {
@@ -84,10 +84,10 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
   }
 
   useEffect(() => {
-    if (isOpen && user) {
+    if (isOpen && user && fromPage !== 'unapprovedItems') {
       loadNutritionData()
     }
-  }, [isOpen, user, selectedDate, loadNutritionData])
+  }, [isOpen, user, selectedDate, loadNutritionData, fromPage])
 
   const formatNutritionValue = (value) => {
     if (value === null || value === undefined) return 'N/A'
@@ -117,6 +117,13 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
               {user?.name || 'User Details'}
             </h2>
             <p className="text-gray-600 mt-1">User ID: {user?.userId}</p>
+
+            {fromPage === 'unapprovedItems' && <>
+              <p className="text-gray-600 mt-1">Status: {user?.status}</p>
+              <p className="text-gray-600 mt-1">Name: {user?.loginDetails?.displayName || user?.userData?.name}</p>
+              <p className="text-gray-600 mt-1">Email: {user?.loginDetails?.providerData[0]?.email || user?.loginDetails?.email || user?.userData?.email}</p>
+              <p className="text-gray-600 mt-1">ProviderId: {user?.loginDetails?.providerData[0]?.providerId || user?.loginDetails?.providerId}</p>
+            </>}
           </div>
           <button
             onClick={onClose}
@@ -129,20 +136,21 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           {/* Date Selector */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Date
-            </label>
-            <div className="flex items-center space-x-4">
-              <CalendarIcon className="w-5 h-5 text-gray-400" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          {fromPage !== 'unapprovedItems' && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Date
+              </label>
+              <div className="flex items-center space-x-4">
+                <CalendarIcon className="w-5 h-5 text-gray-400" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>)}
 
           {/* Loading State */}
           {loading && (
@@ -153,7 +161,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
           )}
 
           {/* Error State */}
-          {error && (
+          {error && fromPage !== 'unapprovedItems' && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-red-800">{error}</p>
             </div>
@@ -183,11 +191,11 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                       unit: item.unit,
                       foodName: item.food?.name
                     })
-                    
+
                     // Extract quantity and unit from the string
                     const quantityStr = item.quantity || '0'
                     const unitStr = item.unit || 'g'
-                    
+
                     // Parse quantity more carefully
                     let quantity = 0
                     if (typeof quantityStr === 'string') {
@@ -197,12 +205,12 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                     } else if (typeof quantityStr === 'number') {
                       quantity = quantityStr
                     }
-                    
+
                     const unit = unitStr.toLowerCase()
-                    
+
                     // Convert to grams based on unit type
                     let quantityInGrams = quantity
-                    
+
                     // Handle serving units that contain gram amounts in parentheses
                     if (unitStr.includes('(') && unitStr.includes('g)')) {
                       // Extract serving amount from unit like "Lingurita rasa (5g)" or "Portie (108.0g)"
@@ -216,15 +224,15 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                     } else if (unit.includes('litri') || unit.includes('l')) {
                       quantityInGrams = quantity * 1000
                     }
-                    
+
                     const multiplier = quantityInGrams / 100
-                    
+
                     const nutrients = item.food?.totalNutrients || {}
-                    
+
                     // Use the same calculation as individual items
                     console.log(`Item: ${item.food?.name}, Raw: "${quantityStr}", Parsed: ${quantity}, Unit: ${unit}, Multiplier: ${multiplier.toFixed(2)}`)
                     console.log(`Protein per 100g: ${nutrients.proteinsInGrams}, Actual: ${(nutrients.proteinsInGrams || 0) * multiplier}`)
-                    
+
                     // Calculate actual calories consumed
                     let actualCalories = 0
                     if (item.food?.type === 'recipe') {
@@ -258,7 +266,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                       actualCalories = caloriesPer100g * multiplier
                     }
                     totals.totalCalories += actualCalories
-                    
+
                     // Calculate nutrients based on food type
                     if (item.food?.type === 'food') {
                       // For foods, quantity is already in grams, nutrients are per 100g
@@ -453,7 +461,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Send Notification Section */}
                   {user?.loginDetails?.pushNotificationToken && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg">
@@ -489,7 +497,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Additional Nutrients */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
@@ -652,13 +660,13 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                                 } else if (typeof quantityStr === 'number') {
                                   quantity = quantityStr
                                 }
-                                
+
                                 const unit = item.unit || 'g'
                                 const nutrients = item.food?.totalNutrients || {}
-                                
+
                                 // Convert to grams based on unit type
                                 let quantityInGrams = quantity
-                                
+
                                 // Handle serving units that contain gram amounts in parentheses
                                 if (unit.includes('(') && unit.includes('g)')) {
                                   // Extract serving amount from unit like "Lingurita rasa (5g)" or "Portie (108.0g)"
@@ -672,9 +680,9 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                                 } else if (unit.includes('litri') || unit.includes('l')) {
                                   quantityInGrams = quantity * 1000
                                 }
-                                
+
                                 const multiplier = quantityInGrams / 100
-                                
+
                                 // Calculate nutrients based on food type
                                 let protein, carbs, fat, fiber, sugar
                                 if (item.food?.type === 'food') {
@@ -810,10 +818,10 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                           qty = quantityStr
                         }
                         const unit = item.unit || 'g'
-                        
+
                         // Convert to grams based on unit type
                         let quantityInGrams = qty
-                        
+
                         // Handle serving units that contain gram amounts in parentheses
                         if (unit.includes('(') && unit.includes('g)')) {
                           // Extract serving amount from unit like "Lingurita rasa (5g)" or "Portie (108.0g)"
@@ -827,9 +835,9 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                         } else if (unit.toLowerCase().includes('litri') || unit.toLowerCase().includes('l')) {
                           quantityInGrams = qty * 1000
                         }
-                        
+
                         const nutrients = item.food?.totalNutrients || {}
-                        
+
                         // Calculate actual calories consumed using same logic as main component
                         let itemCalories = 0
                         if (item.food?.type === 'recipe') {
@@ -863,7 +871,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                           const multiplier = quantityInGrams / 100
                           itemCalories = caloriesPer100g * multiplier
                         }
-                        
+
                         // Calculate nutrients using same logic as main component
                         let p, c, f
                         if (item.food?.type === 'food') {
@@ -903,7 +911,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                           c = (nutrients.carbohydratesInGrams || 0) * multiplier
                           f = (nutrients.fatInGrams || 0) * multiplier
                         }
-                        
+
                         // Show quantity in grams and actual consumed values
                         lines.push(`- ${item.food?.name || 'Unknown'}: ${qty}g, ${Math.round(itemCalories)} cal, P ${p.toFixed(1)}g, C ${c.toFixed(1)}g, F ${f.toFixed(1)}g`)
                       })
@@ -911,7 +919,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                   }
                   // Daily totals (actual)
                   lines.push(`Daily Totals -> Calories: ${formatNutritionValue(actualTotals.totalCalories)}, Protein: ${formatNutritionValue(actualTotals.totalProtein)}g, Carbs: ${formatNutritionValue(actualTotals.totalCarbs)}g, Fat: ${formatNutritionValue(actualTotals.totalFat)}g, Fiber: ${formatNutritionValue(actualTotals.totalFiber)}g, Sugar: ${formatNutritionValue(actualTotals.totalSugar)}g`)
-                  
+
                   // API total if present
                   if (nutritionData.totalCalories !== undefined) {
                     lines.push(`API Total Calories: ${formatNutritionValue(nutritionData.totalCalories)}`)
@@ -935,7 +943,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                     const proteinProgress = g.proteinsInGrams > 0 ? ((actualTotals.totalProtein / g.proteinsInGrams) * 100).toFixed(1) : 'N/A'
                     const carbProgress = g.carbohydratesInGrams > 0 ? ((actualTotals.totalCarbs / g.carbohydratesInGrams) * 100).toFixed(1) : 'N/A'
                     const fatProgress = g.fatInGrams > 0 ? ((actualTotals.totalFat / g.fatInGrams) * 100).toFixed(1) : 'N/A'
-                    
+
                     lines.push(`Goal Progress -> Calories: ${calorieProgress}%, Protein: ${proteinProgress}%, Carbs: ${carbProgress}%, Fat: ${fatProgress}%`)
                   }
 
@@ -974,7 +982,7 @@ const UserDetailModal = ({ isOpen, onClose, user }) => {
                           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488" />
                           </svg>
                           Send to WhatsApp
                         </button>

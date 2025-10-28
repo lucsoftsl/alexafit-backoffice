@@ -1,17 +1,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { 
-  UsersIcon, 
-  UserGroupIcon, 
-  ChartBarIcon, 
+import {
+  UsersIcon,
+  UserGroupIcon,
+  ChartBarIcon,
   ArrowTrendingUpIcon,
   EyeIcon,
   PencilIcon,
   TrashIcon,
-  PlusIcon
 } from '@heroicons/react/24/outline'
 import { fetchProgramSubscribers, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
-import MenuCreationModal from '../components/MenuCreationModal'
 
 const Dashboard = () => {
   const [subscribers, setSubscribers] = useState([])
@@ -19,8 +17,6 @@ const Dashboard = () => {
   const [error, setError] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isMenuModalOpen, setIsMenuModalOpen] = useState(false)
-  const [menuUserId, setMenuUserId] = useState(null)
   const hasLoadedRef = useRef(false)
 
   useEffect(() => {
@@ -77,31 +73,21 @@ const Dashboard = () => {
     }
   }
 
-  const handleCreateMenu = (userId) => {
-    setMenuUserId(userId)
-    setIsMenuModalOpen(true)
-  }
-
-  const handleCloseMenuModal = () => {
-    setIsMenuModalOpen(false)
-    setMenuUserId(null)
-  }
-
   const filteredSubscribers = useMemo(() => {
     return subscribers.filter(subscriber => {
       const userData = formatUserData(subscriber)
-      return userData.name.toLowerCase().includes('') && 
-             userData.email.toLowerCase().includes('')
+      return userData.name.toLowerCase().includes('') &&
+        userData.email.toLowerCase().includes('')
     })
   }, [subscribers])
 
   const stats = useMemo(() => {
     const totalSubscribers = subscribers.length
     const activeSubscribers = subscribers.filter(sub => sub.status === 'ACTIVE').length
-    const proSubscribers = subscribers.filter(sub => 
+    const proSubscribers = subscribers.filter(sub =>
       sub.subscriptionWhitelistDetails?.isPro === 'true'
     ).length
-    
+
     return [
       {
         name: 'Total Subscribers',
@@ -200,9 +186,8 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="mt-4">
-                <span className={`text-sm font-medium ${
-                  stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                }`}>
+                <span className={`text-sm font-medium ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                  }`}>
                   {stat.change} from last month
                 </span>
               </div>
@@ -217,7 +202,7 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900">Program Subscribers</h2>
           <span className="text-sm text-gray-500">{filteredSubscribers.length} subscribers</span>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -247,7 +232,7 @@ const Dashboard = () => {
                 const userData = formatUserData(subscriber)
                 const subscriptionData = formatSubscriptionStatus(subscriber)
                 const paymentData = formatPaymentData(subscriber)
-                
+
                 return (
                   <tr key={subscriber.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -275,11 +260,10 @@ const Dashboard = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        subscriber.status === 'ACTIVE' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${subscriber.status === 'ACTIVE'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                        }`}>
                         {subscriber.status}
                       </span>
                     </td>
@@ -317,13 +301,12 @@ const Dashboard = () => {
           {recentActivities.map((activity) => (
             <div key={activity.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
               <div className="flex items-center">
-                <div className={`w-2 h-2 rounded-full mr-3 ${
-                  activity.type === 'subscription' ? 'bg-green-500' :
+                <div className={`w-2 h-2 rounded-full mr-3 ${activity.type === 'subscription' ? 'bg-green-500' :
                   activity.type === 'cancellation' ? 'bg-red-500' :
-                  activity.type === 'profile' ? 'bg-blue-500' :
-                  activity.type === 'activity' ? 'bg-purple-500' :
-                  'bg-gray-500'
-                }`} />
+                    activity.type === 'profile' ? 'bg-blue-500' :
+                      activity.type === 'activity' ? 'bg-purple-500' :
+                        'bg-gray-500'
+                  }`} />
                 <div>
                   <p className="text-sm font-medium text-gray-900">{activity.user}</p>
                   <p className="text-sm text-gray-500">{activity.action}</p>
@@ -339,7 +322,7 @@ const Dashboard = () => {
       <div className="card p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <button 
+          <button
             onClick={() => {
               if (subscribers.length > 0) {
                 setSelectedUser(subscribers[0])
@@ -350,17 +333,6 @@ const Dashboard = () => {
           >
             <EyeIcon className="w-4 h-4 mr-2" />
             View All Users
-          </button>
-          <button 
-            onClick={() => {
-              if (subscribers.length > 0) {
-                handleCreateMenu(subscribers[0].userId)
-              }
-            }}
-            className="bg-green-600 text-white px-4 py-3 rounded-md hover:bg-green-700 text-center flex items-center justify-center"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Create Menu
           </button>
           <button className="btn-secondary text-center py-3">
             Export Data
@@ -379,13 +351,6 @@ const Dashboard = () => {
           setIsModalOpen(false)
           setSelectedUser(null)
         }}
-      />
-
-      {/* Menu Creation Modal */}
-      <MenuCreationModal
-        userId={menuUserId}
-        isOpen={isMenuModalOpen}
-        onClose={handleCloseMenuModal}
       />
     </div>
   )

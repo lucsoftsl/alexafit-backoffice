@@ -1,18 +1,14 @@
-import { useState, useEffect } from 'react'
-import { 
+import { useState } from 'react'
+import {
   XMarkIcon,
   MagnifyingGlassIcon,
   PlusIcon,
   TrashIcon,
-  CalendarIcon,
-  ClockIcon
 } from '@heroicons/react/24/outline'
-import { searchFoodItems, createMenu } from '../services/api'
+import { searchFoodItems, addMenuTemplate } from '../services/api'
 
 const MenuCreationModal = ({ isOpen, onClose, userId }) => {
   const [menuName, setMenuName] = useState('')
-  const [menuDescription, setMenuDescription] = useState('')
-  const [menuDate, setMenuDate] = useState(new Date().toISOString().split('T')[0])
   const [searchText, setSearchText] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [selectedFoods, setSelectedFoods] = useState([])
@@ -74,8 +70,6 @@ const MenuCreationModal = ({ isOpen, onClose, userId }) => {
 
       const menuData = {
         name: menuName,
-        description: menuDescription,
-        date: menuDate,
         userId: userId,
         foods: selectedFoods.map(food => ({
           foodId: food.id,
@@ -87,15 +81,14 @@ const MenuCreationModal = ({ isOpen, onClose, userId }) => {
         }))
       }
 
-      await createMenu(menuData)
-      
+      await addMenuTemplate(menuData)
+
       // Reset form
       setMenuName('')
-      setMenuDescription('')
       setSelectedFoods([])
       setSearchText('')
       setSearchResults([])
-      
+
       alert('Menu created successfully!')
       onClose()
     } catch (err) {
@@ -150,31 +143,6 @@ const MenuCreationModal = ({ isOpen, onClose, userId }) => {
                 placeholder="e.g., Healthy Breakfast Menu"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <CalendarIcon className="w-4 h-4 inline mr-1" />
-                Date
-              </label>
-              <input
-                type="date"
-                value={menuDate}
-                onChange={(e) => setMenuDate(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
-              value={menuDescription}
-              onChange={(e) => setMenuDescription(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              placeholder="Optional description for the menu..."
-            />
           </div>
 
           {/* Food Search */}
@@ -212,8 +180,8 @@ const MenuCreationModal = ({ isOpen, onClose, userId }) => {
                         {food.totalCalories} cal/100g • {food.category}
                       </div>
                       <div className="text-xs text-gray-500">
-                        P: {food.totalNutrients?.proteinsInGrams || 0}g • 
-                        C: {food.totalNutrients?.carbohydratesInGrams || 0}g • 
+                        P: {food.totalNutrients?.proteinsInGrams || 0}g •
+                        C: {food.totalNutrients?.carbohydratesInGrams || 0}g •
                         F: {food.totalNutrients?.fatInGrams || 0}g
                       </div>
                     </div>
