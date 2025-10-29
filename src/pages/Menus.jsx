@@ -383,6 +383,11 @@ const Menus = () => {
   }
 
   const handleDeleteTemplate = async (templateId) => {
+    const confirmed = confirm('Are you sure you want to delete this template?')
+    if (!confirmed) {
+      return
+    }
+
     try {
       await deleteMenuTemplateById({ menuTemplateId: templateId })
       // wait 1.5 seconds

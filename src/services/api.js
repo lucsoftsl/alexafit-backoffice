@@ -98,7 +98,11 @@ export const formatUserData = subscriber => {
 
   return {
     name: name,
-    email: subscriber.email || 'N/A',
+    email:
+      loginDetails?.providerData?.[0]?.email ||
+      loginDetails?.email ||
+      subscriber.email ||
+      'N/A',
     phone: subscriber.phoneNumber || 'N/A',
     country: subscriber.country || 'N/A',
     gender: userData.selectedGender || 'N/A',
