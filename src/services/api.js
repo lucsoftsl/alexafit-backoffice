@@ -292,7 +292,8 @@ export const addMenuTemplate = async ({
   lunchPlan,
   dinnerPlan,
   snackPlan,
-  name
+  name,
+  isAssignableByUser
 }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/addMenuTemplate`, {
@@ -306,7 +307,8 @@ export const addMenuTemplate = async ({
         lunchPlan,
         dinnerPlan,
         snackPlan,
-        name
+        name,
+        isAssignableByUser
       })
     })
 
@@ -328,7 +330,8 @@ export const updateMenuTemplate = async ({
   lunchPlan,
   dinnerPlan,
   snackPlan,
-  name
+  name,
+  isAssignableByUser
 }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/updateMenuTemplate`, {
@@ -343,7 +346,8 @@ export const updateMenuTemplate = async ({
         lunchPlan,
         dinnerPlan,
         snackPlan,
-        name
+        name,
+        isAssignableByUser
       })
     })
 
