@@ -61,6 +61,8 @@ const Menus = () => {
   const [removingMenu, setRemovingMenu] = useState(false)
   const [viewingUserMenu, setViewingUserMenu] = useState(null)
   const [templateSearchTerm, setTemplateSearchTerm] = useState('')
+  // State to track display values for items (separate from original values)
+  const [displayValues, setDisplayValues] = useState({})
 
   const loadTemplates = async () => {
     try {
@@ -231,25 +233,67 @@ const Menus = () => {
     return type === 'RECIPE' || type === 'RECIPES'
   }
 
+  // Get a unique identifier for a serving (id + name or just name if id is missing)
+  const getServingIdentifier = (serving) => {
+    if (serving?.id !== undefined && serving?.id !== null) {
+      return `${serving.id}_${serving.name || serving.innerName || ''}`
+    }
+    return serving?.name || serving?.innerName || ''
+  }
+
+  // Find a serving by its identifier
+  const findServingByIdentifier = (servingOptions, identifier) => {
+    if (!identifier) return null
+    return servingOptions.find(s => {
+      const servingId = getServingIdentifier(s)
+      return servingId === identifier
+    })
+  }
+
   const addItemToPlan = async (item) => {
     try {
       let enriched = item
-      if (detectIsRecipe(item)) {
-        try {
-          const id = item?.id || item?.itemId || item?._id
-          if (id) {
-            const resp = await getItemsByIds({ ids: [id] })
-            const detailed = resp?.data?.[0] || resp?.items?.[0]
-            if (detailed) {
+      // Store original serving info - try to get from serving array or default
+      let originalServingAmount = 100 // Default to 100g if no serving info
+      let originalServingId = null
+
+      if (item?.serving && Array.isArray(item.serving) && item.serving.length > 0) {
+        // Use the first serving option as default, or find one with profileId === 1 (Portie)
+        const portieServing = item.serving.find(s => s.profileId === 1)
+        const defaultServing = portieServing || item.serving[0]
+        originalServingAmount = defaultServing?.amount || 100
+        originalServingId = getServingIdentifier(defaultServing)
+      }
+
+      // Fetch detailed info for both recipes and foods to get complete serving array
+      try {
+        const id = item?.id || item?.itemId || item?._id
+        if (id) {
+          const resp = await getItemsByIds({ ids: [id] })
+          const detailed = resp?.data?.[0] || resp?.items?.[0]
+          if (detailed) {
+            if (detectIsRecipe(item)) {
               // Store original values for scaling
               const originalServings = detailed?.numberOfServings || 1
+              // Get original serving info from detailed item if available
+              // For recipes, serving array is per 1 serving, so we need to multiply by numberOfServings
+              if (detailed?.serving && Array.isArray(detailed.serving) && detailed.serving.length > 0) {
+                const portieServing = detailed.serving.find(s => s.profileId === 1)
+                const defaultServing = portieServing || detailed.serving[0]
+                // Serving amount is per 1 serving, so multiply by numberOfServings for total
+                originalServingAmount = (defaultServing?.amount || 100) * originalServings
+                originalServingId = getServingIdentifier(defaultServing)
+              }
+
               const enrichedData = {
                 ...item,
                 ...detailed,
                 originalServings,
                 originalCalories: detailed?.totalCalories,
                 originalNutrients: detailed?.totalNutrients,
-                numberOfServings: originalServings
+                numberOfServings: originalServings,
+                originalServingAmount,
+                originalServingId
               }
 
               // Scale ingredients to match serving count
@@ -272,12 +316,52 @@ const Menus = () => {
               }
 
               enriched = enrichedData
+            } else {
+              // For food items, get serving info from detailed item
+              if (detailed?.serving && Array.isArray(detailed.serving) && detailed.serving.length > 0) {
+                const portieServing = detailed.serving.find(s => s.profileId === 1)
+                const defaultServing = portieServing || detailed.serving[0]
+                originalServingAmount = defaultServing?.amount || 100
+                originalServingId = getServingIdentifier(defaultServing)
+              }
+
+              enriched = {
+                ...item,
+                ...detailed,
+                originalCalories: detailed?.totalCalories || item?.totalCalories,
+                originalNutrients: detailed?.totalNutrients || item?.totalNutrients,
+                originalServingAmount,
+                originalServingId
+              }
             }
           }
-        } catch (e) {
-          console.warn('Failed to enrich recipe, using elastic item', e)
+        }
+      } catch (e) {
+        console.warn('Failed to enrich item, using elastic item', e)
+        // Fallback to original logic if fetch fails
+        if (!detectIsRecipe(item)) {
+          enriched = {
+            ...item,
+            originalCalories: item?.totalCalories,
+            originalNutrients: item?.totalNutrients,
+            originalServingAmount,
+            originalServingId
+          }
         }
       }
+
+      // Add item to plan
+      const newIndex = plans[activeMealType].length
+      const itemKey = `${activeMealType}-${newIndex}`
+
+      // Initialize display values with original serving
+      setDisplayValues(prev => ({
+        ...prev,
+        [itemKey]: {
+          selectedServingId: originalServingId,
+          servingAmount: originalServingAmount,
+        }
+      }))
 
       setPlans(prev => ({
         ...prev,
@@ -291,6 +375,25 @@ const Menus = () => {
   }
 
   const removeItemFromPlan = (mealKey, index) => {
+    // Remove display values for this item and reindex remaining items
+    const itemKey = `${mealKey}-${index}`
+    setDisplayValues(prev => {
+      const newValues = { ...prev }
+      delete newValues[itemKey]
+      // Reindex items after the removed one
+      const reindexed = {}
+      Object.keys(newValues).forEach(key => {
+        const [mk, idx] = key.split('-')
+        const idxNum = parseInt(idx)
+        if (mk === mealKey && idxNum > index) {
+          reindexed[`${mk}-${idxNum - 1}`] = newValues[key]
+        } else {
+          reindexed[key] = newValues[key]
+        }
+      })
+      return reindexed
+    })
+
     setPlans(prev => ({
       ...prev,
       [mealKey]: prev[mealKey].filter((_, i) => i !== index)
@@ -308,15 +411,48 @@ const Menus = () => {
       setSubmitting(true)
       setError(null)
 
+      // Prepare plans with changedServing property added to each item
+      const preparePlanWithChangedServing = (planItems, mealKey) => {
+        return planItems.map((item, index) => {
+          const itemKey = `${mealKey}-${index}`
+          const displayValue = displayValues[itemKey]
+
+          // Create a copy of the item without modifying the original
+          const itemCopy = { ...item }
+
+          // Add changedServing if display value exists and has a selected serving
+          // Only add if servingAmount is a valid number (not empty string)
+          if (displayValue &&
+            displayValue.servingAmount !== undefined &&
+            displayValue.servingAmount !== '' &&
+            displayValue.selectedServingId !== null &&
+            displayValue.selectedServingId !== undefined) {
+            // Find the serving object using the identifier
+            const servingOptions = item?.serving && Array.isArray(item.serving) ? item.serving : []
+            const selectedServing = findServingByIdentifier(servingOptions, displayValue.selectedServingId)
+
+            if (selectedServing) {
+              // Store the entire serving object instead of just the ID
+              itemCopy.changedServing = {
+                value: displayValue.servingAmount,
+                serving: selectedServing
+              }
+            }
+          }
+
+          return itemCopy
+        })
+      }
+
       if (editingTemplateId) {
         // Update existing template
         const payload = {
           menuTemplateId: editingTemplateId,
           name: menuName.trim(),
-          breakfastPlan: plans.breakfastPlan,
-          lunchPlan: plans.lunchPlan,
-          dinnerPlan: plans.dinnerPlan,
-          snackPlan: plans.snackPlan,
+          breakfastPlan: preparePlanWithChangedServing(plans.breakfastPlan, 'breakfastPlan'),
+          lunchPlan: preparePlanWithChangedServing(plans.lunchPlan, 'lunchPlan'),
+          dinnerPlan: preparePlanWithChangedServing(plans.dinnerPlan, 'dinnerPlan'),
+          snackPlan: preparePlanWithChangedServing(plans.snackPlan, 'snackPlan'),
           isAssignableByUser,
         }
         await updateMenuTemplate(payload)
@@ -324,10 +460,10 @@ const Menus = () => {
         // Create new template
         const payload = {
           name: menuName.trim(),
-          breakfastPlan: plans.breakfastPlan,
-          lunchPlan: plans.lunchPlan,
-          dinnerPlan: plans.dinnerPlan,
-          snackPlan: plans.snackPlan,
+          breakfastPlan: preparePlanWithChangedServing(plans.breakfastPlan, 'breakfastPlan'),
+          lunchPlan: preparePlanWithChangedServing(plans.lunchPlan, 'lunchPlan'),
+          dinnerPlan: preparePlanWithChangedServing(plans.dinnerPlan, 'dinnerPlan'),
+          snackPlan: preparePlanWithChangedServing(plans.snackPlan, 'snackPlan'),
           isAssignableByUser,
         }
         await addMenuTemplate(payload)
@@ -336,6 +472,7 @@ const Menus = () => {
       // Reset form
       setMenuName('')
       setPlans(defaultPlans)
+      setDisplayValues({})
       setEditingTemplateId(null)
 
       // refresh templates
@@ -361,12 +498,82 @@ const Menus = () => {
     setEditingTemplateId(id)
     setMenuName(template?.name || '')
     setIsAssignableByUser(template?.isAssignableByUser || false)
-    setPlans({
+
+    const loadedPlans = {
       breakfastPlan: template?.breakfastPlan || [],
       lunchPlan: template?.lunchPlan || [],
       dinnerPlan: template?.dinnerPlan || [],
       snackPlan: template?.snackPlan || template?.snackPlan || [],
+    }
+    setPlans(loadedPlans)
+
+    // Initialize display values from loaded items, checking for changedServing or defaulting to original
+    const initialDisplayValues = {}
+    mealTypeOptions.forEach(opt => {
+      const items = loadedPlans[opt.id] || []
+      items.forEach((item, index) => {
+        const itemKey = `${opt.id}-${index}`
+        // If item has changedServing, use that; otherwise use original serving
+        if (item?.changedServing) {
+          // If changedServing has the serving object, use it directly
+          let servingIdentifier = null
+          if (item.changedServing.serving) {
+            servingIdentifier = getServingIdentifier(item.changedServing.serving)
+          } else {
+            // Legacy support: if it has servingId instead of serving object, try to find it
+            const servingOptions = item?.serving && Array.isArray(item.serving) ? item.serving : []
+            if (servingOptions.length > 0) {
+              const foundServing = servingOptions.find(s => {
+                if (typeof item.changedServing.servingId === 'number') {
+                  return s.id === item.changedServing.servingId
+                } else {
+                  return (s.name || s.innerName) === item.changedServing.servingId ||
+                    getServingIdentifier(s) === item.changedServing.servingId
+                }
+              })
+              if (foundServing) {
+                servingIdentifier = getServingIdentifier(foundServing)
+              } else {
+                servingIdentifier = item.changedServing.servingId
+              }
+            } else {
+              servingIdentifier = item.changedServing.servingId
+            }
+          }
+
+          initialDisplayValues[itemKey] = {
+            selectedServingId: servingIdentifier,
+            servingAmount: item.changedServing.value,
+          }
+        } else {
+          // Use original serving info, or extract from serving array if not stored
+          let originalServingAmount = item?.originalServingAmount
+          let originalServingId = item?.originalServingId
+
+          // If not stored, try to extract from serving array
+          if (!originalServingAmount && item?.serving && Array.isArray(item.serving) && item.serving.length > 0) {
+            const portieServing = item.serving.find(s => s.profileId === 1)
+            const defaultServing = portieServing || item.serving[0]
+            const servingAmountPerUnit = defaultServing?.amount || 100
+            // For recipes, multiply by numberOfServings since serving array is per 1 serving
+            const isRecipe = detectIsRecipe(item)
+            const numberOfServings = isRecipe ? (item?.numberOfServings || item?.originalServings || 1) : 1
+            originalServingAmount = isRecipe ? servingAmountPerUnit * numberOfServings : servingAmountPerUnit
+            originalServingId = getServingIdentifier(defaultServing)
+          } else if (!originalServingAmount) {
+            originalServingAmount = 100 // Default fallback
+            originalServingId = null
+          }
+
+          initialDisplayValues[itemKey] = {
+            selectedServingId: originalServingId,
+            servingAmount: originalServingAmount,
+          }
+        }
+      })
     })
+    setDisplayValues(initialDisplayValues)
+
     setExpanded(true)
     setCurrentPage(1) // Reset to first page when selecting a template
     setSelectedUserId(null) // Clear selected user when switching templates
@@ -377,6 +584,7 @@ const Menus = () => {
     setEditingTemplateId(null)
     setMenuName('')
     setPlans(defaultPlans)
+    setDisplayValues({})
     setCurrentPage(1) // Reset to first page
     setSelectedUserId(null) // Clear selected user
     setUserSearchTerm('') // Clear search term
@@ -404,10 +612,65 @@ const Menus = () => {
     fatInGrams: Number(nutrients?.fatInGrams) || 0,
   })
 
-  const computeMealTotals = (items) => {
-    return items.reduce((acc, item) => {
-      const calories = Number(item?.totalCalories) || 0
-      const n = safeNutrients(item?.totalNutrients)
+  // Calculate display values based on selected serving amount
+  const calculateDisplayValues = (item, selectedServingAmount, originalServingAmount) => {
+    if (!originalServingAmount || originalServingAmount <= 0 || !selectedServingAmount || selectedServingAmount <= 0) {
+      return {
+        calories: item?.originalCalories || item?.totalCalories || 0,
+        nutrients: item?.originalNutrients || item?.totalNutrients || {}
+      }
+    }
+
+    const isRecipe = detectIsRecipe(item)
+
+    // For recipes, the serving array values are per 1 serving
+    // If the user selects a serving from the dropdown, we need to calculate the total based on numberOfServings
+    // The selectedServingAmount should already account for this if it came from dropdown selection
+    // But we need to handle when user manually enters a value - they might enter per-serving or total
+    // We'll assume that if they select from dropdown, it sets the total amount (per-serving * numberOfServings)
+    // But if they manually enter, they're entering the total amount
+
+    // For recipes: originalServingAmount is already total (per-serving * numberOfServings)
+    // For foods: originalServingAmount is just the serving amount
+
+    const scaleRatio = selectedServingAmount / originalServingAmount
+    const originalCalories = item?.originalCalories || item?.totalCalories || 0
+    const originalNutrients = item?.originalNutrients || item?.totalNutrients || {}
+
+    return {
+      calories: Math.round(originalCalories * scaleRatio),
+      nutrients: {
+        proteinsInGrams: (originalNutrients?.proteinsInGrams || 0) * scaleRatio,
+        carbohydratesInGrams: (originalNutrients?.carbohydratesInGrams || 0) * scaleRatio,
+        fatInGrams: (originalNutrients?.fatInGrams || 0) * scaleRatio,
+        // Include additional nutrients if present
+        cholesterol: (originalNutrients?.cholesterol || 0) * scaleRatio,
+        fibers: (originalNutrients?.fibers || 0) * scaleRatio,
+        nonSaturatedFat: (originalNutrients?.nonSaturatedFat || 0) * scaleRatio,
+        saturatedFat: (originalNutrients?.saturatedFat || 0) * scaleRatio,
+        sodium: (originalNutrients?.sodium || 0) * scaleRatio,
+        sugar: (originalNutrients?.sugar || 0) * scaleRatio,
+      }
+    }
+  }
+
+  const computeMealTotals = (items, mealKey) => {
+    return items.reduce((acc, item, index) => {
+      const itemKey = `${mealKey}-${index}`
+      const displayValue = displayValues[itemKey]
+
+      // Use display values if available, otherwise use original
+      let calories = Number(item?.totalCalories) || 0
+      let nutrients = item?.totalNutrients || {}
+
+      if (displayValue && displayValue.servingAmount !== undefined && displayValue.servingAmount !== '') {
+        const originalServingAmount = item?.originalServingAmount || 100
+        const calculated = calculateDisplayValues(item, displayValue.servingAmount, originalServingAmount)
+        calories = calculated.calories
+        nutrients = calculated.nutrients
+      }
+
+      const n = safeNutrients(nutrients)
       return {
         calories: acc.calories + calories,
         proteinsInGrams: acc.proteinsInGrams + n.proteinsInGrams,
@@ -418,10 +681,10 @@ const Menus = () => {
   }
 
   const menuTotals = useMemo(() => {
-    const bp = computeMealTotals(plans.breakfastPlan)
-    const lp = computeMealTotals(plans.lunchPlan)
-    const dp = computeMealTotals(plans.dinnerPlan)
-    const sp = computeMealTotals(plans.snackPlan)
+    const bp = computeMealTotals(plans.breakfastPlan, 'breakfastPlan')
+    const lp = computeMealTotals(plans.lunchPlan, 'lunchPlan')
+    const dp = computeMealTotals(plans.dinnerPlan, 'dinnerPlan')
+    const sp = computeMealTotals(plans.snackPlan, 'snackPlan')
     return {
       calories: bp.calories + lp.calories + dp.calories + sp.calories,
       proteinsInGrams: bp.proteinsInGrams + lp.proteinsInGrams + dp.proteinsInGrams + sp.proteinsInGrams,
@@ -429,7 +692,7 @@ const Menus = () => {
       fatInGrams: bp.fatInGrams + lp.fatInGrams + dp.fatInGrams + sp.fatInGrams,
       perMeal: { bp, lp, dp, sp }
     }
-  }, [plans])
+  }, [plans, displayValues])
 
   const formatUserData = (user) => {
     const userData = user?.userData || {}
@@ -685,20 +948,27 @@ const Menus = () => {
               </div>
               {searchResults.length > 0 && (
                 <div className="mt-3 max-h-56 overflow-y-auto border border-gray-200 rounded-md divide-y">
-                  {searchResults.map((item, idx) => (
-                    <div key={idx} className="p-3 flex items-center justify-between hover:bg-gray-50">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">{item?.name || item?.title || 'Unnamed'}</div>
-                        <div className="text-xs text-gray-600">
-                          {(detectIsRecipe(item) ? 'Recipe' : 'Food')}
-                          {typeof item?.totalCalories === 'number' ? ` • ${item.totalCalories} cal/100g` : ''}
+                  {searchResults.map((item, idx) => {
+                    const isRecipeItem = detectIsRecipe(item)
+                    const servingAmount = item?.serving && Array.isArray(item.serving) ? item.serving[0]?.amount || 0 : 0
+                    const numberOfServings = isRecipeItem ? (item?.numberOfServings || item?.originalServings || 1) : 1
+                    const newAmount = isRecipeItem ? servingAmount * numberOfServings : servingAmount
+
+                    return (
+                      <div key={idx} className="p-3 flex items-center justify-between hover:bg-gray-50">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">{item?.name || item?.title || 'Unnamed'}</div>
+                          <div className="text-xs text-gray-600">
+                            {(detectIsRecipe(item) ? 'Recipe' : 'Food')}
+                            {typeof item?.totalCalories === 'number' ? ` • ${item.totalCalories} cal/${newAmount}g` : ''}
+                          </div>
                         </div>
+                        <button onClick={() => addItemToPlan(item)} className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 flex items-center">
+                          <PlusIcon className="w-4 h-4 mr-1" /> Add
+                        </button>
                       </div>
-                      <button onClick={() => addItemToPlan(item)} className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 flex items-center">
-                        <PlusIcon className="w-4 h-4 mr-1" /> Add
-                      </button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -728,9 +998,24 @@ const Menus = () => {
                       )}
                       {plans[opt.id].map((it, i) => {
                         const isRecipeItem = detectIsRecipe(it)
-                        const servings = it?.numberOfServings || 1
-                        const adjustedCalories = Number(it?.totalCalories) || 0
-                        const adjustedNutrients = it?.totalNutrients || {}
+                        const itemKey = `${opt.id}-${i}`
+                        const displayValue = displayValues[itemKey]
+
+                        // Get serving options from item
+                        const servingOptions = it?.serving && Array.isArray(it.serving) ? it.serving : []
+                        const hasServings = servingOptions.length > 0
+
+                        // Get current serving amount and id
+                        const currentServingAmount = displayValue?.servingAmount !== undefined ? displayValue.servingAmount : (it?.originalServingAmount || 100)
+                        const currentServingId = displayValue?.selectedServingId || it?.originalServingId || null
+
+                        // Calculate display values based on selected serving
+                        const originalServingAmount = it?.originalServingAmount || 100
+                        // Only calculate if we have a valid serving amount
+                        const servingAmountForCalc = currentServingAmount === '' || currentServingAmount === undefined ? originalServingAmount : currentServingAmount
+                        const calculated = calculateDisplayValues(it, servingAmountForCalc, originalServingAmount)
+                        const adjustedCalories = calculated.calories
+                        const adjustedNutrients = calculated.nutrients
 
                         return (
                           <div key={i} className="p-2 rounded bg-white shadow-sm">
@@ -743,70 +1028,85 @@ const Menus = () => {
                                 <TrashIcon className="w-4 h-4" />
                               </button>
                             </div>
-                            {isRecipeItem && (
-                              <div className="mt-1 mb-1 flex items-center gap-2">
-                                <label className="text-xs text-gray-600 font-medium">Servings:</label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={servings}
+
+                            {/* Serving dropdown and textinput for both foods and recipes */}
+                            {hasServings && (
+                              <div className="mt-2 mb-2 flex items-center gap-2">
+                                <label className="text-xs text-gray-600 font-medium whitespace-nowrap">Serving:</label>
+                                <select
+                                  value={currentServingId || ''}
                                   onChange={(e) => {
-                                    const newServings = parseInt(e.target.value) || 1
-                                    const originalServings = it?.originalServings || 1
-                                    const scaleRatio = newServings / originalServings
+                                    const selectedIdentifier = e.target.value || null
+                                    const selectedServing = findServingByIdentifier(servingOptions, selectedIdentifier)
+                                    // For recipes, serving array values are per 1 serving, so multiply by numberOfServings
+                                    const servingAmount = selectedServing?.amount || 0
+                                    const numberOfServings = isRecipeItem ? (it?.numberOfServings || it?.originalServings || 1) : 1
+                                    const newAmount = isRecipeItem ? servingAmount * numberOfServings : servingAmount
 
-                                    // Update recipe with scaled values
-                                    let updated = {
-                                      ...it,
-                                      numberOfServings: newServings,
-                                      totalCalories: Math.round((it?.originalCalories || 0) * scaleRatio)
-                                    }
-
-                                    // Scale nutrients
-                                    if (it?.originalNutrients) {
-                                      updated.totalNutrients = {
-                                        proteinsInGrams: (it.originalNutrients.proteinsInGrams || 0) * scaleRatio,
-                                        carbohydratesInGrams: (it.originalNutrients.carbohydratesInGrams || 0) * scaleRatio,
-                                        fatInGrams: (it.originalNutrients.fatInGrams || 0) * scaleRatio,
-                                        // Scale additional nutrients if present
-                                        cholesterol: (it.originalNutrients.cholesterol || 0) * scaleRatio,
-                                        fibers: (it.originalNutrients.fibers || 0) * scaleRatio,
-                                        nonSaturatedFat: (it.originalNutrients.nonSaturatedFat || 0) * scaleRatio,
-                                        saturatedFat: (it.originalNutrients.saturatedFat || 0) * scaleRatio,
-                                        sodium: (it.originalNutrients.sodium || 0) * scaleRatio,
-                                        sugar: (it.originalNutrients.sugar || 0) * scaleRatio,
-                                      }
-                                    }
-
-                                    // Scale ingredients
-                                    if (it?.ingredients && Array.isArray(it.ingredients)) {
-                                      updated.ingredients = it.ingredients.map(ingredient => ({
-                                        ...ingredient,
-                                        calorieAmount: (ingredient?.originalCalorieAmount || 0) * scaleRatio,
-                                        carbohydateAmount: (ingredient?.originalCarbohydrateAmount || 0) * scaleRatio,
-                                        fatAmount: (ingredient?.originalFatAmount || 0) * scaleRatio,
-                                        proteinAmount: (ingredient?.originalProteinAmount || 0) * scaleRatio,
-                                        weight: (ingredient?.originalWeight || 0) * scaleRatio,
-                                        macronutrientsEx: ingredient?.originalMacronutrientsEx ? {
-                                          cholesterol: (ingredient.originalMacronutrientsEx.cholesterol || 0) * scaleRatio,
-                                          fibers: (ingredient.originalMacronutrientsEx.fibers || 0) * scaleRatio,
-                                          nonSaturatedFat: (ingredient.originalMacronutrientsEx.nonSaturatedFat || 0) * scaleRatio,
-                                          saturatedFat: (ingredient.originalMacronutrientsEx.saturatedFat || 0) * scaleRatio,
-                                          sodium: (ingredient.originalMacronutrientsEx.sodium || 0) * scaleRatio,
-                                          sugar: (ingredient.originalMacronutrientsEx.sugar || 0) * scaleRatio,
-                                        } : ingredient?.macronutrientsEx,
-                                      }))
-                                    }
-
-                                    setPlans(prev => ({
+                                    setDisplayValues(prev => ({
                                       ...prev,
-                                      [opt.id]: prev[opt.id].map((item, idx) => idx === i ? updated : item)
+                                      [itemKey]: {
+                                        selectedServingId: selectedIdentifier,
+                                        servingAmount: newAmount || currentServingAmount,
+                                      }
                                     }))
                                   }}
-                                  className="w-16 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
+                                >
+                                  {servingOptions.map((serving, idx) => {
+                                    const servingId = getServingIdentifier(serving)
+                                    return (
+                                      <option key={servingId || idx} value={servingId}>
+                                        {serving.name || serving.innerName}
+                                      </option>
+                                    )
+                                  })}
+                                </select>
+                                <input
+                                  type="text"
+                                  value={currentServingAmount}
+                                  onChange={(e) => {
+                                    const inputValue = e.target.value
+                                    // Allow empty string, otherwise parse as number
+                                    const newAmount = inputValue === '' ? '' : (parseFloat(inputValue) || 0)
+
+                                    setDisplayValues(prev => ({
+                                      ...prev,
+                                      [itemKey]: {
+                                        selectedServingId: currentServingId,
+                                        servingAmount: newAmount === '' ? '' : newAmount,
+                                      }
+                                    }))
+                                  }}
+                                  onBlur={(e) => {
+                                    // If empty on blur, restore to current value or original
+                                    const inputValue = e.target.value
+                                    if (inputValue === '') {
+                                      const originalServingAmount = it?.originalServingAmount || 100
+                                      setDisplayValues(prev => ({
+                                        ...prev,
+                                        [itemKey]: {
+                                          selectedServingId: currentServingId,
+                                          servingAmount: originalServingAmount,
+                                        }
+                                      }))
+                                    }
+                                  }}
+                                  className="w-24 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  placeholder="Amount"
                                 />
+                                <span className="text-xs text-gray-500 whitespace-nowrap">
+                                  {findServingByIdentifier(servingOptions, currentServingId)?.unit || 'g'}
+                                </span>
                               </div>
                             )}
+
+                            {isRecipeItem && (
+                              <div className="mt-1 mb-4 text-xs text-gray-600">
+                                <span className="font-medium">Original Serving:</span> {it?.numberOfServings || it?.originalServings || 1}
+                              </div>
+                            )}
+
                             <div className="mt-1 text-xs text-gray-600">
                               <span className="font-medium">Calories:</span> {adjustedCalories}
                               <span className="mx-2">|</span>
@@ -820,7 +1120,7 @@ const Menus = () => {
                         )
                       })}
                       {plans[opt.id].length > 0 && (() => {
-                        const mealTotals = computeMealTotals(plans[opt.id])
+                        const mealTotals = computeMealTotals(plans[opt.id], opt.id)
                         return (
                           <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-900">
                             <span className="font-medium">{opt.label} subtotal:</span>
