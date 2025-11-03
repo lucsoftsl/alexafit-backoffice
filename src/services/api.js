@@ -551,3 +551,97 @@ export const getUsers = async () => {
     throw error
   }
 }
+
+export const getUserMessages = async ({ userId }) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/messages/getUserMessages?userId=${encodeURIComponent(userId)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Basic ${API_AUTH}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.data?.data || []
+  } catch (error) {
+    console.error('Error getting user messages:', error)
+    throw error
+  }
+}
+
+export const sendMessageToUser = async ({ userId, message }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/messages/sendMessage`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId, message })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error sending user message:', error)
+    throw error
+  }
+}
+
+export const updateMessage = async ({ messageId, message }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/messages/updateMessage`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ messageId, message })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error updating message:', error)
+    throw error
+  }
+}
+
+export const deleteMessage = async ({ messageId }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/messages/deleteMessage`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ messageId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error deleting message:', error)
+    throw error
+  }
+}

@@ -7,9 +7,23 @@ import {
   FireIcon,
   BeakerIcon,
   ScaleIcon,
-  BellIcon
+  BellIcon,
+  ChatBubbleLeftRightIcon,
+  PaperAirplaneIcon,
+  PencilIcon,
+  TrashIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline'
-import { fetchUserDailyNutrition, sendPushNotification } from '../services/api'
+import {
+  fetchUserDailyNutrition,
+  sendPushNotification,
+  getUserMessages,
+  sendMessageToUser,
+  updateMessage,
+  deleteMessage
+} from '../services/api'
 
 const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -18,6 +32,20 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   const [error, setError] = useState(null)
   const [sendingNotification, setSendingNotification] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
+
+  // Messaging state
+  const [messages, setMessages] = useState([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [messageError, setMessageError] = useState(null)
+  const [messagesExpanded, setMessagesExpanded] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [sortField, setSortField] = useState('dateTimeUpdated')
+  const [sortDirection, setSortDirection] = useState('desc')
+  const [newMessage, setNewMessage] = useState('')
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState(null)
+  const [editingMessageText, setEditingMessageText] = useState('')
 
   // Debug logging
   console.log('UserDetailModal rendered with:', { isOpen, user: user?.userId, userData: user })
@@ -83,11 +111,159 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
     }
   }
 
+  // Load messages (with cache)
+  const loadMessages = useCallback(async () => {
+    if (!user?.userId) return
+
+    try {
+      // Check if data exists in localStorage first
+      const cacheKey = `userMessages_${user.userId}`
+      const cachedData = localStorage.getItem(cacheKey)
+      if (cachedData) {
+        const data = JSON.parse(cachedData)
+        const messagesArray = Array.isArray(data) ? data : (data?.data || data?.messages || [])
+        setMessages(messagesArray)
+        return
+      }
+
+      setLoadingMessages(true)
+      setMessageError(null)
+      const data = await getUserMessages({ userId: user.userId })
+      // Assume data is an array or data.data is the array
+      const messagesArray = Array.isArray(data) ? data : (data?.data || data?.messages || [])
+      setMessages(messagesArray)
+      // Cache the data
+      localStorage.setItem(cacheKey, JSON.stringify(data))
+    } catch (err) {
+      setMessageError('Failed to load messages')
+      console.error('Error loading messages:', err)
+    } finally {
+      setLoadingMessages(false)
+    }
+  }, [user?.userId])
+
+  // Refresh messages (clear cache and reload)
+  const refreshMessages = useCallback(async () => {
+    if (!user?.userId) return
+
+    try {
+      const cacheKey = `userMessages_${user.userId}`
+      localStorage.removeItem(cacheKey)
+      setLoadingMessages(true)
+      setMessageError(null)
+      const data = await getUserMessages({ userId: user.userId })
+      const messagesArray = Array.isArray(data) ? data : (data?.data || data?.messages || [])
+      setMessages(messagesArray)
+      // Cache the refreshed data
+      localStorage.setItem(cacheKey, JSON.stringify(data))
+      setCurrentPage(1) // Reset to first page after refresh
+    } catch (err) {
+      setMessageError('Failed to refresh messages')
+      console.error('Error refreshing messages:', err)
+    } finally {
+      setLoadingMessages(false)
+    }
+  }, [user?.userId])
+
+  // Send message
+  const handleSendMessage = async () => {
+    if (!user?.userId || !newMessage.trim()) {
+      alert('Please enter a message')
+      return
+    }
+
+    try {
+      setSendingMessage(true)
+      await sendMessageToUser({ userId: user.userId, message: newMessage.trim() })
+      setNewMessage('')
+      // wait for 1.5 seconds
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      await refreshMessages() // Refresh messages (clear cache and reload)
+      alert('Message sent successfully!')
+    } catch (err) {
+      console.error('Error sending message:', err)
+      alert('Failed to send message. Please try again.')
+    } finally {
+      setSendingMessage(false)
+    }
+  }
+
+  // Update message
+  const handleUpdateMessage = async (messageId) => {
+    if (!editingMessageText.trim()) {
+      alert('Please enter a message')
+      return
+    }
+
+    try {
+      await updateMessage({ messageId, message: editingMessageText.trim() })
+      setEditingMessageId(null)
+      setEditingMessageText('')
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      await refreshMessages() // Refresh messages (clear cache and reload)
+      alert('Message updated successfully!')
+    } catch (err) {
+      console.error('Error updating message:', err)
+      alert('Failed to update message. Please try again.')
+    }
+  }
+
+  // Delete message
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm('Are you sure you want to delete this message?')) {
+      return
+    }
+
+    try {
+      await deleteMessage({ messageId })
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      await refreshMessages() // Refresh messages (clear cache and reload)
+      alert('Message deleted successfully!')
+    } catch (err) {
+      console.error('Error deleting message:', err)
+      alert('Failed to delete message. Please try again.')
+    }
+  }
+
+  // Toggle sort
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Format date
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A'
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (e) {
+      return dateString
+    }
+  }
+
   useEffect(() => {
     if (isOpen && user && fromPage !== 'unapprovedItems') {
       loadNutritionData()
     }
   }, [isOpen, user, selectedDate, loadNutritionData, fromPage])
+
+  // Load messages when modal opens and messages accordion is expanded
+  useEffect(() => {
+    if (isOpen && user?.userId && messagesExpanded) {
+      loadMessages()
+    }
+  }, [isOpen, user?.userId, messagesExpanded, loadMessages])
 
   const formatNutritionValue = (value) => {
     if (value === null || value === undefined) return 'N/A'
@@ -126,7 +302,18 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
             </>}
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setMessages([])
+              setCurrentPage(1)
+              setMessagesExpanded(false)
+              setSelectedDate(new Date().toISOString().split('T')[0])
+              setNewMessage('')
+              setEditingMessageId(null)
+              setEditingMessageText('')
+              setSendingMessage(false)
+              setSendingNotification(false)
+              onClose()
+            }}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <XMarkIcon className="w-6 h-6" />
@@ -759,6 +946,287 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                     </div>
                   </div>
                 )}
+
+                {/* Messaging System */}
+                <div className="card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => setMessagesExpanded(!messagesExpanded)}
+                      className="flex items-center justify-between text-left flex-1"
+                    >
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <ChatBubbleLeftRightIcon className="w-5 h-5 mr-2" />
+                        Messages
+                      </h3>
+                      {messagesExpanded ? (
+                        <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+                      ) : (
+                        <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+                      )}
+                    </button>
+                    {messagesExpanded && (
+                      <button
+                        onClick={refreshMessages}
+                        disabled={loadingMessages}
+                        className="btn-secondary text-sm ml-4 flex items-center gap-2"
+                      >
+                        <ArrowPathIcon className={`w-4 h-4 ${loadingMessages ? 'animate-spin' : ''}`} />
+                        {loadingMessages ? 'Refreshing...' : 'Refresh'}
+                      </button>
+                    )}
+                  </div>
+
+                  {messagesExpanded && (
+                    <div className="mt-4 space-y-4">
+                      {/* Send Message Form */}
+                      <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">Send New Message</h4>
+                        <div className="flex gap-2">
+                          <textarea
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Enter your message..."
+                            className="flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none"
+                            rows={2}
+                          />
+                          <button
+                            onClick={handleSendMessage}
+                            disabled={sendingMessage || !newMessage.trim()}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {sendingMessage ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <PaperAirplaneIcon className="w-4 h-4" />
+                                Send
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Messages Table */}
+                      {loadingMessages ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                          <span className="ml-3 text-gray-600">Loading messages...</span>
+                        </div>
+                      ) : messageError ? (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <p className="text-red-800">{messageError}</p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Sort and Pagination Controls */}
+                          <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div className="flex items-center gap-2">
+                              <label className="text-sm text-gray-700">Items per page:</label>
+                              <select
+                                value={itemsPerPage}
+                                onChange={(e) => {
+                                  setItemsPerPage(Number(e.target.value))
+                                  setCurrentPage(1)
+                                }}
+                                className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                              >
+                                <option value={3}>3</option>
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Messages Table */}
+                          {messages.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              No messages found.
+                            </div>
+                          ) : (
+                            <>
+                              {/* Table */}
+                              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                  <thead className="bg-gray-50">
+                                    <tr>
+                                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Message
+                                      </th>
+                                      <th
+                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                        onClick={() => handleSort('dateTimeUpdated')}
+                                      >
+                                        <div className="flex items-center gap-1">
+                                          Date/Time
+                                          {sortField === 'dateTimeUpdated' && (
+                                            sortDirection === 'asc' ? '↑' : '↓'
+                                          )}
+                                        </div>
+                                      </th>
+                                      <th
+                                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                        onClick={() => handleSort('isRead')}
+                                      >
+                                        <div className="flex items-center gap-1">
+                                          Read Status
+                                          {sortField === 'isRead' && (
+                                            sortDirection === 'asc' ? '↑' : '↓'
+                                          )}
+                                        </div>
+                                      </th>
+                                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="bg-white divide-y divide-gray-200">
+                                    {(() => {
+                                      // Sort messages
+                                      const sortedMessages = [...messages].sort((a, b) => {
+                                        let aVal, bVal
+                                        if (sortField === 'dateTimeUpdated') {
+                                          aVal = new Date(a.dateTimeUpdated || 0).getTime()
+                                          bVal = new Date(b.dateTimeUpdated || 0).getTime()
+                                        } else if (sortField === 'isRead') {
+                                          aVal = a.isRead ? 1 : 0
+                                          bVal = b.isRead ? 1 : 0
+                                        } else {
+                                          return 0
+                                        }
+                                        if (sortDirection === 'asc') {
+                                          return aVal > bVal ? 1 : -1
+                                        } else {
+                                          return aVal < bVal ? 1 : -1
+                                        }
+                                      })
+
+                                      // Paginate messages
+                                      const startIndex = (currentPage - 1) * itemsPerPage
+                                      const endIndex = startIndex + itemsPerPage
+                                      const paginatedMessages = sortedMessages.slice(startIndex, endIndex)
+
+                                      return paginatedMessages.map((msg) => (
+                                        <tr key={msg.id} className="hover:bg-gray-50">
+                                          <td className="px-4 py-3">
+                                            {editingMessageId === msg.id ? (
+                                              <div className="flex items-center gap-2">
+                                                <textarea
+                                                  value={editingMessageText}
+                                                  onChange={(e) => setEditingMessageText(e.target.value)}
+                                                  className="flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none"
+                                                  rows={2}
+                                                />
+                                                <div className="flex flex-col gap-1">
+                                                  <button
+                                                    onClick={() => handleUpdateMessage(msg.id)}
+                                                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                                  >
+                                                    Save
+                                                  </button>
+                                                  <button
+                                                    onClick={() => {
+                                                      setEditingMessageId(null)
+                                                      setEditingMessageText('')
+                                                    }}
+                                                    className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="text-sm text-gray-900 max-w-md break-words">
+                                                {msg.message}
+                                              </div>
+                                            )}
+                                          </td>
+                                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                            {formatDateTime(msg.dateTimeUpdated)}
+                                          </td>
+                                          <td className="px-4 py-3 whitespace-nowrap">
+                                            <span
+                                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${msg.isRead
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-yellow-100 text-yellow-800'
+                                                }`}
+                                            >
+                                              {msg.isRead ? 'Read' : 'Unread'}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                            {editingMessageId === msg.id ? null : (
+                                              <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingMessageId(msg.id)
+                                                    setEditingMessageText(msg.message)
+                                                  }}
+                                                  className="text-blue-600 hover:text-blue-900"
+                                                  title="Edit message"
+                                                >
+                                                  <PencilIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                  onClick={() => handleDeleteMessage(msg.id)}
+                                                  className="text-red-600 hover:text-red-900"
+                                                  title="Delete message"
+                                                >
+                                                  <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                              </div>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      ))
+                                    })()}
+                                  </tbody>
+                                </table>
+                              </div>
+
+                              {/* Pagination */}
+                              {(() => {
+                                const totalPages = Math.ceil(messages.length / itemsPerPage)
+                                if (totalPages <= 1) return null
+
+                                return (
+                                  <div className="flex items-center justify-between mt-4">
+                                    <div className="text-sm text-gray-700">
+                                      Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                                      {Math.min(currentPage * itemsPerPage, messages.length)} of{' '}
+                                      {messages.length} messages
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        Previous
+                                      </button>
+                                      <span className="px-3 py-1 text-sm text-gray-700">
+                                        Page {currentPage} of {totalPages}
+                                      </span>
+                                      <button
+                                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        Next
+                                      </button>
+                                    </div>
+                                  </div>
+                                )
+                              })()}
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {/* Shareable Summary (Copy-ready) */}
                 {(() => {
