@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 // API service for fetching program subscribers
-const API_BASE_URL = 'https://foodsync-api.vercel.app/backoffice'
+// const API_BASE_URL = 'https://foodsync-api.vercel.app/backoffice'
+const API_BASE_URL = 'https://5938c8537ed3.ngrok-free.app/backoffice'
 const API_AUTH = 'c29aWGZHd0o6ZT54LXVUZi1GOGohaVFyVHFy'
 
 export const fetchProgramSubscribers = async () => {
@@ -596,6 +597,39 @@ export const sendMessageToUser = async ({ userId, message }) => {
     return data
   } catch (error) {
     console.error('Error sending user message:', error)
+    throw error
+  }
+}
+
+export const sendPushNotificationToUser = async ({
+  pushNotificationToken,
+  notificationTitle,
+  notificationBody
+}) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/notifications/sendPushNotification`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${API_AUTH}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          pushNotificationToken,
+          notificationTitle,
+          notificationBody
+        })
+      }
+    )
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error sending push notification to user:', error)
     throw error
   }
 }

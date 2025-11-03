@@ -22,7 +22,8 @@ import {
   getUserMessages,
   sendMessageToUser,
   updateMessage,
-  deleteMessage
+  deleteMessage,
+  sendPushNotificationToUser
 } from '../services/api'
 
 const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
@@ -46,6 +47,11 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   const [sendingMessage, setSendingMessage] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editingMessageText, setEditingMessageText] = useState('')
+  const [showPushNotificationPopup, setShowPushNotificationPopup] = useState(false)
+  const [lastSentMessage, setLastSentMessage] = useState('')
+  const [notificationTitle, setNotificationTitle] = useState('You received a new message')
+  const [notificationBody, setNotificationBody] = useState('')
+  const [sendingPushNotification, setSendingPushNotification] = useState(false)
 
   // Debug logging
   console.log('UserDetailModal rendered with:', { isOpen, user: user?.userId, userData: user })
@@ -174,17 +180,63 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
 
     try {
       setSendingMessage(true)
-      await sendMessageToUser({ userId: user.userId, message: newMessage.trim() })
+      const messageText = newMessage.trim()
+      await sendMessageToUser({ userId: user.userId, message: messageText })
+      // Store the sent message and show push notification popup
+      setLastSentMessage(messageText)
+      setNotificationTitle('You received a new message')
+      setNotificationBody(messageText)
       setNewMessage('')
       // wait for 1.5 seconds
       await new Promise(resolve => setTimeout(resolve, 1500))
       await refreshMessages() // Refresh messages (clear cache and reload)
-      alert('Message sent successfully!')
+      setShowPushNotificationPopup(true) // Show popup after message is sent
     } catch (err) {
       console.error('Error sending message:', err)
       alert('Failed to send message. Please try again.')
     } finally {
       setSendingMessage(false)
+    }
+  }
+
+  // Send push notification
+  const handleSendPushNotification = async () => {
+    if (!user?.pushNotificationToken) {
+      alert('No push notification token available for this user')
+      return
+    }
+
+    // Check if user has rejected push notifications
+    if (user?.isPushNotificationTokenEnabled === false) {
+      const confirmed = window.confirm(
+        'Are you sure you want to send a push notification to this user? They have rejected push notifications from their app.'
+      )
+      if (!confirmed) {
+        return
+      }
+    }
+
+    if (!notificationTitle.trim() || !notificationBody.trim()) {
+      alert('Please enter both notification title and body')
+      return
+    }
+
+    try {
+      setSendingPushNotification(true)
+      await sendPushNotificationToUser({
+        pushNotificationToken: user.pushNotificationToken,
+        notificationTitle: notificationTitle.trim(),
+        notificationBody: notificationBody.trim()
+      })
+      alert('Push notification sent successfully!')
+      setShowPushNotificationPopup(false)
+      setNotificationTitle('You received a new message')
+      setNotificationBody('')
+    } catch (err) {
+      console.error('Error sending push notification:', err)
+      alert('Failed to send push notification. Please try again.')
+    } finally {
+      setSendingPushNotification(false)
     }
   }
 
@@ -1477,6 +1529,110 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
           })()}
         </div>
       </div>
+
+      {/* Push Notification Popup */}
+      {showPushNotificationPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">Send Push Notification</h3>
+              <button
+                onClick={() => {
+                  setShowPushNotificationPopup(false)
+                  setNotificationTitle('You received a new message')
+                  setNotificationBody('')
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Would you like to send a push notification to this user about the message you just sent?
+              </p>
+
+              {/* Warning if user has rejected push notifications */}
+              {user?.isPushNotificationTokenEnabled === false && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800">
+                    This user has rejected push notifications from their app.
+                  </p>
+                </div>
+              )}
+
+              {/* Notification Title Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notification Title
+                </label>
+                <input
+                  type="text"
+                  value={notificationTitle}
+                  onChange={(e) => setNotificationTitle(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="You received a new message"
+                />
+              </div>
+
+              {/* Notification Body Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notification Body
+                </label>
+                <textarea
+                  value={notificationBody}
+                  onChange={(e) => setNotificationBody(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  rows={3}
+                  placeholder="Enter notification message..."
+                />
+              </div>
+
+              {/* Send Button */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowPushNotificationPopup(false)
+                    setNotificationTitle('You received a new message')
+                    setNotificationBody('')
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleSendPushNotification}
+                  disabled={sendingPushNotification || !user?.pushNotificationToken}
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium text-white transition-colors flex items-center justify-center gap-2 ${user?.isPushNotificationTokenEnabled === false
+                    ? sendingPushNotification || !user?.pushNotificationToken
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gray-500 hover:bg-gray-600 cursor-pointer'
+                    : sendingPushNotification || !user?.pushNotificationToken
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
+                >
+                  {sendingPushNotification ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <BellIcon className="w-4 h-4" />
+                      Send Notification
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
