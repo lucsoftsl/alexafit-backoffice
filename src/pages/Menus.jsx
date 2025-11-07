@@ -6,6 +6,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   PencilIcon,
+  DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 import {
   searchFoodItems,
@@ -603,6 +604,89 @@ const Menus = () => {
       loadTemplates()
     } catch (e) {
       console.error('Failed to delete template', e)
+    }
+  }
+
+  const handleDuplicateTemplate = async (template) => {
+    try {
+      // Deep copy the template's plans to preserve all item data including changedServing
+      const deepCopyPlan = (planItems) => {
+        return planItems.map(item => {
+          // Create a deep copy of the item
+          const itemCopy = { ...item }
+
+          // Deep copy nested objects if they exist
+          if (item.changedServing) {
+            itemCopy.changedServing = { ...item.changedServing }
+            if (item.changedServing.serving) {
+              itemCopy.changedServing.serving = { ...item.changedServing.serving }
+            }
+          }
+
+          // Deep copy arrays if they exist
+          if (item.serving && Array.isArray(item.serving)) {
+            itemCopy.serving = item.serving.map(s => ({ ...s }))
+          }
+
+          if (item.ingredients && Array.isArray(item.ingredients)) {
+            itemCopy.ingredients = item.ingredients.map(ing => ({ ...ing }))
+          }
+
+          if (item.totalNutrients) {
+            itemCopy.totalNutrients = { ...item.totalNutrients }
+          }
+
+          return itemCopy
+        })
+      }
+
+      // Get the original template's plans and deep copy them
+      const originalPlans = {
+        breakfastPlan: template?.breakfastPlan || [],
+        lunchPlan: template?.lunchPlan || [],
+        dinnerPlan: template?.dinnerPlan || [],
+        snackPlan: template?.snackPlan || [],
+      }
+
+      // Create a new name with "(Copy)" suffix
+      const originalName = template?.name || 'Untitled'
+      const newName = `${originalName} (Copy)`
+
+      // Create the duplicate menu template with deep copied plans
+      // Always set isAssignableByUser to false for copied menus
+      const payload = {
+        name: newName,
+        breakfastPlan: deepCopyPlan(originalPlans.breakfastPlan),
+        lunchPlan: deepCopyPlan(originalPlans.lunchPlan),
+        dinnerPlan: deepCopyPlan(originalPlans.dinnerPlan),
+        snackPlan: deepCopyPlan(originalPlans.snackPlan),
+        isAssignableByUser: false,
+      }
+
+      await addMenuTemplate(payload)
+
+      // Wait a bit and refresh templates
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // Fetch updated templates to find the newly created one
+      const data = await getAllMenuTemplates()
+      const updatedTemplates = Array.isArray(data?.data) ? data.data : (data?.templates || [])
+
+      // Update state with new templates
+      setTemplates(updatedTemplates)
+
+      // Find the newly created template and load it into edit mode
+      const newTemplate = updatedTemplates.find(t => {
+        const templateName = t?.name || 'Untitled'
+        return templateName === newName
+      })
+
+      if (newTemplate) {
+        handleLoadTemplateForEditing(newTemplate)
+      }
+    } catch (e) {
+      console.error('Failed to duplicate template', e)
+      alert('Failed to duplicate menu template')
     }
   }
 
@@ -1224,11 +1308,18 @@ const Menus = () => {
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{lp.length}</td>
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{dp.length}</td>
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{sp.length}</td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm flex items-center justify-evenly" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-6 py-3 whitespace-nowrap text-sm flex items-center justify-evenly gap-2" onClick={(e) => e.stopPropagation()}>
                       {isCurrentlyEditing && (
                         <span className="text-blue-600 text-xs mr-2">✓ Editing</span>
                       )}
-                      <button onClick={() => handleDeleteTemplate(id)} className="text-red-600 hover:text-red-800">
+                      <button
+                        onClick={() => handleDuplicateTemplate(t)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Duplicate menu"
+                      >
+                        <DocumentDuplicateIcon className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteTemplate(id)} className="text-red-600 hover:text-red-800" title="Delete menu">
                         <TrashIcon className="w-4 h-4" />
                       </button>
                     </td>
