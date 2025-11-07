@@ -8,12 +8,15 @@ import {
 import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
 
+import LZString from 'lz-string'
+
 const UnapprovedItems = () => {
   const [foodItems, setFoodItems] = useState([])
   const [exerciseItems, setExerciseItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterCountryCode, setFilterCountryCode] = useState('')
   const [activeTab, setActiveTab] = useState('food') // 'food' or 'exercise'
   const [itemsPerPage, setItemsPerPage] = useState(25)
   const [currentPage, setCurrentPage] = useState(1)
@@ -42,7 +45,7 @@ const UnapprovedItems = () => {
         setError(null)
 
         // Check if data exists in localStorage first
-        const cachedData = localStorage.getItem('unapprovedItems')
+        const cachedData = LZString.decompressFromUTF16(localStorage.getItem('unapprovedItems')) || localStorage.getItem('unapprovedItems')
 
         if (cachedData) {
           const data = JSON.parse(cachedData)
@@ -80,9 +83,10 @@ const UnapprovedItems = () => {
 
   // Filter items based on search term
   const filteredFoodItems = foodItems.filter(item =>
-    item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category?.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (filterCountryCode ? item.countryCode?.toLowerCase().includes(filterCountryCode.toLowerCase()) : true)
   )
 
   const filteredExerciseItems = exerciseItems.filter(item =>
@@ -110,7 +114,7 @@ const UnapprovedItems = () => {
   // Reset to page 1 when switching tabs or changing filters
   useEffect(() => {
     setCurrentPage(1)
-  }, [activeTab, searchTerm])
+  }, [activeTab, searchTerm, filterCountryCode])
 
   const handleShowIngredients = (ingredients) => {
     setSelectedIngredients(ingredients)
@@ -173,7 +177,9 @@ const UnapprovedItems = () => {
       console.log('Fetching from API...')
 
       const data = await getUnapprovedItems()
-      localStorage.setItem('unapprovedItems', JSON.stringify(data))
+
+      const compressed = LZString.compressToUTF16(JSON.stringify(data));
+      localStorage.setItem('unapprovedItems', compressed);
 
       setLoading(false)
       setFoodItems(data.foodItems?.items || [])
@@ -472,6 +478,19 @@ const UnapprovedItems = () => {
           />
         </div>
       </div>
+      {/* Filter by country code textinput */}
+      <div className="card p-6">
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Filter by country code"
+            value={filterCountryCode}
+            onChange={(e) => setFilterCountryCode(e.target.value)}
+            className="input pl-10"
+          />
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="card overflow-hidden">
@@ -511,6 +530,7 @@ const UnapprovedItems = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ingredients</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipe Steps</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -561,6 +581,7 @@ const UnapprovedItems = () => {
                         </button>
                       ) : 'N/A'}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.barcode || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.ingredients ? (
                         <button

@@ -54,7 +54,6 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   const [sendingPushNotification, setSendingPushNotification] = useState(false)
 
   // Debug logging
-  console.log('UserDetailModal rendered with:', { isOpen, user: user?.userId, userData: user })
 
   const loadNutritionData = useCallback(async () => {
     if (!user?.userId) {
