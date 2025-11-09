@@ -251,6 +251,36 @@ const Menus = () => {
     })
   }
 
+  // Find the appropriate serving item based on priority:
+  // NOTE: totalCalories are calculated for profileId = 0 or name matching 'grame' etc.
+  // 1. profileId = 0
+  // 2. name.toLowerCase() = 'g', 'gram', 'grame', 'gramm', or 'ml'
+  // 3. first item
+  const findDefaultServing = (servingArray) => {
+    if (!servingArray || !Array.isArray(servingArray) || servingArray.length === 0) {
+      return null
+    }
+
+    // First, try to find item with profileId = 0
+    let selectedServing = servingArray.find(s => s.profileId === 0)
+
+    // If not found, try to find by name (exact match)
+    if (!selectedServing) {
+      const namePatterns = ['g', 'gram', 'grame', 'gramm', 'ml']
+      selectedServing = servingArray.find(s => {
+        const nameLower = (s.name || '').toLowerCase()
+        return namePatterns.some(pattern => nameLower === pattern)
+      })
+    }
+
+    // If still not found, take the first item
+    if (!selectedServing) {
+      selectedServing = servingArray[0]
+    }
+
+    return selectedServing
+  }
+
   const addItemToPlan = async (item) => {
     try {
       let enriched = item
@@ -259,9 +289,8 @@ const Menus = () => {
       let originalServingId = null
 
       if (item?.serving && Array.isArray(item.serving) && item.serving.length > 0) {
-        // Use the first serving option as default, or find one with profileId === 1 (Portie)
-        const portieServing = item.serving.find(s => s.profileId === 1)
-        const defaultServing = portieServing || item.serving[0]
+        // Use findDefaultServing to get the serving that matches totalCalories calculation
+        const defaultServing = findDefaultServing(item.serving)
         originalServingAmount = defaultServing?.amount || 100
         originalServingId = getServingIdentifier(defaultServing)
       }
@@ -279,8 +308,8 @@ const Menus = () => {
               // Get original serving info from detailed item if available
               // For recipes, serving array is per 1 serving, so we need to multiply by numberOfServings
               if (detailed?.serving && Array.isArray(detailed.serving) && detailed.serving.length > 0) {
-                const portieServing = detailed.serving.find(s => s.profileId === 1)
-                const defaultServing = portieServing || detailed.serving[0]
+                // Use findDefaultServing to get the serving that matches totalCalories calculation
+                const defaultServing = findDefaultServing(detailed.serving)
                 // Serving amount is per 1 serving, so multiply by numberOfServings for total
                 originalServingAmount = (defaultServing?.amount || 100) * originalServings
                 originalServingId = getServingIdentifier(defaultServing)
@@ -320,8 +349,8 @@ const Menus = () => {
             } else {
               // For food items, get serving info from detailed item
               if (detailed?.serving && Array.isArray(detailed.serving) && detailed.serving.length > 0) {
-                const portieServing = detailed.serving.find(s => s.profileId === 1)
-                const defaultServing = portieServing || detailed.serving[0]
+                // Use findDefaultServing to get the serving that matches totalCalories calculation
+                const defaultServing = findDefaultServing(detailed.serving)
                 originalServingAmount = defaultServing?.amount || 100
                 originalServingId = getServingIdentifier(defaultServing)
               }
@@ -553,8 +582,8 @@ const Menus = () => {
 
           // If not stored, try to extract from serving array
           if (!originalServingAmount && item?.serving && Array.isArray(item.serving) && item.serving.length > 0) {
-            const portieServing = item.serving.find(s => s.profileId === 1)
-            const defaultServing = portieServing || item.serving[0]
+            // Use findDefaultServing to get the serving that matches totalCalories calculation
+            const defaultServing = findDefaultServing(item.serving)
             const servingAmountPerUnit = defaultServing?.amount || 100
             // For recipes, multiply by numberOfServings since serving array is per 1 serving
             const isRecipe = detectIsRecipe(item)
@@ -1034,7 +1063,10 @@ const Menus = () => {
                 <div className="mt-3 max-h-56 overflow-y-auto border border-gray-200 rounded-md divide-y">
                   {searchResults.map((item, idx) => {
                     const isRecipeItem = detectIsRecipe(item)
-                    const servingAmount = item?.serving && Array.isArray(item.serving) ? item.serving[0]?.amount || 0 : 0
+                    // Find the appropriate serving item based on priority:
+                    // NOTE: totalCalories are calculated for profileId = 0 or name matching 'grame' etc.
+                    const selectedServing = findDefaultServing(item?.serving)
+                    const servingAmount = selectedServing?.amount || 0
                     const numberOfServings = isRecipeItem ? (item?.numberOfServings || item?.originalServings || 1) : 1
                     const newAmount = isRecipeItem ? servingAmount * numberOfServings : servingAmount
 
@@ -1094,7 +1126,18 @@ const Menus = () => {
                         const currentServingId = displayValue?.selectedServingId || it?.originalServingId || null
 
                         // Calculate display values based on selected serving
-                        const originalServingAmount = it?.originalServingAmount || 100
+                        // Ensure we use the correct serving that matches totalCalories calculation
+                        let originalServingAmount = it?.originalServingAmount
+                        if (!originalServingAmount && servingOptions.length > 0) {
+                          // If originalServingAmount is not set, find the default serving that matches totalCalories
+                          const defaultServing = findDefaultServing(servingOptions)
+                          if (defaultServing) {
+                            originalServingAmount = isRecipeItem
+                              ? (defaultServing.amount || 100) * (it?.numberOfServings || it?.originalServings || 1)
+                              : (defaultServing.amount || 100)
+                          }
+                        }
+                        originalServingAmount = originalServingAmount || 100
                         // Only calculate if we have a valid serving amount
                         const servingAmountForCalc = currentServingAmount === '' || currentServingAmount === undefined ? originalServingAmount : currentServingAmount
                         const calculated = calculateDisplayValues(it, servingAmountForCalc, originalServingAmount)
