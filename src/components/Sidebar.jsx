@@ -5,7 +5,8 @@ import {
   ChartBarIcon,
   CogIcon,
   ListBulletIcon,
-  CakeIcon
+  CakeIcon,
+  BookOpenIcon
 } from '@heroicons/react/24/outline'
 
 const Sidebar = ({ activePage, setActivePage }) => {
@@ -14,6 +15,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'users', label: 'Users', icon: UsersIcon },
     { id: 'unapprovedItems', label: 'Unapproved Items', icon: ListBulletIcon },
     { id: 'menus', label: 'Menus', icon: CakeIcon },
+    { id: 'recipes', label: 'Recipes', icon: BookOpenIcon },
     { id: 'subscribers', label: 'Subscribers', icon: UserGroupIcon },
     { id: 'analytics', label: 'Analytics', icon: ChartBarIcon },
     { id: 'settings', label: 'Settings', icon: CogIcon },

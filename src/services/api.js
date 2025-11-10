@@ -242,6 +242,31 @@ export const getUnapprovedItems = async () => {
   }
 }
 
+export const getRecipesByCountryCode = async ({ countryCode, page = 0 }) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/getRecipesByCountryCode?countryCode=${encodeURIComponent(countryCode)}&page=${page}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Basic ${API_AUTH}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data?.data || { items: [] }
+  } catch (error) {
+    console.error('Error getting recipes by country code:', error)
+    throw error
+  }
+}
+
 export const setItemVerifiedStatus = async ({ itemId, verified, itemType }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/setItemVerifiedStatus`, {
@@ -676,6 +701,151 @@ export const deleteMessage = async ({ messageId }) => {
     return data
   } catch (error) {
     console.error('Error deleting message:', error)
+    throw error
+  }
+}
+
+export async function saveImageToImgb(image) {
+  const formData = new FormData()
+  if (typeof image === 'string') {
+    if (image.includes('data:image')) {
+      // Convert data URL to blob
+      const response = await fetch(image)
+      const blob = await response.blob()
+      formData.append('image', blob, 'image.jpg')
+    } else {
+      formData.append('image', image)
+    }
+  } else if (image instanceof File) {
+    formData.append('image', image)
+  } else if (image?.uri) {
+    // For React Native style image objects
+    const response = await fetch(image.uri)
+    const blob = await response.blob()
+    const fileName = `image.${image.uri.split('.').pop() || 'jpg'}`
+    formData.append('image', blob, fileName)
+  } else {
+    formData.append('image', image)
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/images/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    if (result?.data?.id) {
+      return result.data
+    } else {
+      return null
+    }
+  } catch (error) {
+    console.error('Error saving image to imgbb:', error)
+    return null
+  }
+}
+
+export const addItem = async itemData => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/addItem`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(itemData)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error adding item:', error)
+    throw error
+  }
+}
+
+export const updateItem = async ({ userId, itemId, data, itemType }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/updateItem`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId, itemId, data, itemType })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const responseData = await response.json()
+    return responseData
+  } catch (error) {
+    console.error('Error updating item:', error)
+    throw error
+  }
+}
+
+export const deleteItem = async ({ itemId, itemType, userId }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/deleteItem`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId, itemType, userId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error deleting item:', error)
+    throw error
+  }
+}
+
+export const addPhotoToItem = async ({
+  itemId,
+  itemType,
+  userId,
+  photoUrl
+}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/addPhotoToItem`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${API_AUTH}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId, itemType, userId, photoUrl })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error adding photo to item:', error)
     throw error
   }
 }
