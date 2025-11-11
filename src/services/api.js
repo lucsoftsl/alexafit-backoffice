@@ -242,10 +242,10 @@ export const getUnapprovedItems = async () => {
   }
 }
 
-export const getRecipesByCountryCode = async ({ countryCode, page = 0 }) => {
+export const getRecipesByCountryCode = async ({ countryCode }) => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/getRecipesByCountryCode?countryCode=${encodeURIComponent(countryCode)}&page=${page}`,
+      `${API_BASE_URL}/getRecipesByCountryCode?countryCode=${encodeURIComponent(countryCode)}`,
       {
         method: 'GET',
         headers: {
@@ -260,7 +260,7 @@ export const getRecipesByCountryCode = async ({ countryCode, page = 0 }) => {
     }
 
     const data = await response.json()
-    return data?.data || { items: [] }
+    return data?.data || []
   } catch (error) {
     console.error('Error getting recipes by country code:', error)
     throw error
