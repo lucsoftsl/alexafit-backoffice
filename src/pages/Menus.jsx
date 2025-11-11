@@ -306,13 +306,32 @@ const Menus = () => {
               // Store original values for scaling
               const originalServings = detailed?.numberOfServings || 1
               // Get original serving info from detailed item if available
-              // For recipes, serving array is per 1 serving, so we need to multiply by numberOfServings
+              // For recipes, totalCalories is for all servings (numberOfServings)
+              // We need to find the total weight for all servings
               if (detailed?.serving && Array.isArray(detailed.serving) && detailed.serving.length > 0) {
-                // Use findDefaultServing to get the serving that matches totalCalories calculation
-                const defaultServing = findDefaultServing(detailed.serving)
-                // Serving amount is per 1 serving, so multiply by numberOfServings for total
-                originalServingAmount = (defaultServing?.amount || 100) * originalServings
-                originalServingId = getServingIdentifier(defaultServing)
+                // First, try to find "Portion" (profileId=1) which represents 1 serving
+                const portionServing = detailed.serving.find(s => s.profileId === 1)
+                if (portionServing) {
+                  // Portion amount is per 1 serving, so multiply by numberOfServings for total
+                  originalServingAmount = portionServing.amount * originalServings
+                  originalServingId = getServingIdentifier(portionServing)
+                } else {
+                  // Fall back to totalQuantity or weightAfterCooking if available
+                  const totalWeight = detailed?.totalNutrients?.totalQuantity ||
+                    detailed?.totalNutrients?.weightAfterCooking ||
+                    null
+                  if (totalWeight) {
+                    originalServingAmount = totalWeight
+                    // Use default serving for ID
+                    const defaultServing = findDefaultServing(detailed.serving)
+                    originalServingId = getServingIdentifier(defaultServing)
+                  } else {
+                    // Last resort: use default serving and multiply by numberOfServings
+                    const defaultServing = findDefaultServing(detailed.serving)
+                    originalServingAmount = (defaultServing?.amount || 100) * originalServings
+                    originalServingId = getServingIdentifier(defaultServing)
+                  }
+                }
               }
 
               const enrichedData = {
@@ -384,12 +403,25 @@ const Menus = () => {
       const newIndex = plans[activeMealType].length
       const itemKey = `${activeMealType}-${newIndex}`
 
-      // Initialize display values with original serving
+      // Initialize display values
+      // For recipes, default to 1 serving (Portion) if available, otherwise use original
+      let initialServingId = originalServingId
+      let initialServingAmount = originalServingAmount
+
+      if (detectIsRecipe(enriched) && enriched?.serving && Array.isArray(enriched.serving)) {
+        const portionServing = enriched.serving.find(s => s.profileId === 1)
+        if (portionServing) {
+          // Default to 1 serving (Portion) for recipes
+          initialServingId = getServingIdentifier(portionServing)
+          initialServingAmount = portionServing.amount
+        }
+      }
+
       setDisplayValues(prev => ({
         ...prev,
         [itemKey]: {
-          selectedServingId: originalServingId,
-          servingAmount: originalServingAmount,
+          selectedServingId: initialServingId,
+          servingAmount: initialServingAmount,
         }
       }))
 
@@ -582,14 +614,37 @@ const Menus = () => {
 
           // If not stored, try to extract from serving array
           if (!originalServingAmount && item?.serving && Array.isArray(item.serving) && item.serving.length > 0) {
-            // Use findDefaultServing to get the serving that matches totalCalories calculation
-            const defaultServing = findDefaultServing(item.serving)
-            const servingAmountPerUnit = defaultServing?.amount || 100
-            // For recipes, multiply by numberOfServings since serving array is per 1 serving
             const isRecipe = detectIsRecipe(item)
-            const numberOfServings = isRecipe ? (item?.numberOfServings || item?.originalServings || 1) : 1
-            originalServingAmount = isRecipe ? servingAmountPerUnit * numberOfServings : servingAmountPerUnit
-            originalServingId = getServingIdentifier(defaultServing)
+            if (isRecipe) {
+              // For recipes, try to find "Portion" (profileId=1) first
+              const portionServing = item.serving.find(s => s.profileId === 1)
+              if (portionServing) {
+                const numberOfServings = item?.numberOfServings || item?.originalServings || 1
+                originalServingAmount = portionServing.amount * numberOfServings
+                originalServingId = getServingIdentifier(portionServing)
+              } else {
+                // Fall back to totalQuantity or weightAfterCooking if available
+                const totalWeight = item?.totalNutrients?.totalQuantity ||
+                  item?.totalNutrients?.weightAfterCooking ||
+                  null
+                if (totalWeight) {
+                  originalServingAmount = totalWeight
+                  const defaultServing = findDefaultServing(item.serving)
+                  originalServingId = getServingIdentifier(defaultServing)
+                } else {
+                  // Last resort: use default serving and multiply by numberOfServings
+                  const defaultServing = findDefaultServing(item.serving)
+                  const numberOfServings = item?.numberOfServings || item?.originalServings || 1
+                  originalServingAmount = (defaultServing?.amount || 100) * numberOfServings
+                  originalServingId = getServingIdentifier(defaultServing)
+                }
+              }
+            } else {
+              // For foods, use default serving
+              const defaultServing = findDefaultServing(item.serving)
+              originalServingAmount = defaultServing?.amount || 100
+              originalServingId = getServingIdentifier(defaultServing)
+            }
           } else if (!originalServingAmount) {
             originalServingAmount = 100 // Default fallback
             originalServingId = null
@@ -735,20 +790,50 @@ const Menus = () => {
     }
 
     const isRecipe = detectIsRecipe(item)
-
-    // For recipes, the serving array values are per 1 serving
-    // If the user selects a serving from the dropdown, we need to calculate the total based on numberOfServings
-    // The selectedServingAmount should already account for this if it came from dropdown selection
-    // But we need to handle when user manually enters a value - they might enter per-serving or total
-    // We'll assume that if they select from dropdown, it sets the total amount (per-serving * numberOfServings)
-    // But if they manually enter, they're entering the total amount
-
-    // For recipes: originalServingAmount is already total (per-serving * numberOfServings)
-    // For foods: originalServingAmount is just the serving amount
-
-    const scaleRatio = selectedServingAmount / originalServingAmount
     const originalCalories = item?.originalCalories || item?.totalCalories || 0
     const originalNutrients = item?.originalNutrients || item?.totalNutrients || {}
+
+    let scaleRatio
+
+    if (isRecipe) {
+      // For recipes: totalCalories is for numberOfServings servings
+      // Each serving option in the array represents 1 serving
+      // We need to calculate how many servings the selected amount represents
+      const numberOfServings = item?.numberOfServings || item?.originalServings || 1
+
+      // Find the per-serving weight from the serving array
+      // Look for "Portion" (profileId=1) first, then fall back to other options
+      let perServingWeight = null
+      if (item?.serving && Array.isArray(item.serving)) {
+        const portionServing = item.serving.find(s => s.profileId === 1)
+        if (portionServing) {
+          perServingWeight = portionServing.amount
+        } else {
+          // Fall back to first non-100g serving, or use originalServingAmount / numberOfServings
+          const nonDefaultServing = item.serving.find(s =>
+            s.profileId !== 0 &&
+            (s.name?.toLowerCase() !== 'grame' && s.innerName?.toLowerCase() !== 'grame')
+          )
+          perServingWeight = nonDefaultServing?.amount || (originalServingAmount / numberOfServings)
+        }
+      } else {
+        // Fallback: calculate per-serving weight from originalServingAmount
+        perServingWeight = originalServingAmount / numberOfServings
+      }
+
+      if (perServingWeight && perServingWeight > 0) {
+        // Calculate how many servings the selected amount represents
+        const selectedServings = selectedServingAmount / perServingWeight
+        // Scale based on servings ratio
+        scaleRatio = selectedServings / numberOfServings
+      } else {
+        // Fallback to weight ratio if we can't determine per-serving weight
+        scaleRatio = selectedServingAmount / originalServingAmount
+      }
+    } else {
+      // For foods: originalServingAmount is just the serving amount
+      scaleRatio = selectedServingAmount / originalServingAmount
+    }
 
     return {
       calories: Math.round(originalCalories * scaleRatio),
@@ -1129,12 +1214,30 @@ const Menus = () => {
                         // Ensure we use the correct serving that matches totalCalories calculation
                         let originalServingAmount = it?.originalServingAmount
                         if (!originalServingAmount && servingOptions.length > 0) {
-                          // If originalServingAmount is not set, find the default serving that matches totalCalories
-                          const defaultServing = findDefaultServing(servingOptions)
-                          if (defaultServing) {
-                            originalServingAmount = isRecipeItem
-                              ? (defaultServing.amount || 100) * (it?.numberOfServings || it?.originalServings || 1)
-                              : (defaultServing.amount || 100)
+                          if (isRecipeItem) {
+                            // For recipes, try to find "Portion" (profileId=1) first
+                            const portionServing = servingOptions.find(s => s.profileId === 1)
+                            if (portionServing) {
+                              const numberOfServings = it?.numberOfServings || it?.originalServings || 1
+                              originalServingAmount = portionServing.amount * numberOfServings
+                            } else {
+                              // Fall back to totalQuantity or weightAfterCooking if available
+                              const totalWeight = it?.totalNutrients?.totalQuantity ||
+                                it?.totalNutrients?.weightAfterCooking ||
+                                null
+                              if (totalWeight) {
+                                originalServingAmount = totalWeight
+                              } else {
+                                // Last resort: use default serving and multiply by numberOfServings
+                                const defaultServing = findDefaultServing(servingOptions)
+                                const numberOfServings = it?.numberOfServings || it?.originalServings || 1
+                                originalServingAmount = (defaultServing?.amount || 100) * numberOfServings
+                              }
+                            }
+                          } else {
+                            // For foods, use default serving
+                            const defaultServing = findDefaultServing(servingOptions)
+                            originalServingAmount = defaultServing?.amount || 100
                           }
                         }
                         originalServingAmount = originalServingAmount || 100
@@ -1165,16 +1268,16 @@ const Menus = () => {
                                   onChange={(e) => {
                                     const selectedIdentifier = e.target.value || null
                                     const selectedServing = findServingByIdentifier(servingOptions, selectedIdentifier)
-                                    // For recipes, serving array values are per 1 serving, so multiply by numberOfServings
+                                    // For recipes, serving array values represent the weight for that serving option
+                                    // For "Portion" (profileId=1), it's 1 serving; for "Grame" (profileId=0), it's per 100g
+                                    // We use the amount directly - calculateDisplayValues will handle the scaling
                                     const servingAmount = selectedServing?.amount || 0
-                                    const numberOfServings = isRecipeItem ? (it?.numberOfServings || it?.originalServings || 1) : 1
-                                    const newAmount = isRecipeItem ? servingAmount * numberOfServings : servingAmount
 
                                     setDisplayValues(prev => ({
                                       ...prev,
                                       [itemKey]: {
                                         selectedServingId: selectedIdentifier,
-                                        servingAmount: newAmount || currentServingAmount,
+                                        servingAmount: servingAmount || currentServingAmount,
                                       }
                                     }))
                                   }}
@@ -1195,7 +1298,7 @@ const Menus = () => {
                                   onChange={(e) => {
                                     const inputValue = e.target.value
                                     // Allow empty string, otherwise parse as number
-                                    const newAmount = inputValue === '' ? '' : (parseFloat(inputValue) || 0)
+                                    const newAmount = inputValue === '' ? '' : inputValue || 0
 
                                     setDisplayValues(prev => ({
                                       ...prev,
