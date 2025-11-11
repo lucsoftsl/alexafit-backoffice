@@ -13,13 +13,13 @@ import { getRecipesByCountryCode, searchFoodItems, getItemsByIds, addItem, updat
 import LZString from 'lz-string'
 
 const AVAILABLE_COUNTRY_CODES = {
-  es: 'es',
-  gb: 'gb',
-  hu: 'hu',
-  it: 'it',
-  ro: 'ro',
-  uk: 'uk',
-  us: 'us',
+  ES: 'ES',
+  GB: 'GB',
+  HU: 'HU',
+  IT: 'IT',
+  RO: 'RO',
+  UK: 'UK',
+  US: 'US',
 }
 
 const Recipes = () => {
@@ -53,6 +53,7 @@ const Recipes = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [loadingEdit, setLoadingEdit] = useState(false)
 
   // For image modal
   const [selectedImage, setSelectedImage] = useState(null)
@@ -484,10 +485,13 @@ const Recipes = () => {
 
   const handleEditRecipe = async (recipe) => {
     try {
+      setLoadingEdit(true)
+
       // Fetch full recipe data by ID
       const recipeId = recipe.id || recipe.itemId || recipe._id
       if (!recipeId) {
         alert('Recipe ID not found')
+        setLoadingEdit(false)
         return
       }
 
@@ -496,6 +500,7 @@ const Recipes = () => {
 
       if (!fullRecipe) {
         alert('Failed to load recipe data')
+        setLoadingEdit(false)
         return
       }
 
@@ -567,9 +572,11 @@ const Recipes = () => {
       }
 
       setIsCreateModalOpen(true)
+      setLoadingEdit(false)
     } catch (e) {
       console.error('Failed to load recipe for editing', e)
       alert('Failed to load recipe data. Please try again.')
+      setLoadingEdit(false)
     }
   }
 
@@ -776,6 +783,16 @@ const Recipes = () => {
 
   return (
     <div className="space-y-6">
+      {/* Loading overlay for edit */}
+      {loadingEdit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="text-gray-700 font-medium">Loading recipe data...</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Recipes</h1>
@@ -915,7 +932,8 @@ const Recipes = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEditRecipe(item)}
-                        className="text-blue-600 hover:text-blue-900"
+                        disabled={loadingEdit}
+                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Edit recipe"
                       >
                         <PencilIcon className="w-4 h-4" />
