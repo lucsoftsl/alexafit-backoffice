@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { getNutritionistClients, assignClientToNutritionist, unassignClientFromNutritionist } from '../services/loggedinApi'
 import { useAuth } from '../contexts/AuthContext'
-import UserDetailModal from '../components/UserDetailModal'
+import ClientDayModal from '../components/ClientDayModal'
 import { selectUserData } from '../store/userSlice'
 
 const MyUsers = () => {
@@ -506,8 +506,8 @@ const MyUsers = () => {
         </div>
       )}
 
-      {/* User Detail Modal */}
-      <UserDetailModal
+      {/* Client Day Modal */}
+      <ClientDayModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false)
