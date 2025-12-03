@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSelector } from 'react-redux'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -10,6 +11,7 @@ import {
   ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 import { getRecipesByCountryCode, searchFoodItems, getItemsByIds, addItem, updateItem, deleteItem, addPhotoToItem, saveImageToImgb } from '../services/api'
+import { selectIsAdmin } from '../store/userSlice'
 import LZString from 'lz-string'
 
 const AVAILABLE_COUNTRY_CODES = {
@@ -32,6 +34,7 @@ const Recipes = () => {
   const [itemsPerPage, setItemsPerPage] = useState(25)
   const [sortColumn, setSortColumn] = useState(null)
   const [sortDirection, setSortDirection] = useState('asc')
+  const isAdmin = useSelector(selectIsAdmin)
 
   // For recipe creation/editing modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -65,6 +68,12 @@ const Recipes = () => {
 
   useEffect(() => {
     const loadRecipes = async () => {
+      // Only load if admin
+      if (!isAdmin) {
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         setError(null)
@@ -89,7 +98,7 @@ const Recipes = () => {
     }
     loadRecipes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterCountryCode])
+  }, [filterCountryCode, isAdmin])
 
   // Reset to page 1 when switching country code or changing search term
   useEffect(() => {
@@ -933,7 +942,7 @@ const Recipes = () => {
                       <button
                         onClick={() => handleEditRecipe(item)}
                         disabled={loadingEdit}
-                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         title="Edit recipe"
                       >
                         <PencilIcon className="w-4 h-4" />
@@ -941,7 +950,7 @@ const Recipes = () => {
                       <button
                         onClick={() => handleDeleteRecipe(item)}
                         disabled={deleting}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50 cursor-pointer"
                         title="Delete recipe"
                       >
                         <TrashIcon className="w-4 h-4" />
@@ -949,7 +958,7 @@ const Recipes = () => {
                       <button
                         onClick={() => handleAddPhotoToRecipe(item)}
                         disabled={uploadingPhoto}
-                        className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                        className="text-green-600 hover:text-green-900 disabled:opacity-50 cursor-pointer"
                         title="Add photo"
                       >
                         <PhotoIcon className="w-4 h-4" />
@@ -973,7 +982,7 @@ const Recipes = () => {
                     {item.photoUrl ? (
                       <button
                         onClick={() => handleShowImage(item.photoUrl)}
-                        className="text-blue-600 hover:text-blue-900 underline"
+                        className="text-blue-600 hover:text-blue-900 underline cursor-pointer"
                       >
                         View
                       </button>

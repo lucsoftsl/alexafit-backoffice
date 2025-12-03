@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSelector } from 'react-redux'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -20,6 +21,7 @@ import {
   getUserMenus,
   removeMenuFromUser,
 } from '../services/api'
+import { selectIsAdmin } from '../store/userSlice'
 
 const defaultPlans = { breakfastPlan: [], lunchPlan: [], dinnerPlan: [], snackPlan: [] }
 
@@ -48,6 +50,7 @@ const Menus = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [editingTemplateId, setEditingTemplateId] = useState(null)
   const [users, setUsers] = useState([])
+  const isAdmin = useSelector(selectIsAdmin)
   const [selectedUserId, setSelectedUserId] = useState(null)
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [userMenus, setUserMenus] = useState([])
@@ -78,9 +81,11 @@ const Menus = () => {
   }
 
   useEffect(() => {
-    loadTemplates()
-    loadUsers()
-  }, [])
+    if (isAdmin) {
+      loadTemplates()
+      loadUsers()
+    }
+  }, [isAdmin])
 
   useEffect(() => {
     if (selectedUserId) {
@@ -1460,12 +1465,12 @@ const Menus = () => {
                       )}
                       <button
                         onClick={() => handleDuplicateTemplate(t)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-blue-600 hover:text-blue-800 cursor-pointer"
                         title="Duplicate menu"
                       >
                         <DocumentDuplicateIcon className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDeleteTemplate(id)} className="text-red-600 hover:text-red-800" title="Delete menu">
+                      <button onClick={() => handleDeleteTemplate(id)} className="text-red-600 hover:text-red-800 cursor-pointer" title="Delete menu">
                         <TrashIcon className="w-4 h-4" />
                       </button>
                     </td>
@@ -1573,7 +1578,7 @@ const Menus = () => {
                         className={`${isSelected
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          } px-4 py-2 rounded-md text-sm transition-colors`}
+                          } px-4 py-2 rounded-md text-sm transition-colors cursor-pointer`}
                       >
                         {isSelected ? 'Selected' : 'Select'}
                       </button>
@@ -1622,7 +1627,7 @@ const Menus = () => {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Previous
               </button>
@@ -1634,7 +1639,7 @@ const Menus = () => {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(getTotalUserPages(), prev + 1))}
                 disabled={currentPage >= getTotalUserPages()}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Next
               </button>
@@ -1802,7 +1807,7 @@ const Menus = () => {
                         <button
                           onClick={() => handleRemoveMenu(menu)}
                           disabled={removingMenu}
-                          className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                           title="Remove menu"
                         >
                           <TrashIcon className="w-5 h-5" />

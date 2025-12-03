@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSelector } from 'react-redux'
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -12,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { fetchProgramSubscribers, formatSubscriptionStatus, formatUserData, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
+import { selectIsAdmin } from '../store/userSlice'
 
 const Subscribers = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,9 +25,12 @@ const Subscribers = () => {
   const [selectedUser, setSelectedUser] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const hasLoadedRef = useRef(false)
+  const isAdmin = useSelector(selectIsAdmin)
 
   // Manual refresh function
   const refreshSubscribers = async () => {
+    if (!isAdmin) return
+    
     hasLoadedRef.current = false
     setError(null)
     setLoading(true)
@@ -54,6 +59,12 @@ const Subscribers = () => {
     hasLoadedRef.current = true
     
     const loadSubscribers = async () => {
+      // Only fetch data if user is admin
+      if (!isAdmin) {
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         setError(null)
@@ -90,7 +101,7 @@ const Subscribers = () => {
     }
 
     loadSubscribers()
-  }, []) // Empty dependency array ensures this only runs once
+  }, [isAdmin]) // Include isAdmin in dependency array
 
   // Mock data for demonstration (fallback)
   const mockSubscribers = [

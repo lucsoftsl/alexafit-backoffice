@@ -1,5 +1,6 @@
 /* eslint-disable max-len */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -11,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { getUsers, formatUserData, formatSubscriptionStatus } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
+import { selectIsAdmin } from '../store/userSlice'
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -23,8 +25,10 @@ const Users = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [usersPerPage, setUsersPerPage] = useState(5)
+  const isAdmin = useSelector(selectIsAdmin)
 
   const refreshUsers = async () => {
+    if (!isAdmin) return
     hasLoadedRef.current = false
     setError(null)
     setLoading(true)

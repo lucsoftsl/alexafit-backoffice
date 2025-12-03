@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSelector } from 'react-redux'
 import {
   UsersIcon,
   UserGroupIcon,
@@ -10,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { fetchProgramSubscribers, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
+import { selectIsAdmin } from '../store/userSlice'
 
 const Dashboard = () => {
   const [subscribers, setSubscribers] = useState([])
@@ -18,11 +20,18 @@ const Dashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const hasLoadedRef = useRef(false)
+  const isAdmin = useSelector(selectIsAdmin)
 
   useEffect(() => {
     const loadSubscribers = async () => {
       if (hasLoadedRef.current) return
       hasLoadedRef.current = true
+
+      // Only fetch data if user is admin
+      if (!isAdmin) {
+        setLoading(false)
+        return
+      }
 
       try {
         console.log('Loading subscribers...')
@@ -53,9 +62,11 @@ const Dashboard = () => {
     }
 
     loadSubscribers()
-  }, [])
+  }, [isAdmin])
 
   const refreshSubscribers = async () => {
+    if (!isAdmin) return
+    
     hasLoadedRef.current = false
     setError(null)
     setLoading(true)
@@ -275,7 +286,7 @@ const Dashboard = () => {
                           setSelectedUser(subscriber)
                           setIsModalOpen(true)
                         }}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer"
                       >
                         <EyeIcon className="h-4 w-4" />
                       </button>

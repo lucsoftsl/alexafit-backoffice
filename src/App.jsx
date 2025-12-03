@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
@@ -6,11 +7,49 @@ import Subscribers from './pages/Subscribers'
 import UnapprovedItems from './pages/UnapprovedItems'
 import Menus from './pages/Menus'
 import Recipes from './pages/Recipes'
+import Settings from './pages/Settings'
+import Login from './components/Login'
+import { useAuth } from './contexts/AuthContext'
+import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import {
+  selectIsAdmin,
+  selectUserData,
+  selectUserLoading,
+  selectUserError
+} from './store/userSlice'
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard')
+  const { currentUser, logout } = useAuth()
+  const isAdmin = useSelector(selectIsAdmin)
+  const userData = useSelector(selectUserData)
+  const userLoading = useSelector(selectUserLoading)
+  const userError = useSelector(selectUserError)
+
+  // Redirect non-admin users to settings page after login
+  useEffect(() => {
+    if (userData && !isAdmin && activePage === 'dashboard') {
+      setActivePage('settings')
+    }
+  }, [userData, isAdmin, activePage])
 
   const renderPage = () => {
+    // Admin-only pages
+    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'menus', 'recipes', 'analytics']
+    
+    // Check if current page requires admin access
+    if (adminPages.includes(activePage) && !isAdmin) {
+      return (
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h2>
+            <p className="text-gray-600">You don't have permission to access this page.</p>
+            <p className="text-sm text-gray-500 mt-2">Admin privileges required.</p>
+          </div>
+        </div>
+      )
+    }
+
     switch (activePage) {
       case 'dashboard':
         return <Dashboard />
@@ -24,9 +63,60 @@ function App() {
         return <Menus />
       case 'recipes':
         return <Recipes />
+      case 'settings':
+        return <Settings />
       default:
         return <Dashboard />
     }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Failed to logout:', error)
+    }
+  }
+
+  // Show login page if user is not authenticated
+  if (!currentUser) {
+    return <Login />
+  }
+
+  // Show loading state while fetching user data
+  if (userLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading user data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if user is not authorized
+  if (userError || !userData) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
+          <p className="text-gray-700 mb-4">
+            {userError || 'You are not authorized to access the backoffice.'}
+          </p>
+          <p className="text-gray-600 mb-6">
+            Your account is not logged in or does not have backoffice access.
+          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+          >
+            <ArrowRightOnRectangleIcon className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -34,6 +124,29 @@ function App() {
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
       <main className="flex-1 overflow-y-auto">
         <div className="p-6">
+          {/* User info and logout button */}
+          <div className="mb-4 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className={isAdmin ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}>
+                {isAdmin ? 'Admin' : 'User'}
+              </span>
+              {userData?.userType && (
+                <span className="text-xs text-gray-500">Type: {userData.userType}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Logged in as:</span> {currentUser.email}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
+              >
+                <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                Logout
+              </button>
+            </div>
+          </div>
           {renderPage()}
         </div>
       </main>

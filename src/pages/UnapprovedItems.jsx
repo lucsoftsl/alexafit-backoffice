@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
 import {
   MagnifyingGlassIcon,
   CheckIcon,
@@ -7,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
+import { selectIsAdmin } from '../store/userSlice'
 
 import LZString from 'lz-string'
 
@@ -20,6 +22,7 @@ const UnapprovedItems = () => {
   const [activeTab, setActiveTab] = useState('food') // 'food' or 'exercise'
   const [itemsPerPage, setItemsPerPage] = useState(25)
   const [currentPage, setCurrentPage] = useState(1)
+  const isAdmin = useSelector(selectIsAdmin)
 
   // For unverify item controls
   const [unverifyItemId, setUnverifyItemId] = useState('')
@@ -40,6 +43,12 @@ const UnapprovedItems = () => {
 
   useEffect(() => {
     const loadUnapprovedItems = async () => {
+      // Only fetch if admin
+      if (!isAdmin) {
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         setError(null)
@@ -555,7 +564,7 @@ const UnapprovedItems = () => {
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900" onClick={() => handleApproveItem(item.id, 'FOOD')}>
+                        <button className="text-blue-600 hover:text-blue-900 cursor-pointer" onClick={() => handleApproveItem(item.id, 'FOOD')}>
                           <CheckIcon className="w-4 h-4" />
                         </button>
                       </div>
@@ -716,7 +725,7 @@ const UnapprovedItems = () => {
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex justify-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900" onClick={() => handleApproveItem(item.id, 'EXERCISE')}>
+                        <button className="text-blue-600 hover:text-blue-900 cursor-pointer" onClick={() => handleApproveItem(item.id, 'EXERCISE')}>
                           <CheckIcon className="w-4 h-4" />
                         </button>
                       </div>
