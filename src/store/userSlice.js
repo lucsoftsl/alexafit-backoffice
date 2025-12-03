@@ -6,6 +6,7 @@ const initialState = {
   userData: null,
   userType: null,
   isAdmin: false,
+  isNutritionist: false,
   fetchedAt: null,
   loading: false,
   error: null
@@ -19,6 +20,7 @@ const userSlice = createSlice({
       state.userData = action.payload
       state.userType = action.payload?.userType || null
       state.isAdmin = action.payload?.userType === 'ADMIN'
+      state.isNutritionist = action.payload?.userType === 'NUTRITIONIST'
       state.fetchedAt = Date.now()
       state.loading = false
       state.error = null
@@ -34,6 +36,7 @@ const userSlice = createSlice({
       state.userData = null
       state.userType = null
       state.isAdmin = false
+      state.isNutritionist = false
       state.fetchedAt = null
       state.loading = false
       state.error = null
@@ -48,6 +51,7 @@ export const { setUserData, setLoading, setError, clearUserData } =
 export const selectUserData = state => state.user.userData
 export const selectUserType = state => state.user.userType
 export const selectIsAdmin = state => state.user.isAdmin
+export const selectIsNutritionist = state => state.user.isNutritionist
 export const selectUserLoading = state => state.user.loading
 export const selectUserError = state => state.user.error
 

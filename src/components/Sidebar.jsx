@@ -11,15 +11,18 @@ import {
   BookOpenIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
-import { selectIsAdmin } from '../store/userSlice'
+import { selectIsAdmin, selectIsNutritionist } from '../store/userSlice'
 
 const Sidebar = ({ activePage, setActivePage }) => {
   const { currentUser } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
+  const isNutritionist = useSelector(selectIsNutritionist)
   const [imageError, setImageError] = useState(false)
   
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, adminOnly: true },
+    { id: 'myday', label: 'My Day', icon: HomeIcon, adminOnly: false },
+    { id: 'myusers', label: 'My Users', icon: UsersIcon, nutritionistOnly: true },
     { id: 'users', label: 'Users', icon: UsersIcon, adminOnly: true },
     { id: 'unapprovedItems', label: 'Unapproved Items', icon: ListBulletIcon, adminOnly: true },
     { id: 'menus', label: 'Menus', icon: CakeIcon, adminOnly: true },
@@ -29,10 +32,12 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'settings', label: 'Settings', icon: CogIcon, adminOnly: false },
   ]
 
-  // Filter menu items based on admin status
-  const menuItems = isAdmin 
-    ? allMenuItems 
-    : allMenuItems.filter(item => !item.adminOnly)
+  // Filter menu items based on admin/nutritionist status
+  const menuItems = allMenuItems.filter(item => {
+    if (item.adminOnly && !isAdmin) return false
+    if (item.nutritionistOnly && !isNutritionist) return false
+    return true
+  })
 
   // Get user display info
   const getUserDisplayName = () => {

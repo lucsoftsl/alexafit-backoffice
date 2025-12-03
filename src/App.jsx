@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
+import MyDay from './pages/MyDay'
+import MyUsers from './pages/MyUsers'
 import Users from './pages/Users'
 import Subscribers from './pages/Subscribers'
 import UnapprovedItems from './pages/UnapprovedItems'
@@ -13,6 +15,7 @@ import { useAuth } from './contexts/AuthContext'
 import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import {
   selectIsAdmin,
+  selectIsNutritionist,
   selectUserData,
   selectUserLoading,
   selectUserError
@@ -22,20 +25,26 @@ function App() {
   const [activePage, setActivePage] = useState('dashboard')
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
+  const isNutritionist = useSelector(selectIsNutritionist)
   const userData = useSelector(selectUserData)
   const userLoading = useSelector(selectUserLoading)
   const userError = useSelector(selectUserError)
 
-  // Redirect non-admin users to settings page after login
+  // Redirect non-admin users to appropriate page after login
   useEffect(() => {
     if (userData && !isAdmin && activePage === 'dashboard') {
-      setActivePage('settings')
+      // Nutritionists go to My Users, others go to My Day
+      setActivePage(isNutritionist ? 'myusers' : 'myday')
     }
-  }, [userData, isAdmin, activePage])
+  }, [userData, isAdmin, isNutritionist, activePage])
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'menus', 'recipes', 'analytics']
+    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard']
+    // Admin + Nutritionist pages
+    const adminOrNutritionistPages = ['menus', 'recipes']
+    // Nutritionist-only pages
+    const nutritionistPages = ['myusers']
     
     // Check if current page requires admin access
     if (adminPages.includes(activePage) && !isAdmin) {
@@ -50,9 +59,39 @@ function App() {
       )
     }
 
+    // Check if current page requires admin or nutritionist access
+    if (adminOrNutritionistPages.includes(activePage) && !isAdmin && !isNutritionist) {
+      return (
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h2>
+            <p className="text-gray-600">You don't have permission to access this page.</p>
+            <p className="text-sm text-gray-500 mt-2">Admin or Nutritionist privileges required.</p>
+          </div>
+        </div>
+      )
+    }
+
+    // Check nutritionist-only pages
+    if (nutritionistPages.includes(activePage) && !isNutritionist) {
+      return (
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h2>
+            <p className="text-gray-600">You don't have permission to access this page.</p>
+            <p className="text-sm text-gray-500 mt-2">Nutritionist privileges required.</p>
+          </div>
+        </div>
+      )
+    }
+
     switch (activePage) {
       case 'dashboard':
         return <Dashboard />
+      case 'myday':
+        return <MyDay />
+      case 'myusers':
+        return <MyUsers />
       case 'users':
         return <Users />
       case 'subscribers':
@@ -127,8 +166,8 @@ function App() {
           {/* User info and logout button */}
           <div className="mb-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className={isAdmin ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}>
-                {isAdmin ? 'Admin' : 'User'}
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
               </span>
               {userData?.userType && (
                 <span className="text-xs text-gray-500">Type: {userData.userType}</span>

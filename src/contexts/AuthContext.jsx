@@ -10,7 +10,7 @@ import {
   OAuthProvider
 } from 'firebase/auth'
 import { auth } from '../config/firebase'
-import { getLoggedInUser } from '../services/api'
+import { getUserById } from '../services/api'
 import {
   setUserData,
   setLoading,
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       dispatch(setLoading(true))
-      const response = await getLoggedInUser(firebaseUser.uid)
+      const response = await getUserById(firebaseUser.uid)
 
       if (response.ok && response.data) {
         dispatch(setUserData(response.data))

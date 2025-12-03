@@ -833,11 +833,11 @@ export const addPhotoToItem = async ({
   }
 }
 
-export const getLoggedInUser = async userId => {
+export const getUserById = async userId => {
   try {
     const headers = await getHeaders(true)
     const response = await fetch(
-      'https://foodsync-api.vercel.app/foodsync/getLoggedInUser',
+      'https://foodsync-api.vercel.app/foodsync/getUserById',
       {
         method: 'POST',
         headers,
