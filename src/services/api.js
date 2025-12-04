@@ -304,13 +304,19 @@ export const setItemVerifiedStatus = async ({ itemId, verified, itemType }) => {
   }
 }
 
-export const getAllMenuTemplates = async () => {
+export const getAllMenuTemplates = async (createdByUserId = null) => {
   try {
     const headers = await getHeaders()
     const response = await fetch(`${API_BASE_URL}/getAllMenuTemplates`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({})
+      body: JSON.stringify(
+        createdByUserId
+          ? {
+              createdByUserId
+            }
+          : {}
+      )
     })
 
     if (!response.ok) {
@@ -331,7 +337,8 @@ export const addMenuTemplate = async ({
   dinnerPlan,
   snackPlan,
   name,
-  isAssignableByUser
+  isAssignableByUser,
+  createdByUserId
 }) => {
   try {
     const headers = await getHeaders()
@@ -344,7 +351,8 @@ export const addMenuTemplate = async ({
         dinnerPlan,
         snackPlan,
         name,
-        isAssignableByUser
+        isAssignableByUser,
+        createdByUserId
       })
     })
 

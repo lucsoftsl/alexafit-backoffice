@@ -23,6 +23,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, adminOnly: true },
     { id: 'myday', label: 'My Day', icon: HomeIcon, adminOnly: false },
     { id: 'myusers', label: 'My Users', icon: UsersIcon, nutritionistOnly: true },
+    { id: 'mymenus', label: 'My Menus', icon: CakeIcon, nutritionistOnly: true },
     { id: 'users', label: 'Users', icon: UsersIcon, adminOnly: true },
     { id: 'unapprovedItems', label: 'Unapproved Items', icon: ListBulletIcon, adminOnly: true },
     { id: 'menus', label: 'Menus', icon: CakeIcon, adminOnly: true },

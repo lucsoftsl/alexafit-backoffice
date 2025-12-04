@@ -22,6 +22,7 @@ import {
   removeMenuFromUser,
 } from '../services/api'
 import { selectIsAdmin } from '../store/userSlice'
+import { useAuth } from '../contexts/AuthContext'
 
 const defaultPlans = { breakfastPlan: [], lunchPlan: [], dinnerPlan: [], snackPlan: [] }
 
@@ -65,6 +66,7 @@ const Menus = () => {
   const [removingMenu, setRemovingMenu] = useState(false)
   const [viewingUserMenu, setViewingUserMenu] = useState(null)
   const [templateSearchTerm, setTemplateSearchTerm] = useState('')
+  const [viewingCreator, setViewingCreator] = useState(null)
   // State to track display values for items (separate from original values)
   const [displayValues, setDisplayValues] = useState({})
 
@@ -467,6 +469,8 @@ const Menus = () => {
     }))
   }
 
+  const { currentUser } = useAuth()
+
   const totalItems = useMemo(() => Object.values(plans).reduce((acc, arr) => acc + arr.length, 0), [plans])
 
   const handleCreateTemplate = async () => {
@@ -532,6 +536,7 @@ const Menus = () => {
           dinnerPlan: preparePlanWithChangedServing(plans.dinnerPlan, 'dinnerPlan'),
           snackPlan: preparePlanWithChangedServing(plans.snackPlan, 'snackPlan'),
           isAssignableByUser,
+          createdByUserId: currentUser?.uid
         }
         await addMenuTemplate(payload)
       }
@@ -750,6 +755,7 @@ const Menus = () => {
         dinnerPlan: deepCopyPlan(originalPlans.dinnerPlan),
         snackPlan: deepCopyPlan(originalPlans.snackPlan),
         isAssignableByUser: false,
+        createdByUserId: currentUser?.uid
       }
 
       await addMenuTemplate(payload)
@@ -1433,6 +1439,7 @@ const Menus = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creator</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breakfast</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lunch</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dinner</th>
@@ -1455,6 +1462,18 @@ const Menus = () => {
                     onClick={() => handleLoadTemplateForEditing(t)}
                   >
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{t?.name || 'Untitled'}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
+                      {t?.createdByUserId ? (
+                        <span 
+                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200"
+                          onClick={() => setViewingCreator(t)}
+                        >
+                          {t.createdByUserId === currentUser?.uid ? 'You' : 'Nutritionist'}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-500">Admin</span>
+                      )}
+                    </td>
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{bp.length}</td>
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{lp.length}</td>
                     <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{dp.length}</td>
@@ -1479,7 +1498,7 @@ const Menus = () => {
               })}
               {filteredTemplates.length === 0 && (
                 <tr>
-                  <td className="px-6 py-4 text-sm text-gray-500" colSpan="6">
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan="7">
                     {loadingTemplates ? 'Loading templates...' : templateSearchTerm ? `No templates found matching "${templateSearchTerm}"` : 'No templates found'}
                   </td>
                 </tr>
@@ -1907,6 +1926,66 @@ const Menus = () => {
                 })}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Creator Details Modal */}
+      {viewingCreator && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Creator Details</h3>
+              <button onClick={() => setViewingCreator(null)} className="text-gray-500 hover:text-gray-700">
+                <span className="text-2xl">&times;</span>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-medium text-gray-700">Menu Template:</span>
+                <div className="mt-1 text-gray-900">{viewingCreator?.name || 'Untitled'}</div>
+              </div>
+              
+              <div>
+                <span className="text-sm font-medium text-gray-700">Creator ID:</span>
+                <div className="mt-1 text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded">
+                  {viewingCreator?.createdByUserId || 'Admin (no ID)'}
+                </div>
+              </div>
+
+              {viewingCreator?.createdByUserId === currentUser?.uid && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <p className="text-sm text-blue-900">This is your menu template</p>
+                </div>
+              )}
+
+              <div className="pt-4 border-t">
+                <span className="text-sm font-medium text-gray-700">Template Stats:</span>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                  <div className="bg-gray-50 p-2 rounded">
+                    <div className="text-gray-600">Total Items</div>
+                    <div className="font-semibold text-gray-900">
+                      {(viewingCreator?.breakfastPlan?.length || 0) +
+                       (viewingCreator?.lunchPlan?.length || 0) +
+                       (viewingCreator?.dinnerPlan?.length || 0) +
+                       (viewingCreator?.snackPlan?.length || 0)}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 p-2 rounded">
+                    <div className="text-gray-600">Total Calories</div>
+                    <div className="font-semibold text-gray-900">{viewingCreator?.totalCalories || 0}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setViewingCreator(null)}
+              className="mt-6 w-full btn-secondary"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

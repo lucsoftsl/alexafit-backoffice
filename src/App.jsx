@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import MyDay from './pages/MyDay'
 import MyUsers from './pages/MyUsers'
+import MyMenus from './pages/MyMenus'
 import Users from './pages/Users'
 import Subscribers from './pages/Subscribers'
 import UnapprovedItems from './pages/UnapprovedItems'
@@ -42,7 +43,7 @@ function App() {
     // Admin-only pages
     const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard']
     // Admin + Nutritionist pages
-    const adminOrNutritionistPages = ['menus', 'recipes']
+    const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus']
     // Nutritionist-only pages
     const nutritionistPages = ['myusers']
     
@@ -92,6 +93,8 @@ function App() {
         return <MyDay />
       case 'myusers':
         return <MyUsers />
+      case 'mymenus':
+        return <MyMenus />
       case 'users':
         return <Users />
       case 'subscribers':

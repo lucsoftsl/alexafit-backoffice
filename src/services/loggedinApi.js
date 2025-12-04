@@ -278,6 +278,122 @@ export async function updateUserFasting({ userId, selectedDate, fastingData }) {
   })
 }
 
+// Backoffice-only menu endpoints for nutritionists
+export async function getAllMenuTemplatesByUser({ createdByUserId }) {
+  // Get all menu templates created by a specific user (nutritionist)
+  return request('/foodsync/getAllMenuTemplatesByUserBO', {
+    method: 'POST',
+    body: { createdByUserId }
+  })
+}
+
+export async function addMenuTemplateBO({
+  breakfastPlan,
+  dinnerPlan,
+  lunchPlan,
+  snackPlan,
+  name,
+  isAssignableByUser,
+  createdByUserId
+}) {
+  // Create a new menu template
+  return request('/foodsync/addMenuTemplateBO', {
+    method: 'POST',
+    body: {
+      breakfastPlan: breakfastPlan?.length > 0 ? breakfastPlan : [],
+      dinnerPlan: dinnerPlan?.length > 0 ? dinnerPlan : [],
+      lunchPlan: lunchPlan?.length > 0 ? lunchPlan : [],
+      snackPlan: snackPlan?.length > 0 ? snackPlan : [],
+      name,
+      isAssignableByUser,
+      createdByUserId
+    }
+  })
+}
+
+export async function updateMenuTemplateBO({
+  menuTemplateId,
+  breakfastPlan,
+  dinnerPlan,
+  lunchPlan,
+  snackPlan,
+  name,
+  isAssignableByUser,
+  createdByUserId
+}) {
+  // Update an existing menu template
+  return request('/foodsync/updateMenuTemplateBO', {
+    method: 'POST',
+    body: {
+      menuTemplateId,
+      breakfastPlan,
+      dinnerPlan,
+      lunchPlan,
+      snackPlan,
+      name,
+      isAssignableByUser,
+      createdByUserId
+    }
+  })
+}
+
+export async function deleteMenuTemplateByIdBO({
+  menuTemplateId,
+  createdByUserId
+}) {
+  // Delete a menu template by ID
+  return request('/foodsync/deleteMenuTemplateByIdBO', {
+    method: 'POST',
+    body: { menuTemplateId, createdByUserId }
+  })
+}
+
+export async function deleteMenuTemplateItemByIdBO({
+  menuTemplateId,
+  itemType,
+  itemId,
+  createdByUserId
+}) {
+  // Delete a single item from a menu template
+  return request('/foodsync/deleteMenuTemplateItemByIdBO', {
+    method: 'POST',
+    body: { menuTemplateId, itemType, itemId, createdByUserId }
+  })
+}
+
+export async function assignMenuTemplateToUserBO({
+  userId,
+  dateApplied,
+  menuTemplateId,
+  replaceExisting = false
+}) {
+  // Assign a menu template to a user
+  return request('/foodsync/assignMenuTemplateToUserBO', {
+    method: 'POST',
+    body: { userId, dateApplied, menuTemplateId, replaceExisting }
+  })
+}
+
+export async function removeMenuFromUserBO({
+  userId,
+  dateApplied,
+  menuTemplateId
+}) {
+  // Remove a menu from a user
+  return request('/foodsync/removeMenuFromUserBO', {
+    method: 'POST',
+    body: { userId, dateApplied, menuTemplateId }
+  })
+}
+
+export async function getUserMenusBO({ userId }) {
+  // Get all menus assigned to a user
+  return request('/foodsync/getUserMenusBO', {
+    method: 'POST',
+    body: { userId }
+  })
+}
+
 // Nutritionist endpoints for managing clients
 export async function getNutritionistClients({ nutritionistId }) {
   // Get all clients assigned to a nutritionist
