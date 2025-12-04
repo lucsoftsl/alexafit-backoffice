@@ -86,7 +86,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
         </div>
       </nav>
 
-      <div className="absolute bottom-0 w-64 p-6 border-t border-gray-200">
+      <div className="absolute bottom-0 w-64 p-6 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setActivePage('settings')}>
         <div className="flex items-center">
           {currentUser?.photoURL && !imageError ? (
             <img 

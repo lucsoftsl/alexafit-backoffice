@@ -117,19 +117,40 @@ export const calculateDisplayValues = (
 }
 
 // Sum totals assuming items already have applied totals (items-by-date payload)
+// This now accounts for quantity and unit when calculating actual calories
 export const computeAppliedTotals = items => {
   return (items || []).reduce(
     (acc, item) => {
-      const calories = Number(
+      // Get the default serving info (grame, gram, g, ml, etc.)
+      const servingArray = item?.food?.serving || item?.serving || []
+      const defaultServing = findDefaultServing(servingArray)
+      const defaultServingAmount = defaultServing?.amount || 100
+
+      // Get quantity from the applied item
+      const quantity = Number(item?.quantity) || defaultServingAmount
+
+      // Get base nutrients and calories for the default serving
+      const baseCalories = Number(
         item?.totalCalories || item?.food?.totalCalories || 0
       )
-      const nutrients = item?.totalNutrients || item?.food?.totalNutrients || {}
-      const n = safeNutrients(nutrients)
+      const baseNutrients =
+        item?.totalNutrients || item?.food?.totalNutrients || {}
+
+      // Calculate scale ratio: quantity / default serving amount
+      // This accounts for the fact that totalCalories may be for a different amount
+      const scaleRatio = quantity / defaultServingAmount
+
+      const calories = Math.round(baseCalories * scaleRatio)
+      const nutrients = safeNutrients(baseNutrients)
+
       return {
         calories: acc.calories + calories,
-        proteinsInGrams: acc.proteinsInGrams + n.proteinsInGrams,
-        carbohydratesInGrams: acc.carbohydratesInGrams + n.carbohydratesInGrams,
-        fatInGrams: acc.fatInGrams + n.fatInGrams
+        proteinsInGrams:
+          acc.proteinsInGrams + nutrients.proteinsInGrams * scaleRatio,
+        carbohydratesInGrams:
+          acc.carbohydratesInGrams +
+          nutrients.carbohydratesInGrams * scaleRatio,
+        fatInGrams: acc.fatInGrams + nutrients.fatInGrams * scaleRatio
       }
     },
     { calories: 0, proteinsInGrams: 0, carbohydratesInGrams: 0, fatInGrams: 0 }

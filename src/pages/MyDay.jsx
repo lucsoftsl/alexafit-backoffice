@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getDailyNutrition, getUserData, getUserMenuByDate } from '../services/loggedinApi'
 import { sumTotalsByMealsApplied, computeAppliedTotals, detectIsRecipe, findDefaultServing, findServingByIdentifier, getServingIdentifier, calculateDisplayValues, safeNutrients } from '../util/menuDisplay'
 import { getCategoryIcon } from '../util/categoryIcons'
+import { ArrowPathIcon } from '@heroicons/react/24/outline'
 
 // Simple date helpers
 const todayISO = () => new Date().toISOString().slice(0, 10)
@@ -51,7 +52,17 @@ const getItemDisplay = (it) => {
 }
 
 const getItemCalories = (it) => {
-  // Approximate calories: use food.totalCalories as already quantity-adjusted if backend returns so
+  // For applied food items, scale calories based on quantity and default serving
+  if (it?.food && it?.quantity !== undefined && it?.food?.serving) {
+    const servingArray = it.food.serving || []
+    const defaultServing = findDefaultServing(servingArray)
+    const defaultServingAmount = defaultServing?.amount || 100
+    const quantity = Number(it.quantity) || defaultServingAmount
+    const baseCalories = Number(it.food.totalCalories || 0)
+    const scaleRatio = quantity / defaultServingAmount
+    return Math.round(baseCalories * scaleRatio)
+  }
+  // Fallback for other item types
   if (it?.food?.totalCalories) return Math.round(it.food.totalCalories)
   if (typeof it?.calories === 'number') return Math.round(it.calories)
   if (it?.exercise?.caloriesBurnt) return Math.round(it.exercise.caloriesBurnt)
@@ -135,6 +146,8 @@ const MyDay = () => {
   const [selectedItem, setSelectedItem] = useState(null)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
 
+  const selectedItemFallbackImg = selectedItem ? getCategoryIcon(selectedItem?.food?.category || selectedItem?.category || (selectedItem?.exercise ? 'exerciseGeneral' : '')) : null
+
   const lastFetchKeyRef = useRef('')
   const dateLabel = useMemo(() => {
     try {
@@ -146,10 +159,10 @@ const MyDay = () => {
     }
   }, [selectedDate])
 
-  const loadDay = async () => {
+  const loadDay = async (ignoreRefetchCheck = false) => {
     if (!currentUser?.uid) return
     const fetchKey = `${currentUser.uid}-${selectedDate}`
-    if (lastFetchKeyRef.current === fetchKey) {
+    if (!ignoreRefetchCheck && lastFetchKeyRef.current === fetchKey) {
       // Prevent duplicate requests (StrictMode/dev double-invoke)
       return
     }
@@ -250,6 +263,14 @@ const MyDay = () => {
             onClick={() => setSelectedDate(prev => addDays(prev, 1))}
           >
             Next ▶
+          </button>
+          <button
+            onClick={() => loadDay(true)}
+            disabled={loading}
+            className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded transition-colors"
+            title="Refresh daily items and menus"
+          >
+            <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -631,9 +652,9 @@ const MyDay = () => {
 
             <div className="flex items-start gap-4 mb-4">
               <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
-                {selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl ? (
+                {selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl || selectedItem?.photoUrl || selectedItemFallbackImg ? (
                   <img
-                    src={selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl}
+                    src={selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl || selectedItem?.photoUrl || selectedItemFallbackImg}
                     alt="thumb"
                     className="w-16 h-16 object-cover"
                   />

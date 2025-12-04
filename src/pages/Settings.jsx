@@ -8,14 +8,23 @@ import {
   CalendarIcon,
   IdentificationIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
 
 const Settings = () => {
-  const { currentUser } = useAuth()
+  const { currentUser, logout } = useAuth()
   const userData = useSelector(selectUserData)
   const isAdmin = useSelector(selectIsAdmin)
   const userType = useSelector(selectUserType)
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Failed to logout:', error)
+    }
+  }
 
   const formatDate = dateString => {
     if (!dateString) return 'N/A'
@@ -123,6 +132,15 @@ const Settings = () => {
                   value={userData.loginDetails.loginCount}
                 />
               )}
+              <div className="py-4 border-b border-gray-200 last:border-0">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                >
+                  <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         )}
