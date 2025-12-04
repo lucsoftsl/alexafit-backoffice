@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useSelector } from 'react-redux'
 import {
   HomeIcon,
@@ -18,7 +18,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
   const [imageError, setImageError] = useState(false)
-  
+
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, adminOnly: true },
     { id: 'myday', label: 'My Day', icon: HomeIcon, adminOnly: false },
@@ -88,18 +88,9 @@ const Sidebar = ({ activePage, setActivePage }) => {
 
       <div className="absolute bottom-0 w-64 p-6 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setActivePage('settings')}>
         <div className="flex items-center">
-          {currentUser?.photoURL && !imageError ? (
-            <img 
-              src={currentUser.photoURL} 
-              alt="User avatar"
-              className="w-8 h-8 rounded-full"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">{getUserInitial()}</span>
-            </div>
-          )}
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-medium">{getUserInitial()}</span>
+          </div>
           <div className="ml-3 overflow-hidden">
             <p className="text-sm font-medium text-gray-900 truncate" title={getUserDisplayName()}>
               {getUserDisplayName()}

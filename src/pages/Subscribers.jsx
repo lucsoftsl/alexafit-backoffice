@@ -219,26 +219,18 @@ const Subscribers = () => {
     {
       name: 'Total Subscribers',
       value: subscribers.length,
-      change: '+12%',
-      changeType: 'positive',
     },
     {
       name: 'Active Subscriptions',
       value: subscribers.filter(s => formatSubscriptionStatus(s).status === 'active').length,
-      change: '+8%',
-      changeType: 'positive',
     },
     {
       name: 'Program Plans',
       value: subscribers.filter(s => formatSubscriptionStatus(s).plan.includes('Program')).length,
-      change: '+15%',
-      changeType: 'positive',
     },
     {
       name: 'Pro Plans',
       value: subscribers.filter(s => formatSubscriptionStatus(s).plan.includes('Pro')).length,
-      change: '+5%',
-      changeType: 'positive',
     },
   ], [subscribers])
 
@@ -326,13 +318,6 @@ const Subscribers = () => {
                 <p className="text-sm font-medium text-gray-500">{stat.name}</p>
                 <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
               </div>
-            </div>
-            <div className="mt-4">
-              <span className={`text-sm font-medium ${
-                stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {stat.change} from last month
-              </span>
             </div>
           </div>
         ))}

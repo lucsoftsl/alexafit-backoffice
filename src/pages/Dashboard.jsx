@@ -93,39 +93,68 @@ const Dashboard = () => {
   }, [subscribers])
 
   const stats = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     const totalSubscribers = subscribers.length
-    const activeSubscribers = subscribers.filter(sub => sub.status === 'ACTIVE').length
-    const proSubscribers = subscribers.filter(sub =>
-      sub.subscriptionWhitelistDetails?.isPro === 'true'
-    ).length
+
+    // Active subscribers: status === 'ACTIVE' AND subscription is still active
+    const activeSubscribers = subscribers.filter(sub => {
+      if (sub.status !== 'ACTIVE') return false
+
+      // Check whitelist subscription (web-based)
+      if (sub.subscriptionWhitelistDetails?.activeUntil) {
+        const activeUntil = new Date(sub.subscriptionWhitelistDetails.activeUntil)
+        activeUntil.setHours(0, 0, 0, 0)
+        if (activeUntil >= today) return true
+      }
+
+      // Check RevenueCat subscription (mobile-based)
+      if (sub.subscriptionDetails?.Pro?.isActive === true) {
+        return true
+      }
+
+      return false
+    }).length
+
+    // Pro subscribers: either whitelist or RevenueCat Pro is active
+    const proSubscribers = subscribers.filter(sub => {
+      // Check whitelist Pro
+      if (sub.subscriptionWhitelistDetails?.isPro === 'true') {
+        const activeUntil = new Date(sub.subscriptionWhitelistDetails.activeUntil || '1970-01-01')
+        activeUntil.setHours(0, 0, 0, 0)
+        if (activeUntil >= today) return true
+      }
+
+      // Check RevenueCat Pro
+      if (sub.subscriptionDetails?.Pro?.isActive === true) {
+        return true
+      }
+
+      return false
+    }).length
+
+    const conversionRate = totalSubscribers > 0 ? ((proSubscribers / totalSubscribers) * 100).toFixed(1) : '0'
 
     return [
       {
         name: 'Total Subscribers',
         value: totalSubscribers.toString(),
-        change: '+12%',
-        changeType: 'positive',
         icon: UsersIcon,
       },
       {
         name: 'Active Subscribers',
         value: activeSubscribers.toString(),
-        change: '+8%',
-        changeType: 'positive',
         icon: UserGroupIcon,
       },
       {
         name: 'Pro Subscribers',
         value: proSubscribers.toString(),
-        change: '+15%',
-        changeType: 'positive',
         icon: ChartBarIcon,
       },
       {
         name: 'Conversion Rate',
-        value: totalSubscribers > 0 ? ((proSubscribers / totalSubscribers) * 100).toFixed(1) + '%' : '0%',
-        change: '+2.1%',
-        changeType: 'positive',
+        value: `${conversionRate}%`,
         icon: ArrowTrendingUpIcon,
       },
     ]
@@ -195,12 +224,6 @@ const Dashboard = () => {
                   <p className="text-sm font-medium text-gray-500">{stat.name}</p>
                   <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
                 </div>
-              </div>
-              <div className="mt-4">
-                <span className={`text-sm font-medium ${stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                  {stat.change} from last month
-                </span>
               </div>
             </div>
           )

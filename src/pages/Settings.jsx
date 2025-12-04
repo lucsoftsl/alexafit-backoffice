@@ -165,6 +165,7 @@ const Settings = () => {
               src={currentUser.photoURL}
               alt="Profile"
               className="w-16 h-16 rounded-full border-4 border-white"
+              loading="lazy"
               onError={e => {
                 e.target.style.display = 'none'
               }}
