@@ -1,6 +1,6 @@
 // Maps food/exercise categories to icon paths in backoffice public assets
 // Icons should be placed under: public/assets/icons/categories/*.png
-const base = '/assets/icons/categories'
+const base = '/alexafit/assets/icons/categories'
 
 export const categoryIcons = {
   fruits: `${base}/fruits.png`,

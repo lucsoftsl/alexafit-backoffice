@@ -1,13 +1,18 @@
 /* eslint-disable no-undef */
 import { auth } from '../config/firebase'
 
+import {
+  API_BO_BASE_URL,
+  API_FE_BASE_URL,
+  API_BASE_FOODSYNC_URL
+} from './const'
+
 // API service for fetching program subscribers
-const API_BASE_URL = 'https://foodsync-api.vercel.app/backoffice'
-// const API_BASE_URL = 'https://5938c8537ed3.ngrok-free.app/backoffice'
+
 const API_AUTH = 'c29aWGZHd0o6ZT54LXVUZi1GOGohaVFyVHFy'
 
 // Helper function to get headers with Firebase auth token
-const getHeaders = async (includeAuthToken = false) => {
+const getHeaders = async (includeAuthToken = true) => {
   const headers = {
     Authorization: `Basic ${API_AUTH}`,
     'Content-Type': 'application/json'
@@ -31,7 +36,7 @@ const getHeaders = async (includeAuthToken = false) => {
 export const fetchProgramSubscribers = async () => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getProgramSubscribers`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getProgramSubscribers`, {
       method: 'POST',
       headers,
       body: JSON.stringify({})
@@ -52,7 +57,7 @@ export const fetchProgramSubscribers = async () => {
 export const fetchUserDailyNutrition = async (userId, dateApplied) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getUserDailyNutrition`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getUserDailyNutrition`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -155,7 +160,7 @@ export const sendPushNotification = async (
 ) => {
   try {
     const response = await fetch(
-      'https://foodsync-api.vercel.app/notifications/sendPushNotification',
+      `${API_BASE_FOODSYNC_URL}/notifications/sendPushNotification`,
       {
         method: 'POST',
         headers: {
@@ -189,7 +194,7 @@ export const searchFoodItems = async ({
 }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/elasticSearch`, {
+    const response = await fetch(`${API_BO_BASE_URL}/elasticSearch`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -216,7 +221,7 @@ export const searchFoodItems = async ({
 export const getItemsByIds = async ({ ids }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getItemsByIds`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getItemsByIds`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ ids })
@@ -237,7 +242,7 @@ export const getItemsByIds = async ({ ids }) => {
 export const getUnapprovedItems = async () => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getUnapprovedItems`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getUnapprovedItems`, {
       method: 'GET',
       headers
     })
@@ -260,7 +265,7 @@ export const getRecipesByCountryCode = async ({ countryCode }) => {
   try {
     const headers = await getHeaders()
     const response = await fetch(
-      `${API_BASE_URL}/getRecipesByCountryCode?countryCode=${encodeURIComponent(countryCode)}`,
+      `${API_BO_BASE_URL}/getRecipesByCountryCode?countryCode=${encodeURIComponent(countryCode)}`,
       {
         method: 'GET',
         headers
@@ -282,7 +287,7 @@ export const getRecipesByCountryCode = async ({ countryCode }) => {
 export const setItemVerifiedStatus = async ({ itemId, verified, itemType }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/setItemVerifiedStatus`, {
+    const response = await fetch(`${API_BO_BASE_URL}/setItemVerifiedStatus`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -307,7 +312,7 @@ export const setItemVerifiedStatus = async ({ itemId, verified, itemType }) => {
 export const getAllMenuTemplates = async (createdByUserId = null) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getAllMenuTemplates`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getAllMenuTemplates`, {
       method: 'POST',
       headers,
       body: JSON.stringify(
@@ -342,7 +347,7 @@ export const addMenuTemplate = async ({
 }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/addMenuTemplate`, {
+    const response = await fetch(`${API_BO_BASE_URL}/addMenuTemplate`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -379,7 +384,7 @@ export const updateMenuTemplate = async ({
 }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/updateMenuTemplate`, {
+    const response = await fetch(`${API_BO_BASE_URL}/updateMenuTemplate`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -408,7 +413,7 @@ export const updateMenuTemplate = async ({
 export const deleteMenuTemplateById = async ({ menuTemplateId }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/deleteMenuTemplateById`, {
+    const response = await fetch(`${API_BO_BASE_URL}/deleteMenuTemplateById`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -436,16 +441,19 @@ export const assignMenuTemplateToUser = async ({
 }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/assignMenuTemplateToUser`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        userId,
-        menuTemplateId,
-        dateApplied,
-        replaceExisting
-      })
-    })
+    const response = await fetch(
+      `${API_BO_BASE_URL}/assignMenuTemplateToUser`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId,
+          menuTemplateId,
+          dateApplied,
+          replaceExisting
+        })
+      }
+    )
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
@@ -466,7 +474,7 @@ export const removeMenuFromUser = async ({
 }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/removeMenuFromUser`, {
+    const response = await fetch(`${API_BO_BASE_URL}/removeMenuFromUser`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -491,7 +499,7 @@ export const removeMenuFromUser = async ({
 export const getUserMenus = async ({ userId }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getUserMenus`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getUserMenus`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ userId })
@@ -509,35 +517,10 @@ export const getUserMenus = async ({ userId }) => {
   }
 }
 
-export const deleteMenuTemplateItemById = async ({
-  itemId,
-  itemType,
-  menuTemplateId
-}) => {
-  try {
-    const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/deleteMenuTemplateItemById`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ itemId, itemType, menuTemplateId })
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('Error deleting menu template item by id:', error)
-    throw error
-  }
-}
-
 export const getUserByUserId = async ({ userId }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getUserByUserId`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getUserByUserId`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ userId })
@@ -558,7 +541,7 @@ export const getUserByUserId = async ({ userId }) => {
 export const getUsers = async () => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/getUsers`, {
+    const response = await fetch(`${API_BO_BASE_URL}/getUsers`, {
       method: 'POST',
       headers,
       body: JSON.stringify({})
@@ -580,7 +563,7 @@ export const getUserMessages = async ({ userId }) => {
   try {
     const headers = await getHeaders()
     const response = await fetch(
-      `${API_BASE_URL}/messages/getUserMessages?userId=${encodeURIComponent(userId)}`,
+      `${API_BO_BASE_URL}/messages/getUserMessages?userId=${encodeURIComponent(userId)}`,
       {
         method: 'GET',
         headers
@@ -602,7 +585,7 @@ export const getUserMessages = async ({ userId }) => {
 export const sendMessageToUser = async ({ userId, message }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/messages/sendMessage`, {
+    const response = await fetch(`${API_BO_BASE_URL}/messages/sendMessage`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ userId, message })
@@ -628,7 +611,7 @@ export const sendPushNotificationToUser = async ({
   try {
     const headers = await getHeaders()
     const response = await fetch(
-      `${API_BASE_URL}/notifications/sendPushNotification`,
+      `${API_BO_BASE_URL}/notifications/sendPushNotification`,
       {
         method: 'POST',
         headers,
@@ -654,7 +637,7 @@ export const sendPushNotificationToUser = async ({
 export const updateMessage = async ({ messageId, message }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/messages/updateMessage`, {
+    const response = await fetch(`${API_BO_BASE_URL}/messages/updateMessage`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ messageId, message })
@@ -675,7 +658,7 @@ export const updateMessage = async ({ messageId, message }) => {
 export const deleteMessage = async ({ messageId }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/messages/deleteMessage`, {
+    const response = await fetch(`${API_BO_BASE_URL}/messages/deleteMessage`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ messageId })
@@ -728,7 +711,7 @@ export async function saveImageToImgb(image) {
       }
     }
 
-    const response = await fetch(`${API_BASE_URL}/images/upload`, {
+    const response = await fetch(`${API_BO_BASE_URL}/images/upload`, {
       method: 'POST',
       headers: {
         Authorization: authHeader
@@ -755,7 +738,7 @@ export async function saveImageToImgb(image) {
 export const addItem = async itemData => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/addItem`, {
+    const response = await fetch(`${API_BO_BASE_URL}/addItem`, {
       method: 'POST',
       headers,
       body: JSON.stringify(itemData)
@@ -776,7 +759,7 @@ export const addItem = async itemData => {
 export const updateItem = async ({ userId, itemId, data, itemType }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/updateItem`, {
+    const response = await fetch(`${API_BO_BASE_URL}/updateItem`, {
       method: 'PUT',
       headers,
       body: JSON.stringify({ userId, itemId, data, itemType })
@@ -797,7 +780,7 @@ export const updateItem = async ({ userId, itemId, data, itemType }) => {
 export const deleteItem = async ({ itemId, itemType, userId }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/deleteItem`, {
+    const response = await fetch(`${API_BO_BASE_URL}/deleteItem`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ itemId, itemType, userId })
@@ -823,7 +806,7 @@ export const addPhotoToItem = async ({
 }) => {
   try {
     const headers = await getHeaders()
-    const response = await fetch(`${API_BASE_URL}/addPhotoToItem`, {
+    const response = await fetch(`${API_BO_BASE_URL}/addPhotoToItem`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ itemId, itemType, userId, photoUrl })
@@ -844,14 +827,11 @@ export const addPhotoToItem = async ({
 export const getUserById = async userId => {
   try {
     const headers = await getHeaders(true)
-    const response = await fetch(
-      'https://foodsync-api.vercel.app/foodsync/getUserById',
-      {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ userId })
-      }
-    )
+    const response = await fetch(`${API_FE_BASE_URL}/getUserById`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId })
+    })
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)

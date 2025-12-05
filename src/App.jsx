@@ -20,6 +20,7 @@ import {
   selectUserLoading,
   selectUserError
 } from './store/userSlice'
+import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard')
@@ -29,6 +30,14 @@ function App() {
   const userData = useSelector(selectUserData)
   const userLoading = useSelector(selectUserLoading)
   const userError = useSelector(selectUserError)
+
+    const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Failed to logout:', error)
+    }
+  }
 
   // Redirect non-admin users to appropriate page after login
   useEffect(() => {

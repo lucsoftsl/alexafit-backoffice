@@ -121,27 +121,62 @@ export const calculateDisplayValues = (
 export const computeAppliedTotals = items => {
   return (items || []).reduce(
     (acc, item) => {
-      // Get the default serving info (grame, gram, g, ml, etc.)
-      const servingArray = item?.food?.serving || item?.serving || []
-      const defaultServing = findDefaultServing(servingArray)
-      const defaultServingAmount = defaultServing?.amount || 100
-
-      // Get quantity from the applied item
-      const quantity = Number(item?.quantity) || defaultServingAmount
-
-      // Get base nutrients and calories for the default serving
+      const isRecipe = detectIsRecipe(item?.food || item)
       const baseCalories = Number(
         item?.totalCalories || item?.food?.totalCalories || 0
       )
       const baseNutrients =
         item?.totalNutrients || item?.food?.totalNutrients || {}
 
-      // Calculate scale ratio: quantity / default serving amount
-      // This accounts for the fact that totalCalories may be for a different amount
-      const scaleRatio = quantity / defaultServingAmount
+      // Get quantity from the applied item
+      const quantity = Number(item?.quantity) || 0
 
-      const calories = Math.round(baseCalories * scaleRatio)
-      const nutrients = safeNutrients(baseNutrients)
+      let calories = 0
+      let nutrients = safeNutrients(baseNutrients)
+      let scaleRatio = 1
+
+      if (isRecipe) {
+        // For recipes: totalCalories is for ALL numberOfServings servings
+        // We need to find the actual total weight and scale accordingly
+        const numberOfServings = item?.food?.numberOfServings || 1
+        const totalQuantity = baseNutrients?.totalQuantity ||
+                             baseNutrients?.weightAfterCooking ||
+                             null
+
+        if (totalQuantity && totalQuantity > 0 && quantity > 0) {
+          // Scale recipe based on actual quantity vs total recipe weight
+          scaleRatio = quantity / totalQuantity
+          calories = Math.round(baseCalories * scaleRatio)
+        } else {
+          // Fallback: use default serving if totalQuantity not available
+          const servingArray = item?.food?.serving || item?.serving || []
+          const portionServing = servingArray.find(s => s.profileId === 1)
+          const defaultServing = portionServing || findDefaultServing(servingArray)
+          const defaultServingAmount = defaultServing?.amount || 100
+          const perServingWeight = portionServing?.amount || (defaultServingAmount / numberOfServings)
+          
+          if (perServingWeight && perServingWeight > 0 && quantity > 0) {
+            const selectedServings = quantity / perServingWeight
+            scaleRatio = selectedServings / numberOfServings
+            calories = Math.round(baseCalories * scaleRatio)
+          } else {
+            scaleRatio = quantity / defaultServingAmount
+            calories = Math.round(baseCalories * scaleRatio)
+          }
+        }
+      } else {
+        // For foods: use default serving
+        const servingArray = item?.food?.serving || item?.serving || []
+        const defaultServing = findDefaultServing(servingArray)
+        const defaultServingAmount = defaultServing?.amount || 100
+        
+        if (quantity > 0) {
+          scaleRatio = quantity / defaultServingAmount
+          calories = Math.round(baseCalories * scaleRatio)
+        } else {
+          calories = Math.round(baseCalories)
+        }
+      }
 
       return {
         calories: acc.calories + calories,

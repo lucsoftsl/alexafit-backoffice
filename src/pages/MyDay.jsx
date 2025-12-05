@@ -52,15 +52,53 @@ const getItemDisplay = (it) => {
 }
 
 const getItemCalories = (it) => {
-  // For applied food items, scale calories based on quantity and default serving
+  // For applied food items, scale calories based on quantity
   if (it?.food && it?.quantity !== undefined && it?.food?.serving) {
-    const servingArray = it.food.serving || []
-    const defaultServing = findDefaultServing(servingArray)
-    const defaultServingAmount = defaultServing?.amount || 100
-    const quantity = Number(it.quantity) || defaultServingAmount
+    const isRecipe = detectIsRecipe(it.food)
     const baseCalories = Number(it.food.totalCalories || 0)
-    const scaleRatio = quantity / defaultServingAmount
-    return Math.round(baseCalories * scaleRatio)
+    const baseNutrients = it.food.totalNutrients || {}
+    const quantity = Number(it.quantity) || 0
+    
+    if (isRecipe) {
+      // For recipes: totalCalories is for ALL numberOfServings servings
+      const numberOfServings = it.food.numberOfServings || 1
+      const totalQuantity = baseNutrients?.totalQuantity ||
+                           baseNutrients?.weightAfterCooking ||
+                           null
+
+      if (totalQuantity && totalQuantity > 0 && quantity > 0) {
+        // Scale recipe based on actual quantity vs total recipe weight
+        const scaleRatio = quantity / totalQuantity
+        return Math.round(baseCalories * scaleRatio)
+      } else {
+        // Fallback: use portion serving if available
+        const portionServing = (it.food.serving || []).find(s => s.profileId === 1)
+        const defaultServing = portionServing || findDefaultServing(it.food.serving || [])
+        const defaultServingAmount = defaultServing?.amount || 100
+        const perServingWeight = portionServing?.amount || (defaultServingAmount / numberOfServings)
+        
+        if (perServingWeight && perServingWeight > 0 && quantity > 0) {
+          const selectedServings = quantity / perServingWeight
+          const scaleRatio = selectedServings / numberOfServings
+          return Math.round(baseCalories * scaleRatio)
+        } else {
+          const scaleRatio = quantity / defaultServingAmount
+          return Math.round(baseCalories * scaleRatio)
+        }
+      }
+    } else {
+      // For foods: use default serving
+      const servingArray = it.food.serving || []
+      const defaultServing = findDefaultServing(servingArray)
+      const defaultServingAmount = defaultServing?.amount || 100
+      
+      if (quantity > 0) {
+        const scaleRatio = quantity / defaultServingAmount
+        return Math.round(baseCalories * scaleRatio)
+      } else {
+        return Math.round(baseCalories)
+      }
+    }
   }
   // Fallback for other item types
   if (it?.food?.totalCalories) return Math.round(it.food.totalCalories)
