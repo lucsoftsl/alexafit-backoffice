@@ -69,6 +69,14 @@ const Menus = () => {
   const [viewingCreator, setViewingCreator] = useState(null)
   // State to track display values for items (separate from original values)
   const [displayValues, setDisplayValues] = useState({})
+  
+  // Collapsible sections state
+  const [templatesExpanded, setTemplatesExpanded] = useState(true)
+  const [usersExpanded, setUsersExpanded] = useState(true)
+  
+  // Pagination for templates
+  const [templatesPage, setTemplatesPage] = useState(1)
+  const [templatesPerPage, setTemplatesPerPage] = useState(5)
 
   const loadTemplates = async () => {
     try {
@@ -1043,10 +1051,26 @@ const Menus = () => {
     setCurrentPage(1)
   }, [userSearchTerm, usersPerPage])
 
+  // Pagination for templates
+  const getCurrentTemplates = () => {
+    const startIndex = (templatesPage - 1) * templatesPerPage
+    const endIndex = startIndex + templatesPerPage
+    return filteredTemplates.slice(startIndex, endIndex)
+  }
+
+  const getTotalTemplatesPages = () => {
+    return Math.ceil(filteredTemplates.length / templatesPerPage)
+  }
+
+  // Reset to page 1 when template search term changes
+  useEffect(() => {
+    setTemplatesPage(1)
+  }, [templateSearchTerm, templatesPerPage])
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">Menus</h1>
           <p className="text-gray-600 mt-2">Create and manage menu templates</p>
         </div>
@@ -1415,40 +1439,35 @@ const Menus = () => {
       </div>
 
       <div className="card p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setTemplatesExpanded(!templatesExpanded)}>
           <h2 className="text-lg font-semibold text-gray-900">Created Menu Templates</h2>
-          {loadingTemplates && (
-            <span className="text-sm text-gray-500">Loading...</span>
-          )}
-        </div>
-        {/* Search for templates */}
-        <div className="mb-4">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search templates by name..."
-              value={templateSearchTerm}
-              onChange={(e) => setTemplateSearchTerm(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="flex items-center gap-2">
+            {loadingTemplates && (
+              <span className="text-sm text-gray-500">Loading...</span>
+            )}
+            {templatesExpanded ? <ChevronUpIcon className="w-5 h-5 text-gray-600" /> : <ChevronDownIcon className="w-5 h-5 text-gray-600" />}
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creator</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breakfast</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lunch</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dinner</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Snacks</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTemplates.map((t) => {
+        
+        {templatesExpanded && (
+          <>
+            {/* Search for templates */}
+            <div className="mb-4">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search templates by name..."
+                  value={templateSearchTerm}
+                  onChange={(e) => setTemplateSearchTerm(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            
+            {/* Mobile Card View */}
+            <div className="md:hidden grid gap-4 mb-4">
+              {getCurrentTemplates().map((t) => {
                 const id = t?.id || t?._id || t?.menuTemplateId
                 const bp = t?.breakfastPlan || []
                 const lp = t?.lunchPlan || []
@@ -1456,71 +1475,269 @@ const Menus = () => {
                 const sp = t?.snackPlan || []
                 const isCurrentlyEditing = editingTemplateId === id
                 return (
-                  <tr
+                  <div
                     key={id}
-                    className={`hover:bg-gray-50 ${isCurrentlyEditing ? 'bg-blue-100' : ''} cursor-pointer`}
+                    className={`bg-white rounded-lg shadow p-4 space-y-3 ${isCurrentlyEditing ? 'ring-2 ring-blue-500' : ''}`}
                     onClick={() => handleLoadTemplateForEditing(t)}
                   >
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{t?.name || 'Untitled'}</td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
-                      {t?.createdByUserId ? (
-                        <span 
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200"
-                          onClick={() => setViewingCreator(t)}
-                        >
-                          {t.createdByUserId === currentUser?.uid ? 'You' : 'Nutritionist'}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-500">Admin</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{bp.length}</td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{lp.length}</td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{dp.length}</td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{sp.length}</td>
-                    <td className="px-6 py-3 whitespace-nowrap text-sm flex items-center justify-evenly gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">{t?.name || 'Untitled'}</div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {t?.createdByUserId ? (
+                            <span 
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setViewingCreator(t)
+                              }}
+                            >
+                              {t.createdByUserId === currentUser?.uid ? 'You' : 'Nutritionist'}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-500">Admin</span>
+                          )}
+                        </div>
+                      </div>
                       {isCurrentlyEditing && (
-                        <span className="text-blue-600 text-xs mr-2">✓ Editing</span>
+                        <span className="text-blue-600 text-xs">✓ Editing</span>
                       )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-500">Breakfast:</span>
+                        <span className="ml-1 text-gray-900">{bp.length} items</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Lunch:</span>
+                        <span className="ml-1 text-gray-900">{lp.length} items</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Dinner:</span>
+                        <span className="ml-1 text-gray-900">{dp.length} items</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Snacks:</span>
+                        <span className="ml-1 text-gray-900">{sp.length} items</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleDuplicateTemplate(t)}
-                        className="text-blue-600 hover:text-blue-800 cursor-pointer"
-                        title="Duplicate menu"
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
                       >
                         <DocumentDuplicateIcon className="w-4 h-4" />
+                        Duplicate
                       </button>
-                      <button onClick={() => handleDeleteTemplate(id)} className="text-red-600 hover:text-red-800 cursor-pointer" title="Delete menu">
+                      <button 
+                        onClick={() => handleDeleteTemplate(id)} 
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                      >
                         <TrashIcon className="w-4 h-4" />
+                        Delete
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 )
               })}
-              {filteredTemplates.length === 0 && (
-                <tr>
-                  <td className="px-6 py-4 text-sm text-gray-500" colSpan="7">
-                    {loadingTemplates ? 'Loading templates...' : templateSearchTerm ? `No templates found matching "${templateSearchTerm}"` : 'No templates found'}
-                  </td>
-                </tr>
+              {getCurrentTemplates().length === 0 && (
+                <div className="text-center py-8 text-sm text-gray-500">
+                  {loadingTemplates ? 'Loading templates...' : templateSearchTerm ? `No templates found matching "${templateSearchTerm}"` : 'No templates found'}
+                </div>
               )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creator</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breakfast</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lunch</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dinner</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Snacks</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {getCurrentTemplates().map((t) => {
+                    const id = t?.id || t?._id || t?.menuTemplateId
+                    const bp = t?.breakfastPlan || []
+                    const lp = t?.lunchPlan || []
+                    const dp = t?.dinnerPlan || []
+                    const sp = t?.snackPlan || []
+                    const isCurrentlyEditing = editingTemplateId === id
+                    return (
+                      <tr
+                        key={id}
+                        className={`hover:bg-gray-50 ${isCurrentlyEditing ? 'bg-blue-100' : ''} cursor-pointer`}
+                        onClick={() => handleLoadTemplateForEditing(t)}
+                      >
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{t?.name || 'Untitled'}</td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-600" onClick={(e) => e.stopPropagation()}>
+                          {t?.createdByUserId ? (
+                            <span 
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200"
+                              onClick={() => setViewingCreator(t)}
+                            >
+                              {t.createdByUserId === currentUser?.uid ? 'You' : 'Nutritionist'}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-500">Admin</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{bp.length}</td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{lp.length}</td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{dp.length}</td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{sp.length}</td>
+                        <td className="px-6 py-3 whitespace-nowrap text-sm flex items-center justify-evenly gap-2" onClick={(e) => e.stopPropagation()}>
+                          {isCurrentlyEditing && (
+                            <span className="text-blue-600 text-xs mr-2">✓ Editing</span>
+                          )}
+                          <button
+                            onClick={() => handleDuplicateTemplate(t)}
+                            className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                            title="Duplicate menu"
+                          >
+                            <DocumentDuplicateIcon className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDeleteTemplate(id)} className="text-red-600 hover:text-red-800 cursor-pointer" title="Delete menu">
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {getCurrentTemplates().length === 0 && (
+                    <tr>
+                      <td className="px-6 py-4 text-sm text-gray-500" colSpan="7">
+                        {loadingTemplates ? 'Loading templates...' : templateSearchTerm ? `No templates found matching "${templateSearchTerm}"` : 'No templates found'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {filteredTemplates.length > 0 && (
+              <div className="bg-white px-4 py-3 border-t border-gray-200 mt-4">
+                {/* Mobile View */}
+                <div className="md:hidden space-y-3">
+                  <div className="flex items-center justify-between">
+                    <select
+                      value={templatesPerPage}
+                      onChange={(e) => {
+                        setTemplatesPerPage(Number(e.target.value))
+                        setTemplatesPage(1)
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                    </select>
+                    
+                    <span className="text-sm text-gray-700">
+                      Page {templatesPage} of {getTotalTemplatesPages() || 1}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setTemplatesPage(prev => Math.max(1, prev - 1))}
+                      disabled={templatesPage === 1}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+
+                    <button
+                      onClick={() => setTemplatesPage(prev => Math.min(getTotalTemplatesPages(), prev + 1))}
+                      disabled={templatesPage >= getTotalTemplatesPages()}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop View */}
+                <div className="hidden md:flex flex-wrap items-center gap-4 md:gap-6">
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-gray-700">Items per page:</label>
+                    <select
+                      value={templatesPerPage}
+                      onChange={(e) => {
+                        setTemplatesPerPage(Number(e.target.value))
+                        setTemplatesPage(1)
+                      }}
+                      className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
+                    <span className="font-medium">Page {templatesPage} of {getTotalTemplatesPages() || 1}</span>
+                    <span className="text-gray-600">
+                      {filteredTemplates.length === 0
+                        ? 'Showing 0 of 0 results'
+                        : `Showing ${((templatesPage - 1) * templatesPerPage) + 1} to ${Math.min(templatesPage * templatesPerPage, filteredTemplates.length)} of ${filteredTemplates.length} results`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <button
+                      onClick={() => setTemplatesPage(prev => Math.max(1, prev - 1))}
+                      disabled={templatesPage === 1}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+
+                    <button
+                      onClick={() => setTemplatesPage(prev => Math.min(getTotalTemplatesPages(), prev + 1))}
+                      disabled={templatesPage >= getTotalTemplatesPages()}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
 
       <div className="card p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setUsersExpanded(!usersExpanded)}>
           <h2 className="text-lg font-semibold text-gray-900">Users</h2>
-          <button
-            onClick={refreshUsers}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                refreshUsers()
+              }}
             disabled={loadingUsers}
             className="btn-secondary text-sm"
           >
             {loadingUsers ? 'Refreshing...' : 'Refresh Users'}
           </button>
+            {usersExpanded ? <ChevronUpIcon className="w-5 h-5 text-gray-600" /> : <ChevronDownIcon className="w-5 h-5 text-gray-600" />}
+          </div>
         </div>
 
+        {usersExpanded && (
+          <>
         {/* Search Controls */}
         <div className="mb-4">
           <div className="relative">
@@ -1548,7 +1765,75 @@ const Menus = () => {
           />
         </div>
 
-        <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden grid gap-4 mb-4">
+              {getCurrentUsers().map((user) => {
+                const { name, email, status } = formatUserData(user)
+                const userId = user?.userId || user?.id
+                const isSelected = selectedUserId === userId
+                return (
+                  <div
+                    key={userId}
+                    className={`bg-white rounded-lg shadow p-4 space-y-3 ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">{name}</div>
+                        <div className="text-sm text-gray-500 mt-1 break-all">{email}</div>
+                      </div>
+                      {isSelected && (
+                        <span className="text-blue-600 text-xs">✓ Selected</span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-500">User ID:</span>
+                        <span className="ml-1 text-gray-900 break-all">{userId}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Subscription:</span>
+                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${status.includes('Pro') ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {status}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Account:</span>
+                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${user?.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {user?.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t">
+                      <button
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedUserId(null)
+                          } else {
+                            setSelectedUserId(userId)
+                          }
+                        }}
+                        className={`w-full ${isSelected
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          } px-4 py-2 rounded-md text-sm transition-colors`}
+                      >
+                        {isSelected ? 'Selected' : 'Select'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+              {getCurrentUsers().length === 0 && (
+                <div className="text-center py-8 text-sm text-gray-500">
+                  {loadingUsers ? 'Loading users...' : userSearchTerm ? `No users found matching "${userSearchTerm}"` : 'No users found'}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -1625,8 +1910,50 @@ const Menus = () => {
 
         {/* Pagination Controls */}
         {users.length > 0 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-            <div className="flex items-center gap-4">
+                <div className="bg-white px-4 py-3 border-t border-gray-200 mt-4">
+                  {/* Mobile View */}
+                  <div className="md:hidden space-y-3">
+                    <div className="flex items-center justify-between">
+                      <select
+                        value={usersPerPage}
+                        onChange={(e) => {
+                          setUsersPerPage(Number(e.target.value))
+                          setCurrentPage(1)
+                        }}
+                        className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      >
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                      </select>
+                    
+                      <span className="text-sm text-gray-700">
+                        Page {currentPage} of {getTotalUserPages() || 1}
+                      </span>
+                    </div>
+                  
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+
+                      <button
+                        onClick={() => setCurrentPage(prev => Math.min(getTotalUserPages(), prev + 1))}
+                        disabled={currentPage >= getTotalUserPages()}
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Desktop View */}
+                  <div className="hidden md:flex flex-wrap items-center gap-4 md:gap-6">
+            <div className="flex items-center gap-3">
               <label className="text-sm text-gray-700">Items per page:</label>
               <select
                 value={usersPerPage}
@@ -1642,7 +1969,17 @@ const Menus = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
+              <span className="font-medium">Page {currentPage} of {getTotalUserPages() || 1}</span>
+              <span className="text-gray-600">
+                {filteredUsers.length === 0
+                  ? 'Showing 0 of 0 results'
+                  : `Showing ${((currentPage - 1) * usersPerPage) + 1} to ${Math.min(currentPage * usersPerPage, filteredUsers.length)} of ${filteredUsers.length} results`}
+                {filteredUsers.length === 0 && userSearchTerm ? ` (filtered from ${users.length} total)` : userSearchTerm ? ` (filtered from ${users.length} total)` : ''}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
@@ -1650,10 +1987,6 @@ const Menus = () => {
               >
                 Previous
               </button>
-
-              <span className="text-sm text-gray-700">
-                Page {currentPage} of {getTotalUserPages() || 1}
-              </span>
 
               <button
                 onClick={() => setCurrentPage(prev => Math.min(getTotalUserPages(), prev + 1))}
@@ -1663,18 +1996,13 @@ const Menus = () => {
                 Next
               </button>
             </div>
-
-            <div className="text-sm text-gray-700">
-              Showing {filteredUsers.length > 0 ? ((currentPage - 1) * usersPerPage) + 1 : 0} to {Math.min(currentPage * usersPerPage, filteredUsers.length)} of{' '}
-              {filteredUsers.length} results
-              {userSearchTerm && ` (filtered from ${users.length} total)`}
-            </div>
-          </div>
+                </div>
+                </div>
         )}
 
         {/* Assign Button */}
         {selectedUserId && (
-          <div className="mt-4 flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-blue-50 rounded-lg">
             <div>
               <p className="text-sm font-medium text-gray-900">
                 Selected User: {selectedUserId}
@@ -1689,13 +2017,15 @@ const Menus = () => {
               <button
                 onClick={handleAssignMenuTemplate}
                 disabled={assigningMenu}
-                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium w-full sm:w-auto"
               >
                 {assigningMenu ? 'Assigning...' : 'Assign Menu Template to User'}
               </button>
             )}
           </div>
         )}
+            </>
+          )}
       </div>
 
       {/* User Menus Table - Only show when a user is selected */}

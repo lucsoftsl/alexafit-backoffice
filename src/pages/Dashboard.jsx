@@ -19,6 +19,8 @@ const Dashboard = () => {
   const [error, setError] = useState(null)
   const [selectedUser, setSelectedUser] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const hasLoadedRef = useRef(false)
   const isAdmin = useSelector(selectIsAdmin)
 
@@ -92,6 +94,20 @@ const Dashboard = () => {
     })
   }, [subscribers])
 
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredSubscribers.length / itemsPerPage) || 1)
+  }, [filteredSubscribers.length, itemsPerPage])
+
+  const paginatedSubscribers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredSubscribers.slice(startIndex, endIndex)
+  }, [filteredSubscribers, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage, filteredSubscribers.length])
+
   const stats = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -160,14 +176,6 @@ const Dashboard = () => {
     ]
   }, [subscribers])
 
-  const recentActivities = [
-    { id: 1, user: 'John Doe', action: 'Subscribed to Premium', time: '2 minutes ago', type: 'subscription' },
-    { id: 2, user: 'Jane Smith', action: 'Updated profile', time: '5 minutes ago', type: 'profile' },
-    { id: 3, user: 'Mike Johnson', action: 'Cancelled subscription', time: '10 minutes ago', type: 'cancellation' },
-    { id: 4, user: 'Sarah Wilson', action: 'Completed workout', time: '15 minutes ago', type: 'activity' },
-    { id: 5, user: 'David Brown', action: 'Joined community', time: '20 minutes ago', type: 'community' },
-  ]
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -197,10 +205,10 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome back! Here's what's happening with your fitness platform.</p>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Welcome back! Here's what's happening with your fitness platform.</p>
         </div>
         <button
           onClick={refreshSubscribers}
@@ -236,9 +244,69 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900">Program Subscribers</h2>
           <span className="text-sm text-gray-500">{filteredSubscribers.length} subscribers</span>
         </div>
+        <div className="space-y-3 md:hidden">
+          {paginatedSubscribers.map((subscriber) => {
+            const userData = formatUserData(subscriber)
+            const subscriptionData = formatSubscriptionStatus(subscriber)
+            const paymentData = formatPaymentData(subscriber)
+            return (
+              <div key={subscriber.id} className="card p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{userData.name}</p>
+                    <p className="text-xs text-gray-500">{userData.email}</p>
+                    <p className="text-xs text-gray-400">ID: {subscriber.userId}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedUser(subscriber)
+                        setIsModalOpen(true)
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </button>
+                    <button className="text-gray-600 hover:text-gray-900">
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                    <button className="text-red-600 hover:text-red-900">
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Subscription</p>
+                    <p className="text-gray-800 text-sm">{subscriptionData.plan}</p>
+                    <p className="text-gray-500">{subscriptionData.status}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Payment</p>
+                    <p className="text-gray-800 text-sm">{paymentData.status}</p>
+                    <p className="text-gray-500">{paymentData.date}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Contact</p>
+                    <p className="text-gray-800 text-sm">{userData.phone || 'N/A'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-gray-500">Status</p>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${subscriber.status === 'ACTIVE'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                      }`}>
+                      {subscriber.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="overflow-x-auto hidden md:block">
+          <table className="min-w-[960px] divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -262,7 +330,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSubscribers.map((subscriber) => {
+              {paginatedSubscribers.map((subscriber) => {
                 const userData = formatUserData(subscriber)
                 const subscriptionData = formatSubscriptionStatus(subscriber)
                 const paymentData = formatPaymentData(subscriber)
@@ -326,54 +394,51 @@ const Dashboard = () => {
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Recent Activity */}
-      <div className="card p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          {recentActivities.map((activity) => (
-            <div key={activity.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
-              <div className="flex items-center">
-                <div className={`w-2 h-2 rounded-full mr-3 ${activity.type === 'subscription' ? 'bg-green-500' :
-                  activity.type === 'cancellation' ? 'bg-red-500' :
-                    activity.type === 'profile' ? 'bg-blue-500' :
-                      activity.type === 'activity' ? 'bg-purple-500' :
-                        'bg-gray-500'
-                  }`} />
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{activity.user}</p>
-                  <p className="text-sm text-gray-500">{activity.action}</p>
-                </div>
-              </div>
-              <span className="text-sm text-gray-400">{activity.time}</span>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 pt-4">
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-gray-700">Items per page:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value))
+                setCurrentPage(1)
+              }}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+            >
+              <option value={5}>5</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <p className="text-sm text-gray-700">
+              {(() => {
+                const total = filteredSubscribers.length
+                const start = total > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0
+                const end = Math.min(currentPage * itemsPerPage, total)
+                return `Showing ${start}–${end} of ${total}`
+              })()}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="card p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <button
-            onClick={() => {
-              if (subscribers.length > 0) {
-                setSelectedUser(subscribers[0])
-                setIsModalOpen(true)
-              }
-            }}
-            className="btn-primary text-center py-3 flex items-center justify-center"
-          >
-            <EyeIcon className="w-4 h-4 mr-2" />
-            View All Users
-          </button>
-          <button className="btn-secondary text-center py-3">
-            Export Data
-          </button>
-          <button className="btn-secondary text-center py-3">
-            Send Newsletter
-          </button>
+          </div>
         </div>
       </div>
 

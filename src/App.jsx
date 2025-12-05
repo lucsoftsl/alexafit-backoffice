@@ -20,10 +20,11 @@ import {
   selectUserLoading,
   selectUserError
 } from './store/userSlice'
-import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 
 function App() {
   const [activePage, setActivePage] = useState('dashboard')
+  const [isSidebarOpen, setSidebarOpen] = useState(false)
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -31,12 +32,17 @@ function App() {
   const userLoading = useSelector(selectUserLoading)
   const userError = useSelector(selectUserError)
 
-    const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       await logout()
     } catch (error) {
       console.error('Failed to logout:', error)
     }
+  }
+
+  const handleNavigate = (pageId) => {
+    setActivePage(pageId)
+    setSidebarOpen(false)
   }
 
   // Redirect non-admin users to appropriate page after login
@@ -162,22 +168,50 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} />
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-6">
-          {/* User info badge */}
-          <div className="mb-4 flex items-center gap-2">
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-              {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
-            </span>
-            {userData?.userType && (
-              <span className="text-xs text-gray-500">Type: {userData.userType}</span>
-            )}
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Sidebar
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        isMobileOpen={isSidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      <div className="flex flex-1 flex-col overflow-auto">
+        <header className="flex items-center justify-between px-4 py-3 border-b bg-white shadow-sm md:hidden">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((open) => !open)}
+              className="rounded-lg border border-gray-200 p-2 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Toggle menu"
+            >
+              {isSidebarOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+            </button>
+            <div>
+              <p className="text-base font-semibold text-gray-900 leading-tight">AlexaFit</p>
+              <p className="text-xs text-gray-500">Nutrition Guide</p>
+            </div>
           </div>
-          {renderPage()}
-        </div>
-      </main>
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+            {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
+          </span>
+        </header>
+
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6">
+            {/* User info badge - desktop */}
+            <div className="mb-4 hidden items-center gap-2 md:flex">
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
+              </span>
+              {userData?.userType && (
+                <span className="text-xs text-gray-500">Type: {userData.userType}</span>
+              )}
+            </div>
+            {renderPage()}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

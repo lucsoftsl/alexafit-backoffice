@@ -22,6 +22,8 @@ const Subscribers = () => {
   const [subscribers, setSubscribers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
   const [selectedUser, setSelectedUser] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const hasLoadedRef = useRef(false)
@@ -234,6 +236,18 @@ const Subscribers = () => {
     },
   ], [subscribers])
 
+  const paginatedSubscribers = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return filteredSubscribers.slice(start, end)
+  }, [filteredSubscribers, currentPage, itemsPerPage])
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredSubscribers.length / itemsPerPage)), [filteredSubscribers.length, itemsPerPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterPlan, filterStatus, itemsPerPage])
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -283,12 +297,12 @@ const Subscribers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">Subscribers Management</h1>
           <p className="text-gray-600 mt-2">Manage subscription plans and billing</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center justify-center sm:justify-end">
           <button 
             onClick={refreshSubscribers}
             className="btn-secondary flex items-center"
@@ -360,139 +374,245 @@ const Subscribers = () => {
               <option value="paused">Paused</option>
               <option value="expired">Expired</option>
             </select>
-            <button className="btn-secondary flex items-center">
-              <FunnelIcon className="w-5 h-5 mr-2" />
-              More Filters
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Subscribers Table */}
+      {/* Subscribers List & Table */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Subscriber
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Plan
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Start Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Next Billing
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSubscribers.map((subscriber) => {
-                const userData = formatUserData(subscriber)
-                const subscriptionData = formatSubscriptionStatus(subscriber)
-                const paymentData = formatPaymentData(subscriber)
-                const avatar = userData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                
-                return (
-                  <tr key={subscriber.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
-                            <span className="text-sm font-medium text-white">{avatar}</span>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{userData.name}</div>
-                          <div className="text-sm text-gray-500">{userData.email}</div>
-                        </div>
+        {/* Mobile list */}
+        <div className="md:hidden">
+          <div className="space-y-4">
+            {paginatedSubscribers.length === 0 && (
+              <div className="text-center text-sm text-gray-600 py-6">No subscribers found.</div>
+            )}
+            {paginatedSubscribers.map((subscriber) => {
+              const userData = formatUserData(subscriber)
+              const subscriptionData = formatSubscriptionStatus(subscriber)
+              const paymentData = formatPaymentData(subscriber)
+              const avatar = userData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+
+              return (
+                <div key={subscriber.id} className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex gap-3">
+                    <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">
+                      {avatar}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex flex-col">
+                        <span className="text-base font-semibold text-gray-900 leading-tight">{userData.name}</span>
+                        <span className="text-sm text-gray-600 break-words">{userData.email}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getPlanBadge(subscriptionData.plan)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(subscriptionData.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {paymentData.amount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(subscriber.dateTimeCreated).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {subscriptionData.expiresAt !== 'N/A' ? 
-                        new Date(subscriptionData.expiresAt).toLocaleDateString() : 
-                        'N/A'
-                      }
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
+                      <div className="flex flex-wrap gap-2">
+                        {getPlanBadge(subscriptionData.plan)}
+                        {getStatusBadge(subscriptionData.status)}
+                      </div>
+                      <div className="text-sm text-gray-700 flex flex-wrap gap-3">
+                        <span className="flex items-center gap-1"><CurrencyDollarIcon className="w-4 h-4 text-gray-500" />{paymentData.amount}</span>
+                        <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4 text-gray-500" />Start {new Date(subscriber.dateTimeCreated).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4 text-gray-500" />Next {subscriptionData.expiresAt !== 'N/A' ? new Date(subscriptionData.expiresAt).toLocaleDateString() : 'N/A'}</span>
+                      </div>
+                      <div className="flex gap-3 pt-1">
                         <button 
                           onClick={() => {
                             setSelectedUser(subscriber)
                             setIsModalOpen(true)
                           }}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="text-blue-600 hover:text-blue-800"
                           title="View user details and nutrition"
                         >
-                          <EyeIcon className="w-4 h-4" />
+                          <EyeIcon className="w-5 h-5" />
                         </button>
                         <button className="text-gray-600 hover:text-gray-900">
-                          <PencilIcon className="w-4 h-4" />
+                          <PencilIcon className="w-5 h-5" />
                         </button>
-                        <button className="text-red-600 hover:text-red-900">
-                          <TrashIcon className="w-4 h-4" />
+                        <button className="text-red-600 hover:text-red-800">
+                          <TrashIcon className="w-5 h-5" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-              Previous
-            </button>
-            <button className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-              Next
-            </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredSubscribers.length}</span> of{' '}
-                <span className="font-medium">{subscribers.length}</span> results
-              </p>
+
+          {/* Mobile pagination */}
+          <div className="mt-4 bg-white border-t border-gray-200 px-4 py-3 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-700">Per page</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="5">5</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+              <span className="text-xs text-gray-600">Page {currentPage} / {totalPages}</span>
             </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                  Previous
-                </button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  1
-                </button>
-                <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                  Next
-                </button>
-              </nav>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="text-xs text-gray-600 text-center">
+              {filteredSubscribers.length === 0
+                ? 'Showing 0 of 0'
+                : `Showing ${((currentPage - 1) * itemsPerPage) + 1} - ${Math.min(currentPage * itemsPerPage, filteredSubscribers.length)} of ${filteredSubscribers.length}`}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Subscriber
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Plan
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Start Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Next Billing
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedSubscribers.map((subscriber) => {
+                  const userData = formatUserData(subscriber)
+                  const subscriptionData = formatSubscriptionStatus(subscriber)
+                  const paymentData = formatPaymentData(subscriber)
+                  const avatar = userData.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                  
+                  return (
+                    <tr key={subscriber.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
+                              <span className="text-sm font-medium text-white">{avatar}</span>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{userData.name}</div>
+                            <div className="text-sm text-gray-500">{userData.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getPlanBadge(subscriptionData.plan)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(subscriptionData.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {paymentData.amount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(subscriber.dateTimeCreated).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {subscriptionData.expiresAt !== 'N/A' ? 
+                          new Date(subscriptionData.expiresAt).toLocaleDateString() : 
+                          'N/A'
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+                          <button 
+                            onClick={() => {
+                              setSelectedUser(subscriber)
+                              setIsModalOpen(true)
+                            }}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="View user details and nutrition"
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </button>
+                          <button className="text-gray-600 hover:text-gray-900">
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
+                          <button className="text-red-600 hover:text-red-900">
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Desktop pagination */}
+          <div className="bg-white px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-gray-200 sm:px-6">
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-700">Items per page:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="5">5</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
+              <span className="font-medium">Page {currentPage} of {totalPages}</span>
+              <span className="text-gray-600">
+                {filteredSubscribers.length === 0
+                  ? 'Showing 0 of 0 results'
+                  : `Showing ${((currentPage - 1) * itemsPerPage) + 1} to ${Math.min(currentPage * itemsPerPage, filteredSubscribers.length)} of ${filteredSubscribers.length} results`}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage >= totalPages}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>

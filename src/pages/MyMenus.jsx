@@ -645,6 +645,20 @@ const MyMenus = () => {
     )
   }, [templates, templateSearchTerm])
 
+  useEffect(() => {
+    const newTotalPages = Math.max(1, Math.ceil(filteredTemplates.length / itemsPerPage))
+    if (currentPage > newTotalPages) {
+      setCurrentPage(newTotalPages)
+    }
+  }, [filteredTemplates.length, itemsPerPage, currentPage])
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredTemplates.length / itemsPerPage)), [filteredTemplates.length, itemsPerPage])
+
+  const paginatedTemplates = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    return filteredTemplates.slice(startIndex, startIndex + itemsPerPage)
+  }, [filteredTemplates, currentPage, itemsPerPage])
+
   if (loadingTemplates && templates.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -976,30 +990,37 @@ const MyMenus = () => {
 
       {/* Menu Templates List */}
       <div className="card p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setTemplatesExpanded(!templatesExpanded)}>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Menu Templates ({filteredTemplates.length})</h2>
-            </div>
-            {templatesExpanded ? <ChevronUpIcon className="w-5 h-5 text-gray-600" /> : <ChevronDownIcon className="w-5 h-5 text-gray-600" />}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Menu Templates ({filteredTemplates.length})</h2>
           </div>
-          <button
-            onClick={loadTemplates}
-            disabled={loadingTemplates}
-            className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded transition-colors mr-2"
-            title="Refresh templates list"
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${loadingTemplates ? 'animate-spin' : ''}`} />
-          </button>
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search templates..."
-              value={templateSearchTerm}
-              onChange={e => setTemplateSearchTerm(e.target.value)}
-              className="input pl-10"
-            />
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search templates..."
+                value={templateSearchTerm}
+                onChange={e => setTemplateSearchTerm(e.target.value)}
+                className="input pl-10 w-full"
+              />
+            </div>
+            <button
+              onClick={loadTemplates}
+              disabled={loadingTemplates}
+              className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded transition-colors"
+              title="Refresh templates list"
+            >
+              <ArrowPathIcon className={`w-5 h-5 ${loadingTemplates ? 'animate-spin' : ''}`} />
+            </button>
+
+                        <button
+              onClick={() => setTemplatesExpanded(!templatesExpanded)}
+              className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+              title={templatesExpanded ? 'Collapse templates' : 'Expand templates'}
+            >
+              {templatesExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
+            </button>
           </div>
         </div>
 
@@ -1010,8 +1031,9 @@ const MyMenus = () => {
                 <p className="text-gray-500">No menu templates yet. Create one above!</p>
               </div>
             ) : (
-              <div className="space-y-4">
-            {filteredTemplates.map(template => (
+              <>
+                <div className="space-y-4">
+            {paginatedTemplates.map(template => (
               <div key={template.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div>
@@ -1150,7 +1172,48 @@ const MyMenus = () => {
                 </div>
               </div>
             ))}
-              </div>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-700">Rows per page</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                          setItemsPerPage(Number(e.target.value))
+                          setCurrentPage(1)
+                        }}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                      >
+                        {[5, 10, 20].map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <span className="text-sm text-gray-700">
+                      Showing {filteredTemplates.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredTemplates.length)} of {filteredTemplates.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </button>
+                    <span className="text-sm text-gray-700">Page {currentPage} of {totalPages}</span>
+                    <button
+                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
           </>
         )}

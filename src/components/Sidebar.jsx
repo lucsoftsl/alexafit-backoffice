@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import {
   HomeIcon,
@@ -13,11 +13,10 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { selectIsAdmin, selectIsNutritionist } from '../store/userSlice'
 
-const Sidebar = ({ activePage, setActivePage }) => {
+const Sidebar = ({ activePage, onNavigate, isMobileOpen = false, onClose }) => {
   const { currentUser } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
-  const [imageError, setImageError] = useState(false)
 
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, adminOnly: true },
@@ -25,7 +24,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'myusers', label: 'My Users', icon: UsersIcon, nutritionistOnly: true },
     { id: 'mymenus', label: 'My Menus', icon: CakeIcon, nutritionistOnly: true },
     { id: 'users', label: 'Users', icon: UsersIcon, adminOnly: true },
-    { id: 'unapprovedItems', label: 'Unapproved Items', icon: ListBulletIcon, adminOnly: true },
+    { id: 'unapprovedItems', label: '⏳ Items', icon: ListBulletIcon, adminOnly: true },
     { id: 'menus', label: 'Menus', icon: CakeIcon, adminOnly: true },
     { id: 'recipes', label: 'Recipes', icon: BookOpenIcon, adminOnly: true },
     { id: 'subscribers', label: 'Subscribers', icon: UserGroupIcon, adminOnly: true },
@@ -56,52 +55,75 @@ const Sidebar = ({ activePage, setActivePage }) => {
     return displayName.charAt(0).toUpperCase()
   }
 
+  const handleNavigate = (pageId) => {
+    if (onNavigate) {
+      onNavigate(pageId)
+    }
+    if (onClose) {
+      onClose()
+    }
+  }
+
   return (
-    <div className="w-64 bg-white shadow-lg border-r border-gray-200">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-900">AlexaFit</h1>
-        <p className="text-sm text-gray-500 mt-1">Backoffice</p>
-      </div>
+    <>
+      <div
+        className={`fixed inset-0 z-30 bg-black/40 transition-opacity duration-200 md:hidden ${isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
 
-      <nav className="mt-6">
-        <div className="px-3">
-          {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = activePage === item.id
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActivePage(item.id)}
-                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-colors duration-200 cursor-pointer ${isActive
-                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-              >
-                <Icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
-
-      <div className="absolute bottom-0 w-64 p-6 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setActivePage('settings')}>
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-medium">{getUserInitial()}</span>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-white shadow-lg border-r border-gray-200 transition-transform duration-200 md:static md:translate-x-0 md:flex md:flex-col ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+      >
+        <div className="flex h-full flex-col">
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900">AlexaFit</h1>
+            <p className="text-sm text-gray-500 mt-1">Nutrition Guide</p>
           </div>
-          <div className="ml-3 overflow-hidden">
-            <p className="text-sm font-medium text-gray-900 truncate" title={getUserDisplayName()}>
-              {getUserDisplayName()}
-            </p>
-            <p className="text-xs text-gray-500 truncate" title={currentUser?.email || ''}>
-              {currentUser?.email || 'Backoffice Admin'}
-            </p>
+
+          <nav className="mt-2 flex-1 overflow-y-auto">
+            <div className="px-3 pb-4">
+              {menuItems.map((item) => {
+                const Icon = item.icon
+                const isActive = activePage === item.id
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigate(item.id)}
+                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-colors duration-200 cursor-pointer ${isActive
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                  >
+                    <Icon className="w-5 h-5 mr-3" />
+                    {item.label}
+                  </button>
+                )
+              })}
+            </div>
+          </nav>
+
+          <div
+            className="mt-auto w-full p-6 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => handleNavigate('settings')}
+          >
+            <div className="flex items-center">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">{getUserInitial()}</span>
+              </div>
+              <div className="ml-3 overflow-hidden">
+                <p className="text-sm font-medium text-gray-900 truncate" title={getUserDisplayName()}>
+                  {getUserDisplayName()}
+                </p>
+                <p className="text-xs text-gray-500 truncate" title={currentUser?.email || ''}>
+                  {currentUser?.email || 'Backoffice Admin'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
+    </>
   )
 }
 

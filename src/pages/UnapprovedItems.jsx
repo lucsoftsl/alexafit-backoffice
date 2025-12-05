@@ -359,8 +359,8 @@ const UnapprovedItems = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">Unapproved Items</h1>
           <p className="text-gray-600 mt-2">Manage items pending approval</p>
         </div>
@@ -377,7 +377,7 @@ const UnapprovedItems = () => {
               setLoading(false)
             }
           }}
-          className="btn-secondary flex items-center"
+          className="btn-secondary flex items-center justify-center sm:justify-start"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -528,8 +528,148 @@ const UnapprovedItems = () => {
 
         {/* Food Items Table */}
         {activeTab === 'food' && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden grid gap-4 p-4">
+              {getCurrentItems().map((item) => (
+                <div key={item.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">{item.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        {item.type && (
+                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 mr-2">
+                            {item.type}
+                          </span>
+                        )}
+                        {item.category && (
+                          <span className="text-gray-600">{item.category}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleApproveItem(item.id, 'FOOD')}
+                      className="text-blue-600 hover:text-blue-900 p-2"
+                    >
+                      <CheckIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Country:</span>
+                      <span className="ml-1 text-gray-900">{item.countryCode || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Calories:</span>
+                      <span className="ml-1 text-gray-900">{item.totalCalories || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Brand:</span>
+                      <span className="ml-1 text-gray-900">{item.brand || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Time:</span>
+                      <span className="ml-1 text-gray-900">{item.totalTimeInMinutes ? `${item.totalTimeInMinutes}m` : 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Barcode:</span>
+                      <span className="ml-1 text-gray-900">{item.barcode || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Nutriscore:</span>
+                      <span className="ml-1 text-gray-900">{item.nutriscore || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {item.isVerified ? 'Verified' : 'Not Verified'}
+                    </span>
+                    {item.isPublic !== null && item.isPublic !== undefined && (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {item.isPublic ? 'Public' : 'Private'}
+                      </span>
+                    )}
+                    {item.isManual !== null && item.isManual !== undefined && item.isManual && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Manual</span>
+                    )}
+                    {item.isAIGenerated && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">AI Generated</span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    {item.createdByUserId && (
+                      <button
+                        onClick={() => handleShowUser(item.createdByUserId)}
+                        className="text-blue-600 hover:text-blue-900 underline"
+                      >
+                        View User
+                      </button>
+                    )}
+                    {item.ingredients && (
+                      <button
+                        onClick={() => handleShowIngredients(item.ingredients)}
+                        className="text-blue-600 hover:text-blue-900 underline"
+                      >
+                        {item.ingredients.length} Ingredients
+                      </button>
+                    )}
+                    {item.recipeSteps && (
+                      <button
+                        onClick={() => handleShowRecipeSteps(item.recipeSteps)}
+                        className="text-blue-600 hover:text-blue-900 underline"
+                      >
+                        Recipe Steps
+                      </button>
+                    )}
+                    {item.totalNutrients && (
+                      <button
+                        onClick={() => handleShowNutrients(item.totalNutrients)}
+                        className="text-blue-600 hover:text-blue-900 underline"
+                      >
+                        Nutrients
+                      </button>
+                    )}
+                    {item.serving && (
+                      <button
+                        onClick={() => handleShowServings(item.serving)}
+                        className="text-blue-600 hover:text-blue-900 underline"
+                      >
+                        {formatServings(item.serving)}
+                      </button>
+                    )}
+                    {item.photoUrl && (
+                      <button
+                        onClick={() => handleShowImage(item.photoUrl)}
+                        className="text-blue-600 hover:text-blue-900 underline"
+                      >
+                        View Photo
+                      </button>
+                    )}
+                    {item.brandPhotoUrl && (
+                      <button
+                        onClick={() => handleShowImage(item.brandPhotoUrl)}
+                        className="text-blue-600 hover:text-blue-900 underline"
+                      >
+                        Brand Photo
+                      </button>
+                    )}
+                  </div>
+
+                  {item.dateTimeCreated && (
+                    <div className="text-xs text-gray-500">
+                      Created: {new Date(item.dateTimeCreated).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -699,12 +839,82 @@ const UnapprovedItems = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Exercise Items Table */}
         {activeTab === 'exercise' && (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <>
+            {/* Mobile Card View */}
+            <div className="md:hidden grid gap-4 p-4">
+              {getCurrentItems().map((item) => (
+                <div key={item.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">{item.name || 'N/A'}</div>
+                    </div>
+                    <button
+                      onClick={() => handleApproveItem(item.id, 'EXERCISE')}
+                      className="text-blue-600 hover:text-blue-900 p-2"
+                    >
+                      <CheckIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Duration:</span>
+                      <span className="ml-1 text-gray-900">{item.durationInMinutes ? `${item.durationInMinutes} min` : 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Calories Burnt:</span>
+                      <span className="ml-1 text-gray-900">{item.caloriesBurnt || 'N/A'}</span>
+                    </div>
+                    {item.createdByUserId && (
+                      <div className="col-span-2">
+                        <span className="text-gray-500">User ID:</span>
+                        <span className="ml-1 text-gray-900">{item.createdByUserId}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {item.isVerified ? 'Verified' : 'Not Verified'}
+                    </span>
+                    {item.isPublic !== null && item.isPublic !== undefined && (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {item.isPublic ? 'Public' : 'Private'}
+                      </span>
+                    )}
+                    {item.isManual && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Manual</span>
+                    )}
+                  </div>
+
+                  {item.photoUrl && (
+                    <div>
+                      <button
+                        onClick={() => handleShowImage(item.photoUrl)}
+                        className="text-blue-600 hover:text-blue-900 underline text-sm"
+                      >
+                        View Photo
+                      </button>
+                    </div>
+                  )}
+
+                  {item.dateTimeCreated && (
+                    <div className="text-xs text-gray-500">
+                      Created: {new Date(item.dateTimeCreated).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -775,52 +985,99 @@ const UnapprovedItems = () => {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Pagination Controls */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-          <div className="flex items-center gap-4">
-            <label className="text-sm text-gray-700">Items per page:</label>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value))
-                setCurrentPage(1)
-              }}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
+        <div className="bg-white px-4 py-3 border-t border-gray-200">
+          {/* Mobile View */}
+          <div className="md:hidden space-y-3">
+            <div className="flex items-center justify-between">
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              
+              <span className="text-sm text-gray-700">
+                Page {currentPage} of {getTotalPages() || 1}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                disabled={currentPage >= getTotalPages()}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
+          {/* Desktop View */}
+          <div className="hidden md:flex flex-wrap items-center gap-4 md:gap-6">
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-700">Items per page:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
 
-            <span className="text-sm text-gray-700">
-              Page {currentPage} of {getTotalPages() || 1}
-            </span>
+            <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
+              <span className="font-medium">Page {currentPage} of {getTotalPages() || 1}</span>
+              <span className="text-gray-600">
+                {(() => {
+                  const total = activeTab === 'food' ? filteredFoodItems.length : filteredExerciseItems.length
+                  if (total === 0) return 'Showing 0 of 0 results'
+                  return `Showing ${((currentPage - 1) * itemsPerPage) + 1} to ${Math.min(currentPage * itemsPerPage, total)} of ${total} results`
+                })()}
+              </span>
+            </div>
 
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
-              disabled={currentPage >= getTotalPages()}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
 
-          <div className="text-sm text-gray-700">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, activeTab === 'food' ? filteredFoodItems.length : filteredExerciseItems.length)} of{' '}
-            {activeTab === 'food' ? filteredFoodItems.length : filteredExerciseItems.length} results
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                disabled={currentPage >= getTotalPages()}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </div>

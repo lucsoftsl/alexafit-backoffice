@@ -278,12 +278,12 @@ const MyDay = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">My Day</h1>
-          <p className="text-gray-600 mt-2">Your meals and macros for {dateLabel}.</p>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Your meals and macros for {dateLabel}.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <button
             className="btn-secondary px-3 py-2"
             onClick={() => setSelectedDate(prev => addDays(prev, -1))}
@@ -331,14 +331,14 @@ const MyDay = () => {
       {!loading && !error && (
         <>
           {/* Top Carousel inspired by RN Dashboard */}
-          <div className="relative rounded-2xl p-4" style={{
+          <div className="relative rounded-2xl p-4 mx-auto" style={{
             background: 'rgba(255, 255, 255, 0.25)',
             boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
             border: '1px solid rgba(255, 255, 255, 0.18)',
-            paddingLeft: 40,
-            paddingRight: 40
+            paddingLeft: 32,
+            paddingRight: 32
           }}>
             <div ref={carouselRef} className="overflow-x-auto snap-x snap-mandatory flex gap-4 no-scrollbar" onScroll={(e) => {
               const el = e.currentTarget
@@ -346,17 +346,19 @@ const MyDay = () => {
               if (slide !== activeSlide) setActiveSlide(slide)
             }}>
               {/* Slide 1: Calories circle */}
-              <div className="min-w-full snap-center">
-                <div className="flex items-center justify-between">
+              <div className="min-w-full snap-center flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex-1 text-center">
                     <p className="text-2xl font-semibold text-gray-900">{macroTotals.calories}</p>
                     <p className="text-sm text-gray-600">Eaten</p>
                   </div>
-                  <CalorieCircle
-                    totalGoal={Number(daily.goals.calories) || 0}
-                    eaten={Number(macroTotals.calories) || 0}
-                    burned={Number(daily.exerciseCalories) || 0}
-                  />
+                  <div className="flex justify-center">
+                    <CalorieCircle
+                      totalGoal={Number(daily.goals.calories) || 0}
+                      eaten={Number(macroTotals.calories) || 0}
+                      burned={Number(daily.exerciseCalories) || 0}
+                    />
+                  </div>
                   <div className="flex-1 text-center">
                     <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.exerciseCalories || 0)}</p>
                     <p className="text-sm text-gray-600">Burned</p>

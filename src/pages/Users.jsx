@@ -110,6 +110,16 @@ const Users = () => {
     setCurrentPage(1)
   }, [searchTerm, usersPerPage, filterStatus])
 
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * usersPerPage
+    const endIndex = startIndex + usersPerPage
+    return filteredUsers.slice(startIndex, endIndex)
+  }, [filteredUsers, currentPage, usersPerPage])
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredUsers.length / usersPerPage) || 1), [filteredUsers.length, usersPerPage])
+  const pageStart = filteredUsers.length > 0 ? (currentPage - 1) * usersPerPage + 1 : 0
+  const pageEnd = Math.min(currentPage * usersPerPage, filteredUsers.length)
+
   const getStatusBadge = (status) => {
     const statusStyles = {
       active: 'bg-green-100 text-green-800',
@@ -180,12 +190,12 @@ const Users = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
-          <p className="text-gray-600 mt-2">Manage and monitor all platform users</p>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage and monitor all platform users</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-center sm:justify-end gap-2">
           <button
             onClick={refreshUsers}
             className="btn-secondary flex items-center"
@@ -195,10 +205,6 @@ const Users = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             {loading ? 'Loading...' : 'Refresh'}
-          </button>
-          <button className="btn-primary flex items-center">
-            <PlusIcon className="w-5 h-5 mr-2" />
-            Add User
           </button>
         </div>
       </div>
@@ -233,7 +239,84 @@ const Users = () => {
       </div>
 
       {/* Users Table */}
-      <div className="card overflow-hidden">
+      <div className="space-y-3 md:hidden">
+        {paginatedUsers.map((user) => {
+          const userData = formatUserData(user)
+          const loginDetails = user?.loginDetails || {}
+          const subInfo = formatSubscriptionStatus(user)
+          let name = 'Unknown'
+          if (userData?.name) {
+            name = userData.name
+          } else if (user?.firstName && user?.lastName) {
+            name = `${user.firstName} ${user.lastName}`.trim()
+          } else if (loginDetails?.displayName) {
+            name = loginDetails.displayName
+          } else if (user?.firstName) {
+            name = user.firstName
+          } else if (user?.lastName) {
+            name = user.lastName
+          }
+          const email = user?.email || loginDetails?.providerData?.[0]?.email || loginDetails?.email || 'N/A'
+          const subscription = subInfo.plan === 'Pro Plan' ? 'Premium' : (subInfo.plan === 'Program Plan' ? 'Premium' : 'Free')
+          const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+          const joinDate = user?.dateTimeCreated ? new Date(user.dateTimeCreated).toLocaleDateString() : 'N/A'
+          const lastActive = user?.dateTimeUpdated ? new Date(user.dateTimeUpdated).toLocaleDateString() : 'N/A'
+          const accountStatus = (user?.status || '').toString().toLowerCase()
+          return (
+            <div key={user?.userId || user?.id} className="card p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3">
+                    <span className="text-sm font-medium text-white">{avatar}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{name}</p>
+                    <p className="text-xs text-gray-500">{email}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedUser(user)
+                      setIsModalOpen(true)
+                    }}
+                    className="text-blue-600 hover:text-blue-900"
+                    title="View user details and nutrition"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                  </button>
+                  <button className="text-gray-600 hover:text-gray-900">
+                    <PencilIcon className="w-4 h-4" />
+                  </button>
+                  <button className="text-red-600 hover:text-red-900">
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="space-y-1">
+                  <p className="text-gray-500">Status</p>
+                  {getStatusBadge(accountStatus)}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-gray-500">Subscription</p>
+                  {getSubscriptionBadge(subscription)}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-gray-500">Joined</p>
+                  <p className="text-gray-800 text-sm">{joinDate}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-gray-500">Last Active</p>
+                  <p className="text-gray-800 text-sm">{lastActive}</p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="card overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -259,12 +342,7 @@ const Users = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {(() => {
-                const startIndex = (currentPage - 1) * usersPerPage
-                const endIndex = startIndex + usersPerPage
-                const pageUsers = filteredUsers.slice(startIndex, endIndex)
-                return pageUsers
-              })().map((user) => {
+              {paginatedUsers.map((user) => {
                 const userData = formatUserData(user)
                 const loginDetails = user?.loginDetails || {}
 
@@ -340,58 +418,46 @@ const Users = () => {
             </tbody>
           </table>
         </div>
+      </div>
 
-        {/* Pagination */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex items-center gap-4">
-            <label className="text-sm text-gray-700">Items per page:</label>
-            <select
-              value={usersPerPage}
-              onChange={(e) => {
-                setUsersPerPage(Number(e.target.value))
-                setCurrentPage(1)
-              }}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+      {/* Pagination */}
+      <div className="bg-white px-4 py-3 border border-gray-200 rounded-md flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <label className="text-sm text-gray-700">Items per page:</label>
+          <select
+            value={usersPerPage}
+            onChange={(e) => {
+              setUsersPerPage(Number(e.target.value))
+              setCurrentPage(1)
+            }}
+            className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+          >
+            <option value="5">5</option>
+            <option value="15">15</option>
+            <option value="25">25</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <p className="text-sm text-gray-700">
+            {`Showing ${pageStart} to ${pageEnd} of ${filteredUsers.length} results`}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="5">5</option>
-              <option value="15">15</option>
-              <option value="25">25</option>
-            </select>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between ml-4">
-            <div>
-              <p className="text-sm text-gray-700">
-                {(() => {
-                  const total = filteredUsers.length
-                  const start = total > 0 ? (currentPage - 1) * usersPerPage + 1 : 0
-                  const end = Math.min(currentPage * usersPerPage, total)
-                  return (
-                    <>Showing <span className="font-medium">{start}</span> to <span className="font-medium">{end}</span> of <span className="font-medium">{total}</span> results</>
-                  )
-                })()}
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                  Page {currentPage} of {Math.max(1, Math.ceil(filteredUsers.length / usersPerPage))}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredUsers.length / usersPerPage) || 1, prev + 1))}
-                  disabled={currentPage >= (Math.ceil(filteredUsers.length / usersPerPage) || 1)}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
+              Previous
+            </button>
+            <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage >= totalPages}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>

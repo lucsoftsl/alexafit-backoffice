@@ -120,6 +120,14 @@ const MyUsers = () => {
     setCurrentPage(1)
   }, [searchTerm, usersPerPage, filterStatus])
 
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * usersPerPage
+    const endIndex = startIndex + usersPerPage
+    return filteredUsers.slice(startIndex, endIndex)
+  }, [filteredUsers, currentPage, usersPerPage])
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredUsers.length / usersPerPage)), [filteredUsers.length, usersPerPage])
+
   const getStatusBadge = (status) => {
     const statusStyles = {
       active: 'bg-green-100 text-green-800',
@@ -236,12 +244,12 @@ const MyUsers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">My Users</h1>
           <p className="text-gray-600 mt-2">Manage your clients and track their progress</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center justify-center sm:justify-end">
           <button
             onClick={refreshUsers}
             className="btn-secondary flex items-center"
@@ -292,7 +300,113 @@ const MyUsers = () => {
       </div>
 
       {/* Users Table */}
-      <div className="card overflow-hidden">
+      <div className="space-y-3 md:hidden">
+        {paginatedUsers.map((user) => {
+          const name = user?.userData?.name || 
+                     user?.loginDetails?.displayName || 
+                     `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
+                     'Unknown'
+          const email = user?.loginDetails?.email || user?.email || 'N/A'
+          const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+          const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : 'N/A'
+          const lastActive = user?.dateTimeUpdated ? new Date(user.dateTimeUpdated).toLocaleDateString() : 'N/A'
+          const accountStatus = (user?.status || '').toString().toLowerCase()
+          const userId = Array.isArray(user?.userId) ? user.userId[0] : user?.userId
+          return (
+            <div key={userId || user?.id} className="card p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3">
+                    <span className="text-sm font-medium text-white">{avatar}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{name}</p>
+                    <p className="text-xs text-gray-500">{email}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedUser(user)
+                      setIsModalOpen(true)
+                    }}
+                    className="text-blue-600 hover:text-blue-900"
+                    title="View user details and nutrition"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleUnassignUser(userId)}
+                    className="text-red-600 hover:text-red-900"
+                    title="Unassign user"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="space-y-1">
+                  <p className="text-gray-500">Status</p>
+                  {getStatusBadge(accountStatus)}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-gray-500">Assigned</p>
+                  <p className="text-gray-800 text-sm">{assignedDate}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-gray-500">Last Active</p>
+                  <p className="text-gray-800 text-sm">{lastActive}</p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        {/* Mobile Pagination */}
+        <div className="mt-2 bg-white border-t border-gray-200 px-4 py-3 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700">Per page</label>
+              <select
+                value={usersPerPage}
+                onChange={(e) => {
+                  setUsersPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="5">5</option>
+                <option value="15">15</option>
+                <option value="25">25</option>
+              </select>
+            </div>
+            <span className="text-xs text-gray-600">Page {currentPage} / {totalPages}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage >= totalPages}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+          <div className="text-xs text-gray-600 text-center">
+            {filteredUsers.length === 0
+              ? 'Showing 0 of 0 results'
+              : `Showing ${((currentPage - 1) * usersPerPage) + 1} - ${Math.min(currentPage * usersPerPage, filteredUsers.length)} of ${filteredUsers.length}`}
+          </div>
+        </div>
+      </div>
+
+      <div className="card overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -315,12 +429,7 @@ const MyUsers = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {(() => {
-                const startIndex = (currentPage - 1) * usersPerPage
-                const endIndex = startIndex + usersPerPage
-                const pageUsers = filteredUsers.slice(startIndex, endIndex)
-                return pageUsers
-              })().map((user) => {
+              {paginatedUsers.map((user) => {
                 const name = user?.userData?.name || 
                            user?.loginDetails?.displayName || 
                            `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
@@ -384,8 +493,8 @@ const MyUsers = () => {
         </div>
 
         {/* Pagination */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex items-center gap-4">
+        <div className="bg-white px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-gray-200 sm:px-6">
+          <div className="flex items-center gap-3">
             <label className="text-sm text-gray-700">Items per page:</label>
             <select
               value={usersPerPage}
@@ -400,40 +509,32 @@ const MyUsers = () => {
               <option value="25">25</option>
             </select>
           </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between ml-4">
-            <div>
-              <p className="text-sm text-gray-700">
-                {(() => {
-                  const total = filteredUsers.length
-                  const start = total > 0 ? (currentPage - 1) * usersPerPage + 1 : 0
-                  const end = Math.min(currentPage * usersPerPage, total)
-                  return (
-                    <>Showing <span className="font-medium">{start}</span> to <span className="font-medium">{end}</span> of <span className="font-medium">{total}</span> results</>
-                  )
-                })()}
-              </p>
-            </div>
-            <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                  Page {currentPage} of {Math.max(1, Math.ceil(filteredUsers.length / usersPerPage))}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredUsers.length / usersPerPage) || 1, prev + 1))}
-                  disabled={currentPage >= (Math.ceil(filteredUsers.length / usersPerPage) || 1)}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
+
+          <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
+            <span className="font-medium">Page {currentPage} of {totalPages}</span>
+            <span className="text-gray-600">
+              {filteredUsers.length === 0
+                ? 'Showing 0 of 0 results'
+                : `Showing ${((currentPage - 1) * usersPerPage) + 1} to ${Math.min(currentPage * usersPerPage, filteredUsers.length)} of ${filteredUsers.length} results`}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage >= totalPages}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>

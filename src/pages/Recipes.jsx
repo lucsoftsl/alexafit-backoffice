@@ -802,12 +802,12 @@ const Recipes = () => {
         </div>
       )}
 
-      <div className="flex justify-between items-center">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">Recipes</h1>
           <p className="text-gray-600 mt-2">Manage recipes</p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex flex-col gap-2 items-center justify-center sm:justify-end">
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-700 whitespace-nowrap">Country:</label>
             <select
@@ -822,25 +822,27 @@ const Recipes = () => {
               ))}
             </select>
           </div>
-          <button
-            onClick={refreshData}
-            className="btn-secondary flex items-center"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh Data
-          </button>
-          <button
-            onClick={() => {
-              resetForm()
-              setIsCreateModalOpen(true)
-            }}
-            className="btn-primary flex items-center"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Create Recipe
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={refreshData}
+              className="btn-secondary flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh Data
+            </button>
+            <button
+              onClick={() => {
+                resetForm()
+                setIsCreateModalOpen(true)
+              }}
+              className="btn-primary flex items-center"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Create Recipe
+            </button>
+          </div>
         </div>
       </div>
 
@@ -876,183 +878,313 @@ const Recipes = () => {
       </div>
 
 
-      {/* Recipes Table */}
+      {/* Recipes List & Table */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                <th
-                  onClick={() => handleSort('name')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center gap-1">
-                    Name
-                    {sortColumn === 'name' && (
-                      sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
-                <th
-                  onClick={() => handleSort('calories')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center gap-1">
-                    Calories
-                    {sortColumn === 'calories' && (
-                      sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servings</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
-                <th
-                  onClick={() => handleSort('isPublic')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center gap-1">
-                    Public
-                    {sortColumn === 'isPublic' && (
-                      sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                    )}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('isVerified')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center gap-1">
-                    Verified
-                    {sortColumn === 'isVerified' && (
-                      sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {getCurrentItems().map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
+        {/* Mobile card list */}
+        <div className="md:hidden">
+          <div className="space-y-4">
+            {getCurrentItems().length === 0 && (
+              <div className="text-center text-sm text-gray-600 py-6">No recipes found.</div>
+            )}
+            {getCurrentItems().map((item) => (
+              <div key={item.id} className="border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-gray-900 break-words">{item.name || 'N/A'}</h3>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {item.isVerified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{item.type || 'N/A'}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">{item.countryCode || 'N/A'}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}>
+                          {item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'Public' : 'Private') : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
                       <button
                         onClick={() => handleEditRecipe(item)}
                         disabled={loadingEdit}
-                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
                         title="Edit recipe"
                       >
-                        <PencilIcon className="w-4 h-4" />
+                        <PencilIcon className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => handleDeleteRecipe(item)}
                         disabled={deleting}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50 cursor-pointer"
+                        className="text-red-600 hover:text-red-800 disabled:opacity-50"
                         title="Delete recipe"
                       >
-                        <TrashIcon className="w-4 h-4" />
+                        <TrashIcon className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => handleAddPhotoToRecipe(item)}
                         disabled={uploadingPhoto}
-                        className="text-green-600 hover:text-green-900 disabled:opacity-50 cursor-pointer"
+                        className="text-green-600 hover:text-green-800 disabled:opacity-50"
                         title="Add photo"
                       >
-                        <PhotoIcon className="w-4 h-4" />
+                        <PhotoIcon className="w-5 h-5" />
                       </button>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 max-w-xs truncate" title={item.name}>
-                      {item.name || 'N/A'}
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 text-sm text-gray-700">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Calories:</span>
+                      <span>{item.totalCalories || 'N/A'}</span>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      {item.type || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.countryCode || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.totalCalories || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.numberOfServings || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Servings:</span>
+                      <span>{item.numberOfServings || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Created:</span>
+                      <span>{item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
                     {item.photoUrl ? (
                       <button
                         onClick={() => handleShowImage(item.photoUrl)}
-                        className="text-blue-600 hover:text-blue-900 underline cursor-pointer"
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
                       >
-                        View
+                        View photo
                       </button>
                     ) : (
-                      'N/A'
+                      <span className="text-sm text-gray-500">No photo</span>
                     )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}>
-                      {item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'Yes' : 'No') : 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {item.isVerified ? 'Yes' : 'No'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : 'N/A'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Pagination */}
+          <div className="mt-4 bg-white border-t border-gray-200 px-4 py-3 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-700">Per page</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1)
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+              <span className="text-xs text-gray-600">Page {currentPage} / {getTotalPages() || 1}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                disabled={currentPage >= getTotalPages()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="text-xs text-gray-600 text-center">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of {filteredRecipes.length}
+            </div>
+          </div>
         </div>
 
-        {/* Pagination Controls */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-          <div className="flex items-center gap-4">
-            <label className="text-sm text-gray-700">Items per page:</label>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value))
-                setCurrentPage(1)
-              }}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
-            >
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
+        {/* Desktop table */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th
+                    onClick={() => handleSort('name')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center gap-1">
+                      Name
+                      {sortColumn === 'name' && (
+                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                  <th
+                    onClick={() => handleSort('calories')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center gap-1">
+                      Calories
+                      {sortColumn === 'calories' && (
+                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servings</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
+                  <th
+                    onClick={() => handleSort('isPublic')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center gap-1">
+                      Public
+                      {sortColumn === 'isPublic' && (
+                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('isVerified')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center gap-1">
+                      Verified
+                      {sortColumn === 'isVerified' && (
+                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {getCurrentItems().map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditRecipe(item)}
+                          disabled={loadingEdit}
+                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          title="Edit recipe"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRecipe(item)}
+                          disabled={deleting}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50 cursor-pointer"
+                          title="Delete recipe"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleAddPhotoToRecipe(item)}
+                          disabled={uploadingPhoto}
+                          className="text-green-600 hover:text-green-900 disabled:opacity-50 cursor-pointer"
+                          title="Add photo"
+                        >
+                          <PhotoIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 max-w-xs truncate" title={item.name}>
+                        {item.name || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        {item.type || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.countryCode || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.totalCalories || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.numberOfServings || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {item.photoUrl ? (
+                        <button
+                          onClick={() => handleShowImage(item.photoUrl)}
+                          className="text-blue-600 hover:text-blue-900 underline cursor-pointer"
+                        >
+                          View
+                        </button>
+                      ) : (
+                        'N/A'
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}>
+                        {item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'Yes' : 'No') : 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {item.isVerified ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
+          {/* Pagination Controls */}
+          <div className="bg-white px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-gray-200">
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-700">Items per page:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
 
-            <span className="text-sm text-gray-700">
-              Page {currentPage} of {getTotalPages() || 1}
-            </span>
+            <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
+              <span className="font-medium">Page {currentPage} of {getTotalPages() || 1}</span>
+              <span className="text-gray-600">
+                {filteredRecipes.length === 0
+                  ? 'Showing 0 of 0 results'
+                  : `Showing ${((currentPage - 1) * itemsPerPage) + 1} to ${Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of ${filteredRecipes.length} results`}
+              </span>
+            </div>
 
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
-              disabled={currentPage >= getTotalPages()}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
 
-          <div className="text-sm text-gray-700">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of{' '}
-            {filteredRecipes.length} results
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                disabled={currentPage >= getTotalPages()}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </div>
