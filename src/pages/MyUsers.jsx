@@ -3,27 +3,21 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import {
   MagnifyingGlassIcon,
-  PencilIcon,
   TrashIcon,
-  EyeIcon,
-  PlusIcon,
   ExclamationTriangleIcon,
   UserPlusIcon
 } from '@heroicons/react/24/outline'
 import { getNutritionistClients, assignClientToNutritionist, unassignClientFromNutritionist } from '../services/loggedinApi'
 import { useAuth } from '../contexts/AuthContext'
-import ClientDayModal from '../components/ClientDayModal'
 import { selectUserData } from '../store/userSlice'
 
-const MyUsers = () => {
+const MyUsers = ({ onSelectClient = () => {} }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const hasLoadedRef = useRef(false)
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [usersPerPage, setUsersPerPage] = useState(5)
@@ -200,12 +194,18 @@ const MyUsers = () => {
     }
   }
 
+  const handleSelectClient = (user) => {
+    if (onSelectClient) {
+      onSelectClient(user)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Users</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
             <p className="text-gray-600 mt-2">Manage your clients and track their progress</p>
           </div>
         </div>
@@ -224,7 +224,7 @@ const MyUsers = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Users</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
             <p className="text-gray-600 mt-2">Manage your clients and track their progress</p>
           </div>
         </div>
@@ -246,7 +246,7 @@ const MyUsers = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">My Users</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
           <p className="text-gray-600 mt-2">Manage your clients and track their progress</p>
         </div>
         <div className="flex gap-2 items-center justify-center sm:justify-end">
@@ -309,11 +309,14 @@ const MyUsers = () => {
           const email = user?.loginDetails?.email || user?.email || 'N/A'
           const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
           const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : 'N/A'
-          const lastActive = user?.dateTimeUpdated ? new Date(user.dateTimeUpdated).toLocaleDateString() : 'N/A'
           const accountStatus = (user?.status || '').toString().toLowerCase()
           const userId = Array.isArray(user?.userId) ? user.userId[0] : user?.userId
           return (
-            <div key={userId || user?.id} className="card p-4">
+            <div
+              key={userId || user?.id}
+              className="card p-4 cursor-pointer hover:border-blue-200 hover:shadow-sm"
+              onClick={() => handleSelectClient(user)}
+            >
               <div className="flex items-start justify-between">
                 <div className="flex items-center">
                   <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3">
@@ -326,17 +329,10 @@ const MyUsers = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      setSelectedUser(user)
-                      setIsModalOpen(true)
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleUnassignUser(userId)
                     }}
-                    className="text-blue-600 hover:text-blue-900"
-                    title="View user details and nutrition"
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleUnassignUser(userId)}
                     className="text-red-600 hover:text-red-900"
                     title="Unassign user"
                   >
@@ -352,10 +348,6 @@ const MyUsers = () => {
                 <div className="space-y-1">
                   <p className="text-gray-500">Assigned</p>
                   <p className="text-gray-800 text-sm">{assignedDate}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-gray-500">Last Active</p>
-                  <p className="text-gray-800 text-sm">{lastActive}</p>
                 </div>
               </div>
             </div>
@@ -420,9 +412,6 @@ const MyUsers = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Assigned Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Active
-                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -437,11 +426,14 @@ const MyUsers = () => {
                 const email = user?.loginDetails?.email || user?.email || 'N/A'
                 const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                 const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : 'N/A'
-                const lastActive = user?.dateTimeUpdated ? new Date(user.dateTimeUpdated).toLocaleDateString() : 'N/A'
                 const accountStatus = (user?.status || '').toString().toLowerCase()
                 const userId = Array.isArray(user?.userId) ? user.userId[0] : user?.userId
                 return (
-                  <tr key={userId || user?.id} className="hover:bg-gray-50">
+                  <tr
+                    key={userId || user?.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleSelectClient(user)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -461,23 +453,13 @@ const MyUsers = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {assignedDate}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {lastActive}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => {
-                            setSelectedUser(user)
-                            setIsModalOpen(true)
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleUnassignUser(userId)
                           }}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="View user details and nutrition"
-                        >
-                          <EyeIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleUnassignUser(userId)}
                           className="text-red-600 hover:text-red-900"
                           title="Unassign user"
                         >
@@ -606,16 +588,6 @@ const MyUsers = () => {
           </div>
         </div>
       )}
-
-      {/* Client Day Modal */}
-      <ClientDayModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false)
-          setSelectedUser(null)
-        }}
-        user={selectedUser}
-      />
     </div>
   )
 }

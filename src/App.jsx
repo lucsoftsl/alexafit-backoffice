@@ -11,6 +11,9 @@ import UnapprovedItems from './pages/UnapprovedItems'
 import Menus from './pages/Menus'
 import Recipes from './pages/Recipes'
 import Settings from './pages/Settings'
+import ClientJournal from './pages/ClientJournal'
+import ClientProfile from './pages/ClientProfile'
+import ClientMealPlans from './pages/ClientMealPlans'
 import Login from './components/Login'
 import { useAuth } from './contexts/AuthContext'
 import {
@@ -25,6 +28,9 @@ import { ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon } from '@heroicons/reac
 function App() {
   const [activePage, setActivePage] = useState('dashboard')
   const [isSidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarVariant, setSidebarVariant] = useState('main')
+  const [clientSidebarItem, setClientSidebarItem] = useState('all-clients')
+  const [selectedClient, setSelectedClient] = useState(null)
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -42,16 +48,51 @@ function App() {
 
   const handleNavigate = (pageId) => {
     setActivePage(pageId)
+    setSidebarVariant('main')
     setSidebarOpen(false)
+  }
+
+  const handleClientMenuSelect = (itemId) => {
+    setClientSidebarItem(itemId)
+    if (itemId === 'all-clients') {
+      setActivePage('myusers')
+      setSidebarVariant('main')
+      setSelectedClient(null)
+      return
+    }
+    const map = {
+      profile: 'client-profile',
+      journal: 'client-journal',
+      'meal-plans': 'client-meal-plans'
+    }
+    const nextPage = map[itemId] || 'client-journal'
+    setActivePage(nextPage)
+    setSidebarVariant('clients')
+  }
+
+  const handleBackToMainSidebar = () => {
+    setSidebarVariant('main')
+    setClientSidebarItem('all-clients')
+    setActivePage('myusers')
+    setSelectedClient(null)
   }
 
   // Redirect non-admin users to appropriate page after login
   useEffect(() => {
     if (userData && !isAdmin && activePage === 'dashboard') {
       // Nutritionists go to My Users, others go to My Day
-      setActivePage(isNutritionist ? 'myusers' : 'myday')
+      const targetPage = isNutritionist ? 'myusers' : 'myday'
+      setActivePage(targetPage)
+      setSidebarVariant('main')
     }
   }, [userData, isAdmin, isNutritionist, activePage])
+
+  useEffect(() => {
+    if (activePage === 'myusers') {
+      setSidebarVariant('main')
+      setClientSidebarItem('all-clients')
+    }
+  }, [activePage])
 
   const renderPage = () => {
     // Admin-only pages
@@ -59,7 +100,7 @@ function App() {
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus']
     // Nutritionist-only pages
-    const nutritionistPages = ['myusers']
+    const nutritionistPages = ['myusers', 'client-profile', 'client-journal', 'client-meal-plans']
     
     // Check if current page requires admin access
     if (adminPages.includes(activePage) && !isAdmin) {
@@ -106,7 +147,22 @@ function App() {
       case 'myday':
         return <MyDay />
       case 'myusers':
-        return <MyUsers />
+        return (
+          <MyUsers
+            onSelectClient={(client) => {
+              setSelectedClient(client)
+              setActivePage('client-journal')
+              setSidebarVariant('clients')
+              setClientSidebarItem('journal')
+            }}
+          />
+        )
+      case 'client-profile':
+        return <ClientProfile client={selectedClient} />
+      case 'client-journal':
+        return <ClientJournal client={selectedClient} />
+      case 'client-meal-plans':
+        return <ClientMealPlans client={selectedClient} />
       case 'mymenus':
         return <MyMenus />
       case 'users':
@@ -172,6 +228,10 @@ function App() {
       <Sidebar
         activePage={activePage}
         onNavigate={handleNavigate}
+        variant={sidebarVariant}
+        onBackToMain={handleBackToMainSidebar}
+        activeClientMenuItem={clientSidebarItem}
+        onClientMenuSelect={handleClientMenuSelect}
         isMobileOpen={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -204,9 +264,6 @@ function App() {
               <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
                 {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
               </span>
-              {userData?.userType && (
-                <span className="text-xs text-gray-500">Type: {userData.userType}</span>
-              )}
             </div>
             {renderPage()}
           </div>

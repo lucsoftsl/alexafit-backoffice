@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useSelector } from 'react-redux'
 import {
   HomeIcon,
@@ -8,12 +7,24 @@ import {
   CogIcon,
   ListBulletIcon,
   CakeIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  UserCircleIcon,
+  ClipboardDocumentListIcon,
+  ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
 import { selectIsAdmin, selectIsNutritionist } from '../store/userSlice'
 
-const Sidebar = ({ activePage, onNavigate, isMobileOpen = false, onClose }) => {
+const Sidebar = ({
+  activePage,
+  onNavigate,
+  isMobileOpen = false,
+  onClose,
+  variant = 'main',
+  onBackToMain,
+  activeClientMenuItem = 'all-clients',
+  onClientMenuSelect
+}) => {
   const { currentUser } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -21,7 +32,7 @@ const Sidebar = ({ activePage, onNavigate, isMobileOpen = false, onClose }) => {
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, adminOnly: true },
     { id: 'myday', label: 'My Day', icon: HomeIcon, adminOnly: false },
-    { id: 'myusers', label: 'My Users', icon: UsersIcon, nutritionistOnly: true },
+    { id: 'myusers', label: 'Clients', icon: UsersIcon, nutritionistOnly: true },
     { id: 'mymenus', label: 'My Menus', icon: CakeIcon, nutritionistOnly: true },
     { id: 'users', label: 'Users', icon: UsersIcon, adminOnly: true },
     { id: 'unapprovedItems', label: '⏳ Items', icon: ListBulletIcon, adminOnly: true },
@@ -38,6 +49,13 @@ const Sidebar = ({ activePage, onNavigate, isMobileOpen = false, onClose }) => {
     if (item.nutritionistOnly && !isNutritionist) return false
     return true
   })
+
+  const clientMenuItems = [
+    { id: 'profile', label: 'Profile', icon: UserCircleIcon },
+    { id: 'journal', label: 'Client Journal', icon: ClipboardDocumentListIcon },
+    { id: 'meal-plans', label: 'Client Meal Plans', icon: CakeIcon },
+    { id: 'all-clients', label: 'All Clients', icon: UsersIcon }
+  ]
 
   // Get user display info
   const getUserDisplayName = () => {
@@ -64,6 +82,15 @@ const Sidebar = ({ activePage, onNavigate, isMobileOpen = false, onClose }) => {
     }
   }
 
+  const handleClientSelect = (itemId) => {
+    if (onClientMenuSelect) {
+      onClientMenuSelect(itemId)
+    }
+    if (onClose) {
+      onClose()
+    }
+  }
+
   return (
     <>
       <div
@@ -76,32 +103,74 @@ const Sidebar = ({ activePage, onNavigate, isMobileOpen = false, onClose }) => {
       >
         <div className="flex h-full flex-col">
           <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900">AlexaFit</h1>
-            <p className="text-sm text-gray-500 mt-1">Nutrition Guide</p>
+            {variant === 'clients' ? (
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Client Actions</h1>
+                  <p className="text-sm text-gray-500 mt-1">Quick links for this client</p>
+                </div>
+                <button
+                  onClick={onBackToMain}
+                  className="p-2 rounded-full text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                  aria-label="Back to main menu"
+                >
+                  <ArrowUturnLeftIcon className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">AlexaFit</h1>
+                <p className="text-sm text-gray-500 mt-1">Nutrition Guide</p>
+              </div>
+            )}
           </div>
 
-          <nav className="mt-2 flex-1 overflow-y-auto">
-            <div className="px-3 pb-4">
-              {menuItems.map((item) => {
-                const Icon = item.icon
-                const isActive = activePage === item.id
+          {variant === 'clients' ? (
+            <nav className="mt-2 flex-1 overflow-y-auto">
+              <div className="px-3 pb-4 space-y-1">
+                {clientMenuItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = activeClientMenuItem === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleClientSelect(item.id)}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer ${isActive
+                        ? 'bg-purple-50 text-purple-700 border-r-2 border-purple-600'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                    >
+                      <Icon className="w-5 h-5 mr-3" />
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </nav>
+          ) : (
+            <nav className="mt-2 flex-1 overflow-y-auto">
+              <div className="px-3 pb-4">
+                {menuItems.map((item) => {
+                  const Icon = item.icon
+                  const isActive = activePage === item.id
 
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavigate(item.id)}
-                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-colors duration-200 cursor-pointer ${isActive
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                  >
-                    <Icon className="w-5 h-5 mr-3" />
-                    {item.label}
-                  </button>
-                )
-              })}
-            </div>
-          </nav>
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavigate(item.id)}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-colors duration-200 cursor-pointer ${isActive
+                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                    >
+                      <Icon className="w-5 h-5 mr-3" />
+                      {item.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </nav>
+          )}
 
           <div
             className="mt-auto w-full p-6 border-t border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
