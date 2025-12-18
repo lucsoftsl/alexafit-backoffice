@@ -291,7 +291,18 @@ export async function getUserCheckinsForClient({ userId }) {
   )
 }
 
-export async function saveUserCheckin({ userId, checkInDateTime, currentWeightInKg, currentFatPercentage, currentWaistSizeInCm, currentChestSizeInCm, currentHipSizeInCm, currentThighSizeInCm, currentWaterPercentage, currentArmSizeInCm }) {
+export async function saveUserCheckin({
+  userId,
+  checkInDateTime,
+  currentWeightInKg,
+  currentFatPercentage,
+  currentWaistSizeInCm,
+  currentChestSizeInCm,
+  currentHipSizeInCm,
+  currentThighSizeInCm,
+  currentWaterPercentage,
+  currentArmSizeInCm
+}) {
   // Save a new check-in
   return request('/foodsync/addUserCheckIn', {
     method: 'POST',
@@ -313,7 +324,19 @@ export async function saveUserCheckin({ userId, checkInDateTime, currentWeightIn
   })
 }
 
-export async function updateUserCheckin({ userId, checkInId, checkInDateTime, currentWeightInKg, currentFatPercentage, currentWaistSizeInCm, currentChestSizeInCm, currentHipSizeInCm, currentThighSizeInCm, currentWaterPercentage, currentArmSizeInCm }) {
+export async function updateUserCheckin({
+  userId,
+  checkInId,
+  checkInDateTime,
+  currentWeightInKg,
+  currentFatPercentage,
+  currentWaistSizeInCm,
+  currentChestSizeInCm,
+  currentHipSizeInCm,
+  currentThighSizeInCm,
+  currentWaterPercentage,
+  currentArmSizeInCm
+}) {
   // Update an existing check-in
   return request('/foodsync/updateUserCheckIn', {
     method: 'PUT',
@@ -342,7 +365,4 @@ export async function deleteUserCheckin({ userId, checkInId }) {
       checkInId
     }
   })
-  return requestGet(
-    `/foodsync/getUserProgress/?userId=${encodeURIComponent(userId)}`
-  )
 }

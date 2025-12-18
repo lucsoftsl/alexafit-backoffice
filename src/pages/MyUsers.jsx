@@ -42,7 +42,8 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       // Extract just the user objects with assignment info
       const usersArray = dataArray.map(item => ({
         ...item.user,
-        dateTimeAssigned: item.nutritionistUser?.dateTimeAssigned
+        dateTimeAssigned: item.nutritionistUser?.dateTimeAssigned,
+        userId: Array.isArray(item.user?.userId) && item.user.userId.length > 0 ? item.user.userId[0] : item.user?.userId
       }))
       setUsers(usersArray)
       setError(null)
@@ -78,7 +79,8 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         // Extract just the user objects with assignment info
         const usersArray = dataArray.map(item => ({
           ...item.user,
-          dateTimeAssigned: item.nutritionistUser?.dateTimeAssigned
+          dateTimeAssigned: item.nutritionistUser?.dateTimeAssigned,
+          userId: Array.isArray(item.user?.userId) && item.user.userId.length > 0 ? item.user.userId[0] : item.user?.userId
         }))
         setUsers(usersArray)
         setError(null)
