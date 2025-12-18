@@ -244,3 +244,35 @@ export async function unassignClientFromNutritionist({
     body: { nutritionistId, userId }
   })
 }
+
+export async function saveUserDataFromWelcomeScreen({
+  userData,
+  userId,
+  selectedDate
+}) {
+  // Save user profile data (used in Settings page)
+  return request('/foodsync/save-user-data', {
+    method: 'POST',
+    body: {
+      userId,
+      userData,
+      selectedDate
+    }
+  })
+}
+
+export async function getAvatars({ userId }) {
+  // Get available avatars for a user
+  return request('/foodsync/getAvatars', {
+    method: 'POST',
+    body: { userId }
+  })
+}
+
+export async function getUserById({ userId }) {
+  // Get user profile data by ID
+  return request('/foodsync/getUserById', {
+    method: 'POST',
+    body: { userId }
+  })
+}

@@ -55,7 +55,7 @@ const MyMenus = () => {
   const [loadingTemplates, setLoadingTemplates] = useState(false)
   const [editingTemplateId, setEditingTemplateId] = useState(null)
   const [clients, setClients] = useState([])
-  console.log('Clients:', JSON.stringify(clients))
+
   const [loadingClients, setLoadingClients] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState(null)
   const [assignmentDate, setAssignmentDate] = useState(new Date().toISOString().split('T')[0])
