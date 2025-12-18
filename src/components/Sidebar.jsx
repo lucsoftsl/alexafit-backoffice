@@ -32,6 +32,7 @@ const Sidebar = ({
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, adminOnly: true },
     { id: 'myday', label: 'My Day', icon: HomeIcon, adminOnly: false },
+    { id: 'progress', label: 'Progress', icon: ChartBarIcon, adminOnly: false },
     { id: 'myusers', label: 'Clients', icon: UsersIcon, nutritionistOnly: true },
     { id: 'mymenus', label: 'My Menus', icon: CakeIcon, nutritionistOnly: true },
     { id: 'users', label: 'Users', icon: UsersIcon, adminOnly: true },

@@ -1,3 +1,5 @@
+import ClientProgress from '../components/ClientProgress'
+
 const formatDate = (val) => {
   if (!val) return 'N/A'
   try {
@@ -55,6 +57,10 @@ const ClientProfile = ({ client }) => {
           <InfoRow label="User ID" value={Array.isArray(client?.userId) ? client.userId[0] : client?.userId || 'N/A'} />
           <InfoRow label="Email" value={email} />
         </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <ClientProgress client={client} />
       </div>
     </div>
   )

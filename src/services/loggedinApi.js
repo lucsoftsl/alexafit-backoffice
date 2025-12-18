@@ -276,3 +276,73 @@ export async function getUserById({ userId }) {
     body: { userId }
   })
 }
+
+export async function getUserCheckins({ userId }) {
+  // Get all user check-ins (progress entries) - uses GET endpoint with query param
+  return requestGet(
+    `/foodsync/getUserProgress/?userId=${encodeURIComponent(userId)}`
+  )
+}
+
+export async function getUserCheckinsForClient({ userId }) {
+  // Get all check-ins for a specific client (for nutritionist view)
+  return requestGet(
+    `/foodsync/getUserProgress/?userId=${encodeURIComponent(userId)}`
+  )
+}
+
+export async function saveUserCheckin({ userId, checkInDateTime, currentWeightInKg, currentFatPercentage, currentWaistSizeInCm, currentChestSizeInCm, currentHipSizeInCm, currentThighSizeInCm, currentWaterPercentage, currentArmSizeInCm }) {
+  // Save a new check-in
+  return request('/foodsync/addUserCheckIn', {
+    method: 'POST',
+    body: {
+      userId,
+      checkInDateTime,
+      currentWeightInKg,
+      currentMeasurement: {
+        currentArmSizeInCm: currentArmSizeInCm || null,
+        currentChestSizeInCm: currentChestSizeInCm || null,
+        currentWaistSizeInCm: currentWaistSizeInCm || null,
+        currentHipSizeInCm: currentHipSizeInCm || null,
+        currentFatPercentage: currentFatPercentage || null,
+        currentThighSizeInCm: currentThighSizeInCm || null,
+        currentWaterPercentage: currentWaterPercentage || null
+      },
+      photoUrls: { mainPhoto: null }
+    }
+  })
+}
+
+export async function updateUserCheckin({ userId, checkInId, checkInDateTime, currentWeightInKg, currentFatPercentage, currentWaistSizeInCm, currentChestSizeInCm, currentHipSizeInCm, currentThighSizeInCm, currentWaterPercentage, currentArmSizeInCm }) {
+  // Update an existing check-in
+  return request('/foodsync/updateUserCheckIn', {
+    method: 'PUT',
+    body: {
+      userId,
+      checkInId,
+      checkInDateTime,
+      currentWeightInKg,
+      currentArmSizeInCm: currentArmSizeInCm || null,
+      currentChestSizeInCm: currentChestSizeInCm || null,
+      currentWaistSizeInCm: currentWaistSizeInCm || null,
+      currentHipSizeInCm: currentHipSizeInCm || null,
+      currentFatPercentage: currentFatPercentage || null,
+      currentThighSizeInCm: currentThighSizeInCm || null,
+      currentWaterPercentage: currentWaterPercentage || null
+    }
+  })
+}
+
+export async function deleteUserCheckin({ userId, checkInId }) {
+  // Delete a check-in
+  return request('/foodsync/removeUserCheckIn', {
+    method: 'POST',
+    body: {
+      userId,
+      checkInId
+    }
+  })
+  return requestGet(
+    `/foodsync/getUserProgress/?userId=${encodeURIComponent(userId)}`
+  )
+}
