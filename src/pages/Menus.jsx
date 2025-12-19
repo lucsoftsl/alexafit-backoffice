@@ -8,6 +8,7 @@ import {
   ChevronUpIcon,
   PencilIcon,
   DocumentDuplicateIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
 import {
   searchFoodItems,
@@ -34,6 +35,10 @@ const mealTypeOptions = [
 ]
 
 const Menus = () => {
+  // Glass UI utility classes
+  const glassCardClass = 'relative rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl'
+  const glassSurfaceClass = 'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
+
   const [expanded, setExpanded] = useState(true)
   const [menuName, setMenuName] = useState('')
   const [countryCode, setCountryCode] = useState('RO')
@@ -1069,17 +1074,24 @@ const Menus = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">Menus</h1>
-          <p className="text-gray-600 mt-2">Create and manage menu templates</p>
+      {/* Header - Glass hero */}
+      <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}>
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <SparklesIcon className="w-7 h-7 text-indigo-400" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Menus</h1>
+              <p className="text-gray-700 mt-1">Create and manage menu templates</p>
+            </div>
+          </div>
+          <button onClick={loadTemplates} disabled={refreshing || loadingTemplates} className="btn-primary">
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
-        <button onClick={loadTemplates} disabled={refreshing || loadingTemplates} className="btn-primary">
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
       </div>
 
-      <div className="card p-6">
+      <div className={`${glassCardClass} p-6`}>
         <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
@@ -1112,7 +1124,7 @@ const Menus = () => {
                   <input
                     type="checkbox"
                     checked={isAssignableByUser}
-                    className="w-5 h-5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-5 h-5 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     onChange={(e) => setIsAssignableByUser(e.target.checked)}
                   />
                 </div>
@@ -1123,7 +1135,7 @@ const Menus = () => {
                   type="text"
                   value={menuName}
                   onChange={(e) => setMenuName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="e.g., High Protein - Weekday"
                 />
               </div>
@@ -1133,7 +1145,7 @@ const Menus = () => {
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="RO">RO</option>
                   <option value="US">US</option>
@@ -1150,7 +1162,7 @@ const Menus = () => {
                 <select
                   value={activeMealType}
                   onChange={(e) => setActiveMealType(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {mealTypeOptions.map(opt => (
                     <option key={opt.id} value={opt.id}>{opt.label}</option>
@@ -1167,20 +1179,20 @@ const Menus = () => {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
-                  className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Search foods or recipes..."
                 />
                 <button
                   onClick={handleSearch}
                   disabled={searching || !searchText.trim()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                 >
                   <MagnifyingGlassIcon className="w-4 h-4 mr-1" />
                   {searching ? 'Searching...' : 'Search'}
                 </button>
               </div>
               {searchResults.length > 0 && (
-                <div className="mt-3 max-h-56 overflow-y-auto border border-gray-200 rounded-md divide-y">
+                <div className="mt-3 max-h-56 overflow-y-auto border border-white/20 bg-white/10 backdrop-blur-sm rounded-md divide-y divide-white/10">
                   {searchResults.map((item, idx) => {
                     const isRecipeItem = detectIsRecipe(item)
                     // Find the appropriate serving item based on priority:
@@ -1191,7 +1203,7 @@ const Menus = () => {
                     const newAmount = isRecipeItem ? servingAmount * numberOfServings : servingAmount
 
                     return (
-                      <div key={idx} className="p-3 flex items-center justify-between hover:bg-gray-50">
+                      <div key={idx} className="p-3 flex items-center justify-between hover:bg-white/40">
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">{item?.name || item?.title || 'Unnamed'}</div>
                           <div className="text-xs text-gray-600">
@@ -1199,7 +1211,7 @@ const Menus = () => {
                             {typeof item?.totalCalories === 'number' ? ` • ${item.totalCalories} cal/${newAmount}g` : ''}
                           </div>
                         </div>
-                        <button onClick={() => addItemToPlan(item)} className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 flex items-center">
+                        <button onClick={() => addItemToPlan(item)} className="bg-emerald-600 text-white px-3 py-1 rounded-md hover:bg-emerald-700 flex items-center">
                           <PlusIcon className="w-4 h-4 mr-1" /> Add
                         </button>
                       </div>
@@ -1215,7 +1227,7 @@ const Menus = () => {
                 <input
                   type="checkbox"
                   checked={onlyRecipes}
-                  className="w-5 h-5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-5 h-5 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   onChange={(e) => setOnlyRecipes(e.target.checked)}
                 />
               </div>
@@ -1226,8 +1238,8 @@ const Menus = () => {
               <h3 className="text-base font-semibold text-gray-900 mb-3">Selected Items</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {mealTypeOptions.map(opt => (
-                  <div key={opt.id} className="border border-gray-200 rounded-lg">
-                    <div className="px-3 py-2 bg-gray-50 border-b text-sm font-medium text-gray-700">{opt.label}</div>
+                  <div key={opt.id} className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm">
+                    <div className="px-3 py-2 bg-white/10 border-b border-white/15 text-sm font-medium text-gray-700">{opt.label}</div>
                     <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
                       {plans[opt.id].length === 0 && (
                         <div className="text-sm text-gray-500">No items</div>
@@ -1283,7 +1295,7 @@ const Menus = () => {
                         const adjustedNutrients = calculated.nutrients
 
                         return (
-                          <div key={i} className="p-2 rounded bg-white shadow-sm">
+                          <div key={i} className="p-2 rounded bg-white/40 backdrop-blur-sm shadow-sm">
                             <div className="flex items-start justify-between">
                               <div className="min-w-0">
                                 <div className="text-sm font-medium text-gray-900 truncate">{it?.name || it?.title || 'Unnamed'}</div>
@@ -1316,7 +1328,7 @@ const Menus = () => {
                                       }
                                     }))
                                   }}
-                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  className="flex-1 px-2 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded text-xs"
                                 >
                                   {servingOptions.map((serving, idx) => {
                                     const servingId = getServingIdentifier(serving)
@@ -1357,7 +1369,7 @@ const Menus = () => {
                                       }))
                                     }
                                   }}
-                                  className="w-24 px-2 py-1 border border-gray-300 rounded text-xs"
+                                  className="w-24 px-2 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded text-xs"
                                   placeholder="Amount"
                                 />
                                 <span className="text-xs text-gray-500 whitespace-nowrap">
@@ -1387,7 +1399,7 @@ const Menus = () => {
                       {plans[opt.id].length > 0 && (() => {
                         const mealTotals = computeMealTotals(plans[opt.id], opt.id)
                         return (
-                          <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-900">
+                          <div className="mt-2 p-2 bg-indigo-500/10 border border-indigo-300/30 rounded text-xs text-indigo-900">
                             <span className="font-medium">{opt.label} subtotal:</span>
                             <span className="ml-1">{Math.round(mealTotals.calories)} cal</span>
                             <span className="mx-2">|</span>
@@ -1406,11 +1418,11 @@ const Menus = () => {
             </div>
 
             {error && (
-              <div className="p-3 rounded border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>
+              <div className="p-3 rounded border border-rose-300/30 bg-rose-500/10 text-rose-800 text-sm">{error}</div>
             )}
 
             <div className="space-y-2">
-              <div className="p-3 bg-green-50 rounded text-sm text-green-900">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-300/30 rounded text-sm text-emerald-900">
                 <span className="font-semibold">Menu totals:</span>
                 <span className="ml-2">{Math.round(menuTotals.calories)} cal</span>
                 <span className="mx-2">|</span>
@@ -1425,7 +1437,7 @@ const Menus = () => {
                 <button
                   onClick={handleCreateTemplate}
                   disabled={submitting || !menuName.trim()}
-                  className="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="bg-indigo-600 text-white px-5 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {submitting
                     ? (editingTemplateId ? 'Updating...' : 'Creating...')
@@ -1438,7 +1450,7 @@ const Menus = () => {
         )}
       </div>
 
-      <div className="card p-6">
+      <div className={`${glassSurfaceClass} p-6`}>
         <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setTemplatesExpanded(!templatesExpanded)}>
           <h2 className="text-lg font-semibold text-gray-900">Created Menu Templates</h2>
           <div className="flex items-center gap-2">
@@ -1460,7 +1472,7 @@ const Menus = () => {
                   placeholder="Search templates by name..."
                   value={templateSearchTerm}
                   onChange={(e) => setTemplateSearchTerm(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -1477,7 +1489,7 @@ const Menus = () => {
                 return (
                   <div
                     key={id}
-                    className={`bg-white rounded-lg shadow p-4 space-y-3 ${isCurrentlyEditing ? 'ring-2 ring-blue-500' : ''}`}
+                    className={`p-4 space-y-3 ${glassCardClass} ${isCurrentlyEditing ? 'ring-2 ring-indigo-500' : ''}`}
                     onClick={() => handleLoadTemplateForEditing(t)}
                   >
                     <div className="flex justify-between items-start">
@@ -1486,7 +1498,7 @@ const Menus = () => {
                         <div className="text-sm text-gray-500 mt-1">
                           {t?.createdByUserId ? (
                             <span 
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-400/15 text-purple-300 border border-purple-300/30"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setViewingCreator(t)
@@ -1523,17 +1535,17 @@ const Menus = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-2 pt-2 border-t border-white/15" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleDuplicateTemplate(t)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-indigo-600 hover:bg-white/40 rounded-md"
                       >
                         <DocumentDuplicateIcon className="w-4 h-4" />
                         Duplicate
                       </button>
                       <button 
                         onClick={() => handleDeleteTemplate(id)} 
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-rose-600 hover:bg-white/40 rounded-md"
                       >
                         <TrashIcon className="w-4 h-4" />
                         Delete
@@ -1551,19 +1563,19 @@ const Menus = () => {
 
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-white/10">
+                <thead className="bg-white/10">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Creator</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Breakfast</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lunch</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dinner</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Snacks</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Creator</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Breakfast</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Lunch</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Dinner</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Snacks</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-transparent divide-y divide-white/10">
                   {getCurrentTemplates().map((t) => {
                     const id = t?.id || t?._id || t?.menuTemplateId
                     const bp = t?.breakfastPlan || []
@@ -1574,7 +1586,7 @@ const Menus = () => {
                     return (
                       <tr
                         key={id}
-                        className={`hover:bg-gray-50 ${isCurrentlyEditing ? 'bg-blue-100' : ''} cursor-pointer`}
+                        className={`hover:bg-white/5 ${isCurrentlyEditing ? 'bg-indigo-50' : ''} cursor-pointer`}
                         onClick={() => handleLoadTemplateForEditing(t)}
                       >
                         <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">{t?.name || 'Untitled'}</td>
@@ -1600,7 +1612,7 @@ const Menus = () => {
                           )}
                           <button
                             onClick={() => handleDuplicateTemplate(t)}
-                            className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                            className="text-indigo-600 hover:text-indigo-800 cursor-pointer"
                             title="Duplicate menu"
                           >
                             <DocumentDuplicateIcon className="w-4 h-4" />
@@ -1625,7 +1637,7 @@ const Menus = () => {
 
             {/* Pagination */}
             {filteredTemplates.length > 0 && (
-              <div className="bg-white px-4 py-3 border-t border-gray-200 mt-4">
+              <div className={`px-4 py-3 border-t border-white/15 mt-4 ${glassSurfaceClass}`}>
                 {/* Mobile View */}
                 <div className="md:hidden space-y-3">
                   <div className="flex items-center justify-between">
@@ -1635,7 +1647,7 @@ const Menus = () => {
                         setTemplatesPerPage(Number(e.target.value))
                         setTemplatesPage(1)
                       }}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
                     >
                       <option value="5">5</option>
                       <option value="10">10</option>
@@ -1651,7 +1663,7 @@ const Menus = () => {
                     <button
                       onClick={() => setTemplatesPage(prev => Math.max(1, prev - 1))}
                       disabled={templatesPage === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
@@ -1659,7 +1671,7 @@ const Menus = () => {
                     <button
                       onClick={() => setTemplatesPage(prev => Math.min(getTotalTemplatesPages(), prev + 1))}
                       disabled={templatesPage >= getTotalTemplatesPages()}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
@@ -1676,7 +1688,7 @@ const Menus = () => {
                         setTemplatesPerPage(Number(e.target.value))
                         setTemplatesPage(1)
                       }}
-                      className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                      className="px-3 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
                     >
                       <option value="5">5</option>
                       <option value="10">10</option>
@@ -1697,7 +1709,7 @@ const Menus = () => {
                     <button
                       onClick={() => setTemplatesPage(prev => Math.max(1, prev - 1))}
                       disabled={templatesPage === 1}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Previous
                     </button>
@@ -1705,7 +1717,7 @@ const Menus = () => {
                     <button
                       onClick={() => setTemplatesPage(prev => Math.min(getTotalTemplatesPages(), prev + 1))}
                       disabled={templatesPage >= getTotalTemplatesPages()}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
@@ -1718,7 +1730,7 @@ const Menus = () => {
       </div>
 
 
-      <div className="card p-6">
+      <div className={`${glassSurfaceClass} p-6`}>
         <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => setUsersExpanded(!usersExpanded)}>
           <h2 className="text-lg font-semibold text-gray-900">Users</h2>
           <div className="flex items-center gap-2">
@@ -1747,13 +1759,13 @@ const Menus = () => {
               placeholder="Search by name, email, or user ID..."
               value={userSearchTerm}
               onChange={(e) => setUserSearchTerm(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>
 
         {/* Assignment Date Picker */}
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+        <div className="mb-4 p-3 bg-white/10 border border-white/15 rounded-lg backdrop-blur-sm">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Assignment Date
           </label>
@@ -1761,7 +1773,7 @@ const Menus = () => {
             type="date"
             value={assignmentDate}
             onChange={(e) => setAssignmentDate(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
@@ -1834,18 +1846,18 @@ const Menus = () => {
 
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead className="bg-white/10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscrition Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User ID</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Subscrition Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Account Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-transparent divide-y divide-white/10">
               {getCurrentUsers().map((user) => {
                 const { name, email, status } = formatUserData(user)
                 const userId = user?.userId || user?.id
@@ -1910,7 +1922,7 @@ const Menus = () => {
 
         {/* Pagination Controls */}
         {users.length > 0 && (
-                <div className="bg-white px-4 py-3 border-t border-gray-200 mt-4">
+                <div className={`px-4 py-3 border-t border-white/15 mt-4 ${glassSurfaceClass}`}>
                   {/* Mobile View */}
                   <div className="md:hidden space-y-3">
                     <div className="flex items-center justify-between">
@@ -1920,7 +1932,7 @@ const Menus = () => {
                           setUsersPerPage(Number(e.target.value))
                           setCurrentPage(1)
                         }}
-                        className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
                       >
                         <option value="5">5</option>
                         <option value="10">10</option>
@@ -1936,7 +1948,7 @@ const Menus = () => {
                       <button
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage === 1}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Previous
                       </button>
@@ -1944,7 +1956,7 @@ const Menus = () => {
                       <button
                         onClick={() => setCurrentPage(prev => Math.min(getTotalUserPages(), prev + 1))}
                         disabled={currentPage >= getTotalUserPages()}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Next
                       </button>
@@ -1952,7 +1964,7 @@ const Menus = () => {
                   </div>
 
                   {/* Desktop View */}
-                  <div className="hidden md:flex flex-wrap items-center gap-4 md:gap-6">
+                <div className="hidden md:flex flex-wrap items-center gap-4 md:gap-6">
             <div className="flex items-center gap-3">
               <label className="text-sm text-gray-700">Items per page:</label>
               <select
@@ -1961,7 +1973,7 @@ const Menus = () => {
                   setUsersPerPage(Number(e.target.value))
                   setCurrentPage(1)
                 }}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+                className="px-3 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
               >
                 <option value="5">5</option>
                 <option value="10">10</option>
@@ -1983,7 +1995,7 @@ const Menus = () => {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Previous
               </button>
@@ -1991,7 +2003,7 @@ const Menus = () => {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(getTotalUserPages(), prev + 1))}
                 disabled={currentPage >= getTotalUserPages()}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 Next
               </button>
@@ -2002,7 +2014,7 @@ const Menus = () => {
 
         {/* Assign Button */}
         {selectedUserId && (
-                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-blue-50 rounded-lg">
+                <div className={`mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 ${glassCardClass}`}>
             <div>
               <p className="text-sm font-medium text-gray-900">
                 Selected User: {selectedUserId}
@@ -2017,7 +2029,7 @@ const Menus = () => {
               <button
                 onClick={handleAssignMenuTemplate}
                 disabled={assigningMenu}
-                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium w-full sm:w-auto"
+                    className="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium w-full sm:w-auto"
               >
                 {assigningMenu ? 'Assigning...' : 'Assign Menu Template to User'}
               </button>
@@ -2030,7 +2042,7 @@ const Menus = () => {
 
       {/* User Menus Table - Only show when a user is selected */}
       {selectedUserId && (
-        <div className="card p-6">
+        <div className={`${glassSurfaceClass} p-6`}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">User Menus</h2>
             {loadingUserMenus && (
@@ -2039,12 +2051,12 @@ const Menus = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-white/10">
                 <tr>
                   <th
                     onClick={() => handleUserMenusSort('templateName')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-white/20"
                   >
                     <div className="flex items-center gap-1">
                       Template Name
@@ -2056,7 +2068,7 @@ const Menus = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Template ID</th>
                   <th
                     onClick={() => handleUserMenusSort('dateApplied')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-white/20"
                   >
                     <div className="flex items-center gap-1">
                       Date Applied
@@ -2067,7 +2079,7 @@ const Menus = () => {
                   </th>
                   <th
                     onClick={() => handleUserMenusSort('breakfast')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-white/20"
                   >
                     <div className="flex items-center gap-1">
                       Breakfast
@@ -2078,7 +2090,7 @@ const Menus = () => {
                   </th>
                   <th
                     onClick={() => handleUserMenusSort('lunch')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-white/20"
                   >
                     <div className="flex items-center gap-1">
                       Lunch
@@ -2089,7 +2101,7 @@ const Menus = () => {
                   </th>
                   <th
                     onClick={() => handleUserMenusSort('dinner')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-white/20"
                   >
                     <div className="flex items-center gap-1">
                       Dinner
@@ -2100,7 +2112,7 @@ const Menus = () => {
                   </th>
                   <th
                     onClick={() => handleUserMenusSort('snack')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-white/20"
                   >
                     <div className="flex items-center gap-1">
                       Snack
@@ -2109,10 +2121,10 @@ const Menus = () => {
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-transparent divide-y divide-white/10">
                 {sortedUserMenus.map((menu) => {
                   const id = menu?.id || menu?._id || menu?.menuTemplateId
                   const templateId = menu?.menuTemplateId || id
@@ -2126,7 +2138,7 @@ const Menus = () => {
                   return (
                     <tr
                       key={id}
-                      className={`hover:bg-gray-50 cursor-pointer ${isViewing ? 'bg-blue-50' : ''}`}
+                      className={`hover:bg-white/5 cursor-pointer ${isViewing ? 'bg-indigo-50' : ''}`}
                       onClick={() => {
                         if (isViewing) {
                           setViewingUserMenu(null)
@@ -2180,7 +2192,7 @@ const Menus = () => {
 
       {/* User Menu Viewer - Display selected menu details */}
       {viewingUserMenu && (
-        <div className="card p-6">
+        <div className={`${glassSurfaceClass} p-6`}>
           <div className="flex items-center justify-between cursor-pointer mb-4" onClick={() => setViewingUserMenu(null)}>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
@@ -2200,8 +2212,8 @@ const Menus = () => {
                 {mealTypeOptions.map(opt => {
                   const items = viewingUserMenu[opt.id] || []
                   return (
-                    <div key={opt.id} className="border border-gray-200 rounded-lg">
-                      <div className="px-3 py-2 bg-gray-50 border-b text-sm font-medium text-gray-700">{opt.label}</div>
+                    <div key={opt.id} className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm">
+                      <div className="px-3 py-2 bg-white/10 border-b border-white/15 text-sm font-medium text-gray-700">{opt.label}</div>
                       <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
                         {items.length === 0 && (
                           <div className="text-sm text-gray-500">No items</div>
@@ -2213,7 +2225,7 @@ const Menus = () => {
                           const adjustedNutrients = it?.totalNutrients || {}
 
                           return (
-                            <div key={i} className="p-2 rounded bg-white shadow-sm">
+                            <div key={i} className="p-2 rounded bg-white/40 backdrop-blur-sm shadow-sm">
                               <div className="min-w-0">
                                 <div className="text-sm font-medium text-gray-900 truncate">{it?.name || it?.title || 'Unnamed'}</div>
                                 <div className="text-xs text-gray-500 truncate">{isRecipeItem ? 'Recipe' : 'Food'}</div>
@@ -2238,7 +2250,7 @@ const Menus = () => {
                         {items.length > 0 && (() => {
                           const mealTotals = computeMealTotals(items)
                           return (
-                            <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-900">
+                            <div className="mt-2 p-2 bg-indigo-500/10 border border-indigo-300/30 rounded text-xs text-indigo-900">
                               <span className="font-medium">{opt.label} subtotal:</span>
                               <span className="ml-1">{Math.round(mealTotals.calories)} cal</span>
                               <span className="mx-2">|</span>
@@ -2262,8 +2274,8 @@ const Menus = () => {
 
       {/* Creator Details Modal */}
       {viewingCreator && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${glassCardClass} max-w-md w-full p-6`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">Creator Details</h3>
               <button onClick={() => setViewingCreator(null)} className="text-gray-500 hover:text-gray-700">
@@ -2279,21 +2291,21 @@ const Menus = () => {
               
               <div>
                 <span className="text-sm font-medium text-gray-700">Creator ID:</span>
-                <div className="mt-1 text-gray-900 font-mono text-xs break-all bg-gray-50 p-2 rounded">
+                <div className="mt-1 text-gray-900 font-mono text-xs break-all bg-white/40 border border-white/30 backdrop-blur-sm p-2 rounded">
                   {viewingCreator?.createdByUserId || 'Admin (no ID)'}
                 </div>
               </div>
 
               {viewingCreator?.createdByUserId === currentUser?.uid && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                  <p className="text-sm text-blue-900">This is your menu template</p>
+                <div className="mt-4 p-3 bg-indigo-500/10 border border-indigo-300/30 rounded">
+                  <p className="text-sm text-indigo-900">This is your menu template</p>
                 </div>
               )}
 
               <div className="pt-4 border-t">
                 <span className="text-sm font-medium text-gray-700">Template Stats:</span>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                  <div className="bg-gray-50 p-2 rounded">
+                  <div className="bg-white/40 border border-white/30 backdrop-blur-sm p-2 rounded">
                     <div className="text-gray-600">Total Items</div>
                     <div className="font-semibold text-gray-900">
                       {(viewingCreator?.breakfastPlan?.length || 0) +
@@ -2302,7 +2314,7 @@ const Menus = () => {
                        (viewingCreator?.snackPlan?.length || 0)}
                     </div>
                   </div>
-                  <div className="bg-gray-50 p-2 rounded">
+                  <div className="bg-white/40 border border-white/30 backdrop-blur-sm p-2 rounded">
                     <div className="text-gray-600">Total Calories</div>
                     <div className="font-semibold text-gray-900">{viewingCreator?.totalCalories || 0}</div>
                   </div>
