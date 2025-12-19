@@ -986,7 +986,7 @@ const Settings = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
         <p className="mt-2 text-gray-600">
           Manage your account settings and preferences
         </p>

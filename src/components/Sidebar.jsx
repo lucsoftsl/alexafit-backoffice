@@ -41,7 +41,7 @@ const Sidebar = ({
     { id: 'recipes', label: 'Recipes', icon: BookOpenIcon, adminOnly: true },
     { id: 'subscribers', label: 'Subscribers', icon: UserGroupIcon, adminOnly: true },
     { id: 'analytics', label: 'Analytics', icon: ChartBarIcon, adminOnly: true },
-    { id: 'settings', label: 'Settings', icon: CogIcon, adminOnly: false },
+    { id: 'settings', label: 'My Profile', icon: CogIcon, adminOnly: false },
   ]
 
   // Filter menu items based on admin/nutritionist status
@@ -52,7 +52,7 @@ const Sidebar = ({
   })
 
   const clientMenuItems = [
-    { id: 'profile', label: 'Profile', icon: UserCircleIcon },
+    { id: 'profile', label: 'Client Profile', icon: UserCircleIcon },
     { id: 'journal', label: 'Client Journal', icon: ClipboardDocumentListIcon },
     { id: 'meal-plans', label: 'Client Meal Plans', icon: CakeIcon },
     { id: 'all-clients', label: 'All Clients', icon: UsersIcon }
