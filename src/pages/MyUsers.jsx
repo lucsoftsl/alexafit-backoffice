@@ -5,13 +5,19 @@ import {
   MagnifyingGlassIcon,
   TrashIcon,
   ExclamationTriangleIcon,
-  UserPlusIcon
+  UserPlusIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import { getNutritionistClients, assignClientToNutritionist, unassignClientFromNutritionist } from '../services/loggedinApi'
 import { useAuth } from '../contexts/AuthContext'
 import { selectUserData } from '../store/userSlice'
 
 const MyUsers = ({ onSelectClient = () => {} }) => {
+  // Glass UI utility classes
+  const glassCardClass = 'relative rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl'
+  const glassSurfaceClass = 'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
+  const softBadgeClass = 'px-2.5 py-1 rounded-full border text-xs'
+
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [users, setUsers] = useState([])
@@ -125,17 +131,32 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
   const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredUsers.length / usersPerPage)), [filteredUsers.length, usersPerPage])
 
   const getStatusBadge = (status) => {
+    const normalized = (status || '').toString().toLowerCase()
     const statusStyles = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      suspended: 'bg-red-100 text-red-800'
+      active: 'bg-emerald-400/15 text-emerald-300 border-emerald-300/30',
+      inactive: 'bg-gray-400/15 text-gray-300 border-gray-300/30',
+      suspended: 'bg-rose-400/15 text-rose-300 border-rose-300/30'
     }
+    const style = statusStyles[normalized] || statusStyles.inactive
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusStyles[status] || 'bg-gray-100 text-gray-800'}`}>
-        {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
+      <span className={`${softBadgeClass} ${style}`}>
+        {normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unknown'}
       </span>
     )
   }
+
+  // Stats for header
+  const stats = useMemo(() => {
+    const total = users.length
+    const active = users.filter(u => (u?.status || '').toString().toLowerCase() === 'active').length
+    const inactive = users.filter(u => (u?.status || '').toString().toLowerCase() === 'inactive').length
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const recentAssigned = users.filter(u => {
+      const d = u?.dateTimeAssigned ? new Date(u.dateTimeAssigned).getTime() : 0
+      return d >= sevenDaysAgo
+    }).length
+    return { total, active, inactive, recentAssigned }
+  }, [users])
 
   const handleAssignUser = async (e) => {
     e.preventDefault()
@@ -205,16 +226,22 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
-            <p className="text-gray-600 mt-2">Manage your clients and track their progress</p>
+        <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}> 
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <SparklesIcon className="w-6 h-6 text-indigo-400" />
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
+                <p className="text-gray-700">Manage your clients and track their progress</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="flex items-center justify-center h-64">
+        <div className={`${glassSurfaceClass} p-8 flex items-center justify-center`}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading clients...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-gray-700">Loading clients...</p>
           </div>
         </div>
       </div>
@@ -224,18 +251,22 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
-            <p className="text-gray-600 mt-2">Manage your clients and track their progress</p>
+        <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}> 
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
+          <div className="flex items-center gap-3">
+            <SparklesIcon className="w-6 h-6 text-indigo-400" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
+              <p className="text-gray-700">Manage your clients and track their progress</p>
+            </div>
           </div>
         </div>
-        <div className="card p-6">
+        <div className={`${glassCardClass} p-6`}>
           <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-8 w-8 text-red-600 mr-4" />
+            <ExclamationTriangleIcon className="h-8 w-8 text-rose-600 mr-4" />
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Error Loading Data</h3>
-              <p className="text-gray-600 mt-1">{error}</p>
+              <h3 className="text-lg font-semibold text-gray-900">Error Loading Data</h3>
+              <p className="text-gray-700 mt-1">{error}</p>
               <button onClick={refreshUsers} className="btn-primary mt-4">Try Again</button>
             </div>
           </div>
@@ -246,34 +277,61 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-600 mt-2">Manage your clients and track their progress</p>
+      {/* Header - Glass hero with quick stats */}
+      <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}>
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <SparklesIcon className="w-7 h-7 text-indigo-400" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
+              <p className="text-gray-700 mt-1">Manage your clients and track their progress</p>
+            </div>
+          </div>
+          <div className="flex gap-2 items-center justify-center sm:justify-end">
+            <button
+              onClick={refreshUsers}
+              className="btn-secondary flex items-center"
+              disabled={loading}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {loading ? 'Loading...' : 'Refresh'}
+            </button>
+            <button
+              onClick={() => setIsAssignModalOpen(true)}
+              className="btn-primary flex items-center"
+            >
+              <UserPlusIcon className="w-5 h-5 mr-2" />
+              Assign User
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2 items-center justify-center sm:justify-end">
-          <button
-            onClick={refreshUsers}
-            className="btn-secondary flex items-center"
-            disabled={loading}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {loading ? 'Loading...' : 'Refresh'}
-          </button>
-          <button
-            onClick={() => setIsAssignModalOpen(true)}
-            className="btn-primary flex items-center"
-          >
-            <UserPlusIcon className="w-5 h-5 mr-2" />
-            Assign User
-          </button>
+
+        {/* Stats */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className={`${glassSurfaceClass} p-4`}> 
+            <p className="text-sm text-gray-600">Total Clients</p>
+            <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
+          </div>
+          <div className={`${glassSurfaceClass} p-4`}> 
+            <p className="text-sm text-gray-600">Active</p>
+            <p className="text-2xl font-semibold text-gray-900">{stats.active}</p>
+          </div>
+          <div className={`${glassSurfaceClass} p-4`}> 
+            <p className="text-sm text-gray-600">Inactive</p>
+            <p className="text-2xl font-semibold text-gray-900">{stats.inactive}</p>
+          </div>
+          <div className={`${glassSurfaceClass} p-4`}> 
+            <p className="text-sm text-gray-600">Assigned (7d)</p>
+            <p className="text-2xl font-semibold text-gray-900">{stats.recentAssigned}</p>
+          </div>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="card p-6">
+      <div className={`${glassSurfaceClass} p-6`}>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -283,7 +341,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                 placeholder="Search users by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input pl-10"
+                className="input pl-10 bg-white/40 backdrop-blur-sm border-white/30"
               />
             </div>
           </div>
@@ -291,7 +349,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="input w-40"
+              className="input w-40 bg-white/40 backdrop-blur-sm border-white/30"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -301,7 +359,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Users List - Mobile Cards */}
       <div className="space-y-3 md:hidden">
         {paginatedUsers.map((user) => {
           const name = user?.userData?.name || 
@@ -316,13 +374,13 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
           return (
             <div
               key={userId || user?.id}
-              className="card p-4 cursor-pointer hover:border-blue-200 hover:shadow-sm"
+              className={`${glassCardClass} p-4 cursor-pointer hover:shadow-2xl transition-shadow`}
               onClick={() => handleSelectClient(user)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center">
-                  <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center mr-3">
-                    <span className="text-sm font-medium text-white">{avatar}</span>
+                  <div className="h-10 w-10 rounded-full mr-3 bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white shadow-md">
+                    <span className="text-sm font-semibold">{avatar}</span>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{name}</p>
@@ -335,7 +393,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                       e.stopPropagation()
                       handleUnassignUser(userId)
                     }}
-                    className="text-red-600 hover:text-red-900"
+                    className="text-rose-600 hover:text-rose-800"
                     title="Unassign user"
                   >
                     <TrashIcon className="w-4 h-4" />
@@ -357,7 +415,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         })}
 
         {/* Mobile Pagination */}
-        <div className="mt-2 bg-white border-t border-gray-200 px-4 py-3 flex flex-col gap-3">
+        <div className={`mt-2 ${glassSurfaceClass} px-4 py-3 flex flex-col gap-3`}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <label className="text-sm text-gray-700">Per page</label>
@@ -367,7 +425,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                   setUsersPerPage(Number(e.target.value))
                   setCurrentPage(1)
                 }}
-                className="px-2 py-1 border border-gray-300 rounded-md text-sm"
+                className="px-2 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
               >
                 <option value="5">5</option>
                 <option value="15">15</option>
@@ -380,14 +438,14 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage >= totalPages}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
@@ -400,26 +458,27 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         </div>
       </div>
 
-      <div className="card overflow-hidden hidden md:block">
+      {/* Users Table - Desktop */}
+      <div className={`${glassSurfaceClass} overflow-hidden hidden md:block`}>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead className="bg-white/10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Assigned Date
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-transparent divide-y divide-white/10">
               {paginatedUsers.map((user) => {
                 const name = user?.userData?.name || 
                            user?.loginDetails?.displayName || 
@@ -433,14 +492,14 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                 return (
                   <tr
                     key={userId || user?.id}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-white/5 cursor-pointer"
                     onClick={() => handleSelectClient(user)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
-                            <span className="text-sm font-medium text-white">{avatar}</span>
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white shadow-md">
+                            <span className="text-sm font-semibold">{avatar}</span>
                           </div>
                         </div>
                         <div className="ml-4">
@@ -462,7 +521,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                             e.stopPropagation()
                             handleUnassignUser(userId)
                           }}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-rose-600 hover:text-rose-800"
                           title="Unassign user"
                         >
                           <TrashIcon className="w-4 h-4" />
@@ -477,7 +536,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         </div>
 
         {/* Pagination */}
-        <div className="bg-white px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-gray-200 sm:px-6">
+        <div className={`px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-white/15 sm:px-6`}>
           <div className="flex items-center gap-3">
             <label className="text-sm text-gray-700">Items per page:</label>
             <select
@@ -486,7 +545,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                 setUsersPerPage(Number(e.target.value))
                 setCurrentPage(1)
               }}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+              className="px-3 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
             >
               <option value="5">5</option>
               <option value="15">15</option>
@@ -507,7 +566,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
@@ -515,7 +574,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage >= totalPages}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
@@ -525,8 +584,8 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
 
       {/* Assign User Modal */}
       {isAssignModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className={`${glassCardClass} w-full max-w-md p-6`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Assign Existing User</h3>
               <button
@@ -551,7 +610,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                     type="text"
                     value={assignUserId}
                     onChange={(e) => setAssignUserId(e.target.value)}
-                    className="input w-full"
+                    className="input w-full bg-white/40 backdrop-blur-sm border-white/30"
                     placeholder="Enter user ID"
                     required
                   />
@@ -559,8 +618,8 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                 </div>
 
                 {assignError && (
-                  <div className="bg-red-50 border border-red-200 rounded p-3">
-                    <p className="text-sm text-red-800">{assignError}</p>
+                  <div className="bg-rose-500/10 border border-rose-400/30 rounded p-3">
+                    <p className="text-sm text-rose-800">{assignError}</p>
                   </div>
                 )}
               </div>

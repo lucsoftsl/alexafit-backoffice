@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getDailyNutrition, getUserData, getUserMenuByDate } from '../services/loggedinApi'
 import { sumTotalsByMealsApplied, computeAppliedTotals, detectIsRecipe, findDefaultServing, findServingByIdentifier, getServingIdentifier, calculateDisplayValues, safeNutrients } from '../util/menuDisplay'
 import { getCategoryIcon } from '../util/categoryIcons'
-import { ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline'
 
 // Simple date helpers
 const todayISO = () => new Date().toISOString().slice(0, 10)
@@ -14,10 +14,14 @@ const addDays = (dateStr, days) => {
   return d.toISOString().slice(0, 10)
 }
 
+// Glass UI utility classes
+const glassCardClass = 'relative rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl'
+const glassSurfaceClass = 'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
+
 const Progress = ({ percent }) => (
-  <div className="w-full h-2 bg-gray-200 rounded">
+  <div className="w-full h-2 bg-white/20 rounded">
     <div
-      className="h-2 bg-blue-600 rounded"
+      className="h-2 bg-indigo-500 rounded"
       style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
     />
   </div>
@@ -26,7 +30,7 @@ const Progress = ({ percent }) => (
 const MacroCard = ({ label, value, unit = '', goal }) => {
   const pct = goal ? Math.round(((value || 0) / goal) * 100) : null
   return (
-    <div className="card p-4">
+    <div className={`${glassSurfaceClass} p-4`}>
       <div className="flex justify-between items-baseline">
         <p className="text-sm text-gray-500">{label}</p>
         {goal ? (
@@ -116,10 +120,10 @@ const ItemCard = ({ it, onClick }) => {
   return (
     <button
       onClick={() => onClick?.(it)}
-      className="w-full text-left flex justify-between items-center p-2 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+      className="w-full text-left flex justify-between items-center p-2 rounded hover:bg-white/40 transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-3 overflow-hidden">
-        <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+        <div className="w-8 h-8 rounded bg-white/40 backdrop-blur-sm flex items-center justify-center overflow-hidden">
           {img ? (
             <img src={img} alt={name} className="w-8 h-8 object-cover" />
           ) : (
@@ -134,7 +138,7 @@ const ItemCard = ({ it, onClick }) => {
 }
 
 const MealSection = ({ title, items = [], photoUrl, onItemClick }) => (
-  <div className="card p-6">
+  <div className={`${glassCardClass} p-6`}>
     <div className="flex justify-between items-center mb-3">
       <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       {photoUrl ? (
@@ -278,65 +282,86 @@ const MyDay = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">My Day</h1>
-          <p className="text-gray-600 mt-1 text-sm sm:text-base">Your meals and macros for {dateLabel}.</p>
+      {/* Header - Glass hero */}
+      <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}>
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <SparklesIcon className="w-7 h-7 text-indigo-400" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Day</h1>
+              <p className="text-gray-700 mt-1">Your meals and macros for {dateLabel}.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              className="btn-secondary px-3 py-2"
+              onClick={() => setSelectedDate(prev => addDays(prev, -1))}
+            >
+              ◀ Prev
+            </button>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="border border-white/30 bg-white/40 backdrop-blur-sm rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              className="btn-secondary px-3 py-2"
+              onClick={() => setSelectedDate(prev => addDays(prev, 1))}
+            >
+              Next ▶
+            </button>
+            <button
+              onClick={() => loadDay(true)}
+              disabled={loading}
+              className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-white/50 rounded transition-colors"
+              title="Refresh daily items and menus"
+            >
+              <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <button
-            className="btn-secondary px-3 py-2"
-            onClick={() => setSelectedDate(prev => addDays(prev, -1))}
-          >
-            ◀ Prev
-          </button>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            className="btn-secondary px-3 py-2"
-            onClick={() => setSelectedDate(prev => addDays(prev, 1))}
-          >
-            Next ▶
-          </button>
-          <button
-            onClick={() => loadDay(true)}
-            disabled={loading}
-            className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-100 rounded transition-colors"
-            title="Refresh daily items and menus"
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+        {/* Quick stats */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className={`${glassSurfaceClass} p-4`}>
+            <p className="text-sm text-gray-600">Eaten</p>
+            <p className="text-2xl font-semibold text-gray-900">{Math.round(macroTotals.calories || 0)} kcal</p>
+          </div>
+          <div className={`${glassSurfaceClass} p-4`}>
+            <p className="text-sm text-gray-600">Burned</p>
+            <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.exerciseCalories || 0)} kcal</p>
+          </div>
+          <div className={`${glassSurfaceClass} p-4`}>
+            <p className="text-sm text-gray-600">Water</p>
+            <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.waterTotalMl || 0)} ml</p>
+          </div>
+          <div className={`${glassSurfaceClass} p-4`}>
+            <p className="text-sm text-gray-600">Menu</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{daily.menuForDay?.name || 'None'}</p>
+          </div>
         </div>
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center h-40">
+        <div className={`${glassSurfaceClass} p-8 flex items-center justify-center`}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto" />
-            <p className="mt-3 text-gray-600">Loading your day...</p>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
+            <p className="mt-3 text-gray-700">Loading your day...</p>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
+        <div className={`${glassCardClass} p-4 border-rose-300/30`}>
+          <p className="text-rose-800">{error}</p>
         </div>
       )}
 
       {!loading && !error && (
         <>
-          {/* Top Carousel inspired by RN Dashboard */}
-          <div className="relative rounded-2xl p-4 mx-auto" style={{
-            background: 'rgba(255, 255, 255, 0.25)',
-            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.18)',
+          {/* Top Carousel */}
+          <div className={`relative rounded-2xl p-4 mx-auto ${glassCardClass}`} style={{
             paddingLeft: 32,
             paddingRight: 32
           }}>
@@ -455,7 +480,7 @@ const MyDay = () => {
           </div>
 
           {/* Exercises */}
-          <div className="card p-6">
+          <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold text-gray-900">Exercise</h3>
               {daily.exerciseCalories > 0 ? (
@@ -474,7 +499,7 @@ const MyDay = () => {
           </div>
 
           {/* Water Intake */}
-          <div className="card p-6">
+          <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold text-gray-900">Water Intake</h3>
               <span className="text-sm text-gray-600">Total: {Math.round(daily.waterTotalMl || 0)} ml</span>
@@ -494,7 +519,7 @@ const MyDay = () => {
           </div>
 
           {/* Assigned Menu */}
-          <div className="card p-6">
+          <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold text-gray-900">Assigned Menu</h3>
               {daily.menuForDay?.name ? (
@@ -559,12 +584,12 @@ const MyDay = () => {
                     }, { calories: 0, proteinsInGrams: 0, carbohydratesInGrams: 0, fatInGrams: 0 })
 
                     return (
-                      <div key={mealKey} className="border border-gray-200 rounded-lg">
-                        <div className="px-3 py-2 bg-gray-50 border-b text-sm font-medium text-gray-700">{labelMap[mealKey]}</div>
+                      <div key={mealKey} className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm">
+                        <div className="px-3 py-2 bg-white/10 border-b border-white/15 text-sm font-medium text-gray-700">{labelMap[mealKey]}</div>
                         <div className="p-3 space-y-2">
                           {renderedItems.length === 0 && <div className="text-sm text-gray-500">No items</div>}
                           {renderedItems.map((r, i) => (
-                            <div key={i} className="p-2 rounded bg-white shadow-sm">
+                            <div key={i} className="p-2 rounded bg-white/40 backdrop-blur-sm shadow-sm">
                               <div className="flex items-start justify-between">
                                 <div className="min-w-0">
                                   <div className="text-sm font-medium text-gray-900 truncate">{r.it?.name || r.it?.title || r.it?.food?.name || 'Unnamed'}</div>
@@ -583,7 +608,7 @@ const MyDay = () => {
                             </div>
                           ))}
                           {renderedItems.length > 0 && (
-                            <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-900">
+                            <div className="mt-2 p-2 bg-indigo-500/10 border border-indigo-300/30 rounded text-xs text-indigo-900">
                               <span className="font-medium">Subtotal:</span>
                               <span className="ml-1">{Math.round(totals.calories)} cal</span>
                               <span className="mx-2">|</span>
@@ -653,7 +678,7 @@ const MyDay = () => {
                   }
                   return (
                     <div className="space-y-2">
-                      <div className="p-3 bg-green-50 rounded text-sm text-green-900">
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-300/30 rounded text-sm text-emerald-900">
                         <span className="font-semibold">Menu totals:</span>
                         <span className="ml-2">{Math.round(total.calories)} cal</span>
                         <span className="mx-2">|</span>
@@ -676,8 +701,8 @@ const MyDay = () => {
 
       {/* Item detail modal */}
       {isItemModalOpen && selectedItem && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className={`${glassCardClass} w-full max-w-md p-6`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900 truncate">
                 {getItemDisplay(selectedItem)}
@@ -691,7 +716,7 @@ const MyDay = () => {
             </div>
 
             <div className="flex items-start gap-4 mb-4">
-              <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+              <div className="w-16 h-16 rounded bg-white/40 backdrop-blur-sm flex items-center justify-center overflow-hidden">
                 {selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl || selectedItem?.photoUrl || selectedItemFallbackImg ? (
                   <img
                     src={selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl || selectedItem?.photoUrl || selectedItemFallbackImg}
