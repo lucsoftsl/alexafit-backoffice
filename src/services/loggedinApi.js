@@ -104,6 +104,13 @@ export async function getUserMenuByDate({ userId, dateApplied }) {
   })
 }
 
+export async function getUserCaloriesHistory({ userId }) {
+  // Fetch per-day calories history to mark dates in calendar
+  // Mirrors RN: GET /foodsync/getUserCaloriesHistory?userId=...
+  const qs = `userId=${encodeURIComponent(userId)}`
+  return requestGet(`/foodsync/getUserCaloriesHistory?${qs}`)
+}
+
 // Backoffice-only menu endpoints for nutritionists
 export async function getAllMenuTemplatesByUser({ createdByUserId }) {
   // Get all menu templates created by a specific user (nutritionist)

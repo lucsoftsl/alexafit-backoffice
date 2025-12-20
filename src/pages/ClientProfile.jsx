@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ClientProgress from '../components/ClientProgress'
 import { saveUserDataFromWelcomeScreen, getUserCheckins } from '../services/loggedinApi'
 import { PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import FormSelect from '../components/FormSelect'
+
+// Module-scoped guard to persist across StrictMode remounts in dev
+const goalDataGuard = new Set()
 
 const formatDate = (val) => {
   if (!val) return 'N/A'
@@ -31,32 +34,41 @@ const ClientProfile = ({ client }) => {
     selectedTargetWeightMeasurementUnit: 'METRIC',
     selectedGoalType: ''
   })
+  const goalDataLoadedRef = useRef(new Set())
+
+  const fetchGoalData = async () => {
+    if (!client?.userId) return
+    try {
+      const response = await getUserCheckins({ userId: client.userId })
+      const goal = response?.data?.data?.data?.goal || response?.data?.data?.goal || null
+      setGoalData(goal)
+
+      if (client?.userData) {
+        setFormData({
+          selectedTargetWeight: client.userData.selectedTargetWeight || goal?.targetWeight || '',
+          selectedTargetWeightMeasurementUnit: client.userData.selectedTargetWeightMeasurementUnit || 'METRIC',
+          selectedGoalType: client.userData.selectedGoalType || goal?.goalType || ''
+        })
+      }
+    } catch (err) {
+      console.error('Error fetching goal data:', err)
+    }
+  }
 
   // Fetch goal data from progress API
   useEffect(() => {
-    const fetchGoalData = async () => {
-      if (!client?.userId) return
-      
-      try {
-        const response = await getUserCheckins({ userId: client.userId })
-        const goal = response?.data?.data?.data?.goal || response?.data?.data?.goal || null
-        setGoalData(goal)
-        
-        // Initialize form data from client's userData or goal data
-        if (client?.userData) {
-          setFormData({
-            selectedTargetWeight: client.userData.selectedTargetWeight || goal?.targetWeight || '',
-            selectedTargetWeightMeasurementUnit: client.userData.selectedTargetWeightMeasurementUnit || 'METRIC',
-            selectedGoalType: client.userData.selectedGoalType || goal?.goalType || ''
-          })
-        }
-      } catch (err) {
-        console.error('Error fetching goal data:', err)
+    if (client?.userId) {
+      // Guard to avoid duplicate calls in React 18 StrictMode/dev
+      // useRef Set does not persist across StrictMode remounts; use module-scoped guard
+      const uid = Array.isArray(client.userId) ? client.userId[0] : client.userId
+      if (!goalDataGuard.has(uid)) {
+        goalDataGuard.add(uid)
+        // Also track in ref to avoid repeated calls within same mount
+        goalDataLoadedRef.current.add(uid)
+        fetchGoalData()
       }
     }
-    
-    fetchGoalData()
-  }, [client])
+  }, [client?.userId])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -262,7 +274,7 @@ const ClientProfile = ({ client }) => {
             <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg border border-blue-200/50">
               <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-2">Target Weight</p>
               <p className="text-lg font-bold text-gray-900">
-                {formData.selectedTargetWeight || goalData?.targetWeight || 'Not Set'} 
+                {formData.selectedTargetWeight || goalData?.targetWeight || 'Not Set'}
                 {(formData.selectedTargetWeight || goalData?.targetWeight) && (
                   <span className="text-sm text-gray-600 ml-1">
                     {formData.selectedTargetWeightMeasurementUnit === 'METRIC' ? 'kg' : 'lb'}

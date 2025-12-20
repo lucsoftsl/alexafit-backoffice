@@ -20,10 +20,15 @@ const ClientProgress = ({ client }) => {
   const [sortOrder, setSortOrder] = useState('desc')
   const [expandedMeasurements, setExpandedMeasurements] = useState({})
   const chartRefs = useRef({})
+  const checkinsLoadedRef = useRef(new Set())
 
   useEffect(() => {
     if (client?.userId) {
-      fetchCheckins()
+      // Guard to avoid duplicate calls in React 18 StrictMode/dev
+      if (!checkinsLoadedRef.current.has(client.userId)) {
+        checkinsLoadedRef.current.add(client.userId)
+        fetchCheckins()
+      }
     }
   }, [client?.userId])
 
