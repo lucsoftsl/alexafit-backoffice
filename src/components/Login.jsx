@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { LockClosedIcon, UserIcon, EnvelopeIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 const Login = () => {
+  const { t } = useTranslation()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -20,17 +22,17 @@ const Login = () => {
 
     // Validation
     if (!email || !password) {
-      setError('Please fill in all fields')
+      setError(t('login.validation.fillAllFields'))
       return
     }
 
     if (!isLogin && password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('login.validation.passwordsDoNotMatch'))
       return
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError(t('login.validation.passwordTooShort'))
       return
     }
 
@@ -46,15 +48,15 @@ const Login = () => {
       // Firebase error messages can be verbose, let's make them user-friendly
       const errorMessage = err.message || 'An error occurred'
       if (errorMessage.includes('user-not-found')) {
-        setError('No account found with this email')
+        setError(t('login.errors.userNotFound'))
       } else if (errorMessage.includes('wrong-password')) {
-        setError('Incorrect password')
+        setError(t('login.errors.wrongPassword'))
       } else if (errorMessage.includes('email-already-in-use')) {
-        setError('An account with this email already exists')
+        setError(t('login.errors.emailInUse'))
       } else if (errorMessage.includes('invalid-email')) {
-        setError('Invalid email address')
+        setError(t('login.errors.invalidEmail'))
       } else if (errorMessage.includes('weak-password')) {
-        setError('Password is too weak')
+        setError(t('login.errors.weakPassword'))
       } else {
         setError(errorMessage)
       }
@@ -69,11 +71,11 @@ const Login = () => {
     try {
       await signInWithGoogle()
     } catch (err) {
-      const errorMessage = err.message || 'Failed to sign in with Google'
+      const errorMessage = err.message || t('login.errors.googleSignInFailed')
       if (errorMessage.includes('popup-closed-by-user')) {
-        setError('Sign-in cancelled')
+        setError(t('login.errors.signInCancelled'))
       } else if (errorMessage.includes('popup-blocked')) {
-        setError('Please allow popups for this site')
+        setError(t('login.errors.popupBlocked'))
       } else {
         setError(errorMessage)
       }
@@ -88,13 +90,13 @@ const Login = () => {
     try {
       await signInWithApple()
     } catch (err) {
-      const errorMessage = err.message || 'Failed to sign in with Apple'
+      const errorMessage = err.message || t('login.errors.appleSignInFailed')
       if (errorMessage.includes('popup-closed-by-user')) {
-        setError('Sign-in cancelled')
+        setError(t('login.errors.signInCancelled'))
       } else if (errorMessage.includes('popup-blocked')) {
-        setError('Please allow popups for this site')
+        setError(t('login.errors.popupBlocked'))
       } else if (errorMessage.includes('operation-not-allowed')) {
-        setError('Apple Sign-In is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Apple')
+        setError(t('login.errors.appleNotEnabled'))
       } else {
         setError(errorMessage)
       }
@@ -123,7 +125,7 @@ const Login = () => {
             AlexaFit
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {isLogin ? 'Sign in to your account' : 'Create a new account'}
+            {isLogin ? t('login.signInTitle') : t('login.createAccountTitle')}
           </p>
         </div>
 
@@ -141,7 +143,7 @@ const Login = () => {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email address
+                {t('login.emailLabel')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -156,14 +158,14 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none relative block w-full pl-10 pr-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Enter your email"
+                  placeholder={t('login.emailPlaceholder')}
                 />
               </div>
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+                {t('login.passwordLabel')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -178,7 +180,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Enter your password"
+                  placeholder={t('login.passwordPlaceholder')}
                 />
                 <button
                   type="button"
@@ -197,7 +199,7 @@ const Login = () => {
             {!isLogin && (
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm Password
+                  {t('login.confirmPasswordLabel')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -212,7 +214,7 @@ const Login = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="appearance-none relative block w-full pl-10 pr-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Confirm your password"
+                    placeholder={t('login.confirmPasswordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -239,7 +241,7 @@ const Login = () => {
               <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                 <UserIcon className="h-5 w-5 text-blue-500 group-hover:text-blue-400" aria-hidden="true" />
               </span>
-              {loading ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'}
+              {loading ? t('login.pleaseWait') : isLogin ? t('login.signInButton') : t('login.createAccountButton')}
             </button>
           </div>
 
@@ -249,7 +251,7 @@ const Login = () => {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-2 bg-white text-gray-500">{t('login.orContinueWith')}</span>
             </div>
           </div>
 
@@ -267,7 +269,7 @@ const Login = () => {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              Google
+              {t('login.googleSignIn')}
             </button>
 
             {/* <button
@@ -289,7 +291,7 @@ const Login = () => {
               onClick={toggleMode}
               className="text-sm text-blue-600 hover:text-blue-500 font-medium cursor-pointer"
             >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              {isLogin ? t('login.signUpPrompt') : t('login.signInPrompt')}
             </button>
           </div>
         </form>
