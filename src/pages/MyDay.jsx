@@ -138,7 +138,7 @@ const ItemCard = ({ it, onClick }) => {
   )
 }
 
-const MealSection = ({ title, items = [], photoUrl, onItemClick }) => (
+const MealSection = ({ title, items = [], photoUrl, onItemClick, t }) => (
   <div className={`${glassCardClass} p-6`}>
     <div className="flex justify-between items-center mb-3">
       <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
@@ -153,7 +153,7 @@ const MealSection = ({ title, items = [], photoUrl, onItemClick }) => (
         ))}
       </div>
     ) : (
-      <p className="text-sm text-gray-500">No items added.</p>
+      <p className="text-sm text-gray-500">{t('pages.myDay.noItems')}</p>
     )}
   </div>
 )
@@ -291,8 +291,8 @@ const MyDay = () => {
           <div className="flex items-start gap-3">
             <SparklesIcon className="w-7 h-7 text-indigo-400" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Day</h1>
-              <p className="text-gray-700 mt-1">Your meals and macros for {dateLabel}.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myDay.title')}</h1>
+              <p className="text-gray-700 mt-1">{t('pages.myDay.mealAndMacros')} {t('common.for')} {dateLabel}.</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -300,7 +300,7 @@ const MyDay = () => {
               className="btn-secondary px-3 py-2"
               onClick={() => setSelectedDate(prev => addDays(prev, -1))}
             >
-              ◀ Prev
+              {t('pages.myDay.prev')}
             </button>
             <input
               type="date"
@@ -312,13 +312,13 @@ const MyDay = () => {
               className="btn-secondary px-3 py-2"
               onClick={() => setSelectedDate(prev => addDays(prev, 1))}
             >
-              Next ▶
+              {t('pages.myDay.next')}
             </button>
             <button
               onClick={() => loadDay(true)}
               disabled={loading}
               className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-white/50 rounded transition-colors"
-              title="Refresh daily items and menus"
+              title={t('pages.myDay.refresh')}
             >
               <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -327,20 +327,20 @@ const MyDay = () => {
         {/* Quick stats */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className={`${glassSurfaceClass} p-4`}>
-            <p className="text-sm text-gray-600">Eaten</p>
+            <p className="text-sm text-gray-600">{t('pages.myDay.eaten')}</p>
             <p className="text-2xl font-semibold text-gray-900">{Math.round(macroTotals.calories || 0)} kcal</p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}>
-            <p className="text-sm text-gray-600">Burned</p>
+            <p className="text-sm text-gray-600">{t('pages.myDay.burned')}</p>
             <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.exerciseCalories || 0)} kcal</p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}>
-            <p className="text-sm text-gray-600">Water</p>
+            <p className="text-sm text-gray-600">{t('pages.myDay.water')}</p>
             <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.waterTotalMl || 0)} ml</p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}>
-            <p className="text-sm text-gray-600">Menu</p>
-            <p className="text-sm font-medium text-gray-900 truncate">{daily.menuForDay?.name || 'None'}</p>
+            <p className="text-sm text-gray-600">{t('pages.myDay.menu')}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{daily.menuForDay?.name || t('pages.myDay.none')}</p>
           </div>
         </div>
       </div>
@@ -377,18 +377,19 @@ const MyDay = () => {
                 <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex-1 text-center">
                     <p className="text-2xl font-semibold text-gray-900">{macroTotals.calories}</p>
-                    <p className="text-sm text-gray-600">Eaten</p>
+                    <p className="text-sm text-gray-600">{t('pages.myDay.eaten')}</p>
                   </div>
                   <div className="flex justify-center">
                     <CalorieCircle
                       totalGoal={Number(daily.goals.calories) || 0}
                       eaten={Number(macroTotals.calories) || 0}
                       burned={Number(daily.exerciseCalories) || 0}
+                      t={t}
                     />
                   </div>
                   <div className="flex-1 text-center">
                     <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.exerciseCalories || 0)}</p>
-                    <p className="text-sm text-gray-600">Burned</p>
+                    <p className="text-sm text-gray-600">{t('pages.myDay.burned')}</p>
                   </div>
                 </div>
               </div>
@@ -396,10 +397,10 @@ const MyDay = () => {
               {/* Slide 2: Macros summary */}
               <div className="min-w-full snap-center">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <MacroCard label="Protein" value={macroTotals.proteinsInGrams || 0} unit=" g" goal={Math.round(daily.goals.protein || 0)} />
-                  <MacroCard label="Carbs" value={macroTotals.carbohydratesInGrams || 0} unit=" g" goal={Math.round(daily.goals.carbs || 0)} />
-                  <MacroCard label="Fat" value={macroTotals.fatInGrams || 0} unit=" g" goal={Math.round(daily.goals.fat || 0)} />
-                  <MacroCard label="Calories" value={macroTotals.calories || 0} unit=" kcal" goal={Math.round(daily.goals.calories || 0)} />
+                  <MacroCard label={t('pages.myDay.protein')} value={macroTotals.proteinsInGrams || 0} unit=" g" goal={Math.round(daily.goals.protein || 0)} />
+                  <MacroCard label={t('pages.myDay.carbs')} value={macroTotals.carbohydratesInGrams || 0} unit=" g" goal={Math.round(daily.goals.carbs || 0)} />
+                  <MacroCard label={t('pages.myDay.fat')} value={macroTotals.fatInGrams || 0} unit=" g" goal={Math.round(daily.goals.fat || 0)} />
+                  <MacroCard label={t('pages.myDay.calories')} value={macroTotals.calories || 0} unit=" kcal" goal={Math.round(daily.goals.calories || 0)} />
                 </div>
               </div>
             </div>
@@ -456,37 +457,41 @@ const MyDay = () => {
           {/* Meals */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MealSection
-              title="Breakfast"
+              title={t('pages.myDay.breakfast')}
               items={daily.breakfast}
               photoUrl={daily.breakfastPhotoUrl}
               onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              t={t}
             />
             <MealSection
-              title="Lunch"
+              title={t('pages.myDay.lunch')}
               items={daily.lunch}
               photoUrl={daily.lunchPhotoUrl}
               onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              t={t}
             />
             <MealSection
-              title="Dinner"
+              title={t('pages.myDay.dinner')}
               items={daily.dinner}
               photoUrl={daily.dinnerPhotoUrl}
               onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              t={t}
             />
             <MealSection
-              title="Snack"
+              title={t('pages.myDay.snack')}
               items={daily.snack}
               photoUrl={daily.snackPhotoUrl}
               onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              t={t}
             />
           </div>
 
           {/* Exercises */}
           <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">Exercise</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myDay.exercise')}</h3>
               {daily.exerciseCalories > 0 ? (
-                <span className="text-sm text-gray-600">Total: {Math.round(daily.exerciseCalories)} kcal</span>
+                <span className="text-sm text-gray-600">{t('pages.myDay.total')}: {Math.round(daily.exerciseCalories)} kcal</span>
               ) : null}
             </div>
             {Array.isArray(daily.exercises) && daily.exercises.length > 0 ? (
@@ -496,34 +501,34 @@ const MyDay = () => {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">No exercises logged.</p>
+              <p className="text-sm text-gray-500">{t('pages.myDay.noExercises')}</p>
             )}
           </div>
 
           {/* Water Intake */}
           <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">Water Intake</h3>
-              <span className="text-sm text-gray-600">Total: {Math.round(daily.waterTotalMl || 0)} ml</span>
+              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myDay.waterIntake')}</h3>
+              <span className="text-sm text-gray-600">{t('pages.myDay.total')}: {Math.round(daily.waterTotalMl || 0)} ml</span>
             </div>
             {Array.isArray(daily.waterEntries) && daily.waterEntries.length > 0 ? (
               <ul className="space-y-2">
                 {daily.waterEntries.map((we, idx) => (
                   <li key={idx} className="flex justify-between text-sm">
-                    <span className="text-gray-800 truncate">{we?.label || 'Water'}</span>
+                    <span className="text-gray-800 truncate">{we?.label || t('pages.myDay.water')}</span>
                     <span className="text-gray-500">{Math.round(we?.quantity || we?.ml || 0)} ml</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">No water logged.</p>
+              <p className="text-sm text-gray-500">{t('pages.myDay.noWater')}</p>
             )}
           </div>
 
           {/* Assigned Menu */}
           <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">Assigned Menu</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myDay.assignedMenu')}</h3>
               {daily.menuForDay?.name ? (
                 <span className="text-sm text-gray-600">{daily.menuForDay.name}</span>
               ) : null}
@@ -532,7 +537,7 @@ const MyDay = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {(['breakfastPlan','lunchPlan','dinnerPlan','snackPlan']).map((mealKey) => {
-                    const labelMap = { breakfastPlan: 'Breakfast (Menu)', lunchPlan: 'Lunch (Menu)', dinnerPlan: 'Dinner (Menu)', snackPlan: 'Snack (Menu)' }
+                    const labelMap = { breakfastPlan: t('pages.myDay.breakfastMenu'), lunchPlan: t('pages.myDay.lunchMenu'), dinnerPlan: t('pages.myDay.dinnerMenu'), snackPlan: t('pages.myDay.snackMenu') }
                     const items = daily.menuForDay?.[mealKey] || []
                     // Compute adjusted per-item display like Menus Selected Items
                     const renderedItems = items.map((it) => {
@@ -589,13 +594,13 @@ const MyDay = () => {
                       <div key={mealKey} className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm">
                         <div className="px-3 py-2 bg-white/10 border-b border-white/15 text-sm font-medium text-gray-700">{labelMap[mealKey]}</div>
                         <div className="p-3 space-y-2">
-                          {renderedItems.length === 0 && <div className="text-sm text-gray-500">No items</div>}
+                          {renderedItems.length === 0 && <div className="text-sm text-gray-500">{t('pages.myDay.noItemsMenu')}</div>}
                           {renderedItems.map((r, i) => (
                             <div key={i} className="p-2 rounded bg-white/40 backdrop-blur-sm shadow-sm">
                               <div className="flex items-start justify-between">
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium text-gray-900 truncate">{r.it?.name || r.it?.title || r.it?.food?.name || 'Unnamed'}</div>
-                                  <div className="text-xs text-gray-500 truncate">{detectIsRecipe(r.it) ? 'Recipe' : 'Food'}</div>
+                                  <div className="text-sm font-medium text-gray-900 truncate">{r.it?.name || r.it?.title || r.it?.food?.name || t('pages.myDay.unnamed')}</div>
+                                  <div className="text-xs text-gray-500 truncate">{detectIsRecipe(r.it) ? t('pages.myDay.recipe') : t('pages.myDay.food')}</div>
                                 </div>
                               </div>
                               <div className="mt-1 text-xs text-gray-600">
@@ -611,7 +616,7 @@ const MyDay = () => {
                           ))}
                           {renderedItems.length > 0 && (
                             <div className="mt-2 p-2 bg-indigo-500/10 border border-indigo-300/30 rounded text-xs text-indigo-900">
-                              <span className="font-medium">Subtotal:</span>
+                              <span className="font-medium">{t('pages.myDay.subtotal')}:</span>
                               <span className="ml-1">{Math.round(totals.calories)} cal</span>
                               <span className="mx-2">|</span>
                               <span>P {Math.round(totals.proteinsInGrams)} g</span>
@@ -681,7 +686,7 @@ const MyDay = () => {
                   return (
                     <div className="space-y-2">
                       <div className="p-3 bg-emerald-500/10 border border-emerald-300/30 rounded text-sm text-emerald-900">
-                        <span className="font-semibold">Menu totals:</span>
+                        <span className="font-semibold">{t('pages.myDay.menuTotals')}:</span>
                         <span className="ml-2">{Math.round(total.calories)} cal</span>
                         <span className="mx-2">|</span>
                         <span>P {Math.round(total.proteinsInGrams)} g</span>
@@ -695,7 +700,7 @@ const MyDay = () => {
                 })()}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No menu assigned for this day.</p>
+              <p className="text-sm text-gray-500">{t('pages.myDay.noMenuAssigned')}</p>
             )}
           </div>
         </>
@@ -732,13 +737,13 @@ const MyDay = () => {
                 )}
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-1">Calories</p>
+                <p className="text-sm text-gray-600 mb-1">{t('pages.myDay.calories')}</p>
                 <p className="text-xl font-semibold text-gray-900">{getItemCalories(selectedItem)} kcal</p>
                 {selectedItem?.unit && (
-                  <p className="text-xs text-gray-500 mt-1">Unit: {selectedItem.unit}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('pages.myDay.unit')}: {selectedItem.unit}</p>
                 )}
                 {selectedItem?.quantity && (
-                  <p className="text-xs text-gray-500">Quantity: {selectedItem.quantity}</p>
+                  <p className="text-xs text-gray-500">{t('pages.myDay.quantity')}: {selectedItem.quantity}</p>
                 )}
               </div>
             </div>
@@ -747,15 +752,15 @@ const MyDay = () => {
             {selectedItem?.food?.totalNutrients && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs text-gray-500">Protein</p>
+                  <p className="text-xs text-gray-500">{t('pages.myDay.protein')}</p>
                   <p className="text-sm font-medium text-gray-900">{selectedItem.food.totalNutrients.proteinsInGrams || 0} g</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Carbs</p>
+                  <p className="text-xs text-gray-500">{t('pages.myDay.carbs')}</p>
                   <p className="text-sm font-medium text-gray-900">{selectedItem.food.totalNutrients.carbohydratesInGrams || 0} g</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Fat</p>
+                  <p className="text-xs text-gray-500">{t('pages.myDay.fat')}</p>
                   <p className="text-sm font-medium text-gray-900">{selectedItem.food.totalNutrients.fatInGrams || 0} g</p>
                 </div>
                 <div>
@@ -769,11 +774,11 @@ const MyDay = () => {
             {selectedItem?.exercise && (
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs text-gray-500">Duration</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedItem.exercise.durationInMinutes || selectedItem.quantity || 0} min</p>
+                  <p className="text-xs text-gray-500">{t('pages.myDay.duration')}</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedItem.exercise.durationInMinutes || selectedItem.quantity || 0} {t('pages.myDay.min')}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Burnt</p>
+                  <p className="text-xs text-gray-500">{t('pages.myDay.burned')}</p>
                   <p className="text-sm font-medium text-gray-900">{selectedItem.exercise.caloriesBurnt || 0} kcal</p>
                 </div>
               </div>
@@ -784,7 +789,7 @@ const MyDay = () => {
                 className="btn-secondary px-4 py-2"
                 onClick={() => setIsItemModalOpen(false)}
               >
-                Close
+                {t('pages.myDay.close')}
               </button>
             </div>
           </div>
@@ -797,7 +802,7 @@ const MyDay = () => {
 export default MyDay
 
 // Local circular progress for calories remaining
-function CalorieCircle({ totalGoal, eaten, burned }) {
+function CalorieCircle({ totalGoal, eaten, burned, t }) {
   const remaining = (totalGoal || 0) - (eaten || 0) + (burned || 0)
   const percentage = totalGoal > 0 ? Math.max(0, Math.min(100, Math.round(100 - (remaining / totalGoal) * 100))) : 0
   const color = (() => {
@@ -824,7 +829,7 @@ function CalorieCircle({ totalGoal, eaten, burned }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <p className="text-2xl font-semibold" style={{ color }}>{Math.round(remaining || 0)}</p>
-        <p className="text-xs text-gray-600">kcal remaining</p>
+        <p className="text-xs text-gray-600">{t('pages.myDay.kcalRemaining')}</p>
       </div>
     </div>
   )
