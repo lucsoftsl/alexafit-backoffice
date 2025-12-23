@@ -12,6 +12,7 @@ import Menus from './pages/Menus'
 import Recipes from './pages/Recipes'
 import Settings from './pages/Settings'
 import UserProgress from './pages/UserProgress'
+import UserNotes from './pages/UserNotes'
 import ClientJournal from './pages/ClientJournal'
 import ClientProfile from './pages/ClientProfile'
 import ClientMealPlans from './pages/ClientMealPlans'
@@ -178,6 +179,8 @@ function App() {
         return <Recipes />
       case 'settings':
         return <Settings />
+      case 'user-notes':
+        return <UserNotes />
       case 'progress':
         return <UserProgress />
       default:

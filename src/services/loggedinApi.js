@@ -284,6 +284,39 @@ export async function getUserById({ userId }) {
   })
 }
 
+// User Notes endpoints
+export async function getUserNotes({ userId }) {
+  // Fetch notes for a user
+  return request('/foodsync/getUserNotes', {
+    method: 'POST',
+    body: { userId }
+  })
+}
+
+export async function addUserNote({ userId, note }) {
+  // Create a new note for a user
+  return request('/foodsync/addUserNote', {
+    method: 'POST',
+    body: { userId, note }
+  })
+}
+
+export async function updateUserNote({ userId, noteId, note }) {
+  // Update an existing user note
+  return request('/foodsync/updateUserNote', {
+    method: 'POST',
+    body: { userId, noteId, note }
+  })
+}
+
+export async function deleteUserNote({ userId, noteId }) {
+  // Delete a user note
+  return request('/foodsync/deleteUserNote', {
+    method: 'POST',
+    body: { userId, noteId }
+  })
+}
+
 export async function getUserCheckins({ userId }) {
   // Get all user check-ins (progress entries) - uses GET endpoint with query param
   return requestGet(

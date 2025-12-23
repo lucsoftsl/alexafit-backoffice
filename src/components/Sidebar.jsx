@@ -12,6 +12,7 @@ import {
   ClipboardDocumentListIcon,
   ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline'
+import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
 import { selectIsAdmin, selectIsNutritionist } from '../store/userSlice'
 
@@ -42,6 +43,7 @@ const Sidebar = ({
     { id: 'subscribers', label: 'Subscribers', icon: UserGroupIcon, adminOnly: true },
     { id: 'analytics', label: 'Analytics', icon: ChartBarIcon, adminOnly: true },
     { id: 'settings', label: 'My Profile', icon: CogIcon, adminOnly: false },
+    { id: 'user-notes', label: 'User Notes', icon: DocumentTextIcon, adminOnly: false },
   ]
 
   // Filter menu items based on admin/nutritionist status
