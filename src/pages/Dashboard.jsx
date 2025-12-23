@@ -38,7 +38,6 @@ const Dashboard = () => {
       }
 
       try {
-        console.log('Loading subscribers...')
         setLoading(true)
         setError(null)
 
@@ -52,14 +51,10 @@ const Dashboard = () => {
           timeoutPromise
         ])
 
-        console.log('API Response received:', data)
-        console.log('Setting subscribers and stopping loading...')
         setSubscribers(data.subscribers || [])
         setError(null)
-        console.log('State updated successfully')
       } catch (err) {
-        console.error('Error loading subscribers:', err)
-        setError(err.message || 'Failed to load subscribers')
+        setError(err.message || t('Failed to load subscribers'))
       } finally {
         setLoading(false)
       }
@@ -76,13 +71,11 @@ const Dashboard = () => {
     setLoading(true)
 
     try {
-      console.log('Manually refreshing subscribers...')
       const data = await fetchProgramSubscribers()
       setSubscribers(data.subscribers || [])
       setError(null)
     } catch (err) {
-      setError('Failed to refresh subscribers. Please try again.')
-      console.error('Error refreshing subscribers:', err)
+      setError(t('Failed to refresh subscribers. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -156,22 +149,22 @@ const Dashboard = () => {
 
     return [
       {
-        name: 'Total Subscribers',
+        name: t('common.Total Subscribers'),
         value: totalSubscribers.toString(),
         icon: UsersIcon,
       },
       {
-        name: 'Active Subscribers',
+        name: t('common.Active Subscribers') ,
         value: activeSubscribers.toString(),
         icon: UserGroupIcon,
       },
       {
-        name: 'Pro Subscribers',
+        name: t('common.Pro Subscribers'),
         value: proSubscribers.toString(),
         icon: ChartBarIcon,
       },
       {
-        name: 'Conversion Rate',
+        name: t('common.Conversion Rate'),
         value: `${conversionRate}%`,
         icon: ArrowTrendingUpIcon,
       },
@@ -210,7 +203,7 @@ const Dashboard = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-center sm:text-left">
           <h1 className="text-3xl font-bold text-gray-900">{t('pages.dashboard.title')}</h1>
-          <p className="text-gray-600 mt-1 text-sm sm:text-base">Welcome back! Here's what's happening with your fitness platform.</p>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">{t('pages.dashboard.welcomeMessage')}</p>
         </div>
         <button
           onClick={refreshSubscribers}
@@ -244,7 +237,7 @@ const Dashboard = () => {
       <div className="card p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold text-gray-900">{t('pages.dashboard.subscribers')}</h2>
-          <span className="text-sm text-gray-500">{filteredSubscribers.length} subscribers</span>
+          <span className="text-sm text-gray-500">{filteredSubscribers.length} {t('subscribers')}</span>
         </div>
         <div className="space-y-3 md:hidden">
           {paginatedSubscribers.map((subscriber) => {
@@ -279,26 +272,26 @@ const Dashboard = () => {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div className="space-y-1">
-                    <p className="text-gray-500">Subscription</p>
+                    <p className="text-gray-500">{t('common.Subscription')}</p>
                     <p className="text-gray-800 text-sm">{subscriptionData.plan}</p>
                     <p className="text-gray-500">{subscriptionData.status}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-gray-500">Payment</p>
+                    <p className="text-gray-500">{t('common.Payment')}</p>
                     <p className="text-gray-800 text-sm">{paymentData.status}</p>
                     <p className="text-gray-500">{paymentData.date}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-gray-500">Contact</p>
+                    <p className="text-gray-500">{t('common.Contact')}</p>
                     <p className="text-gray-800 text-sm">{userData.phone || 'N/A'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-gray-500">Status</p>
+                    <p className="text-gray-500">{t('common.Status')}</p>
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${subscriber.status === 'ACTIVE'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                       }`}>
-                      {subscriber.status}
+                      {t(`common.${subscriber.status}`)}
                     </span>
                   </div>
                 </div>
@@ -312,22 +305,22 @@ const Dashboard = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
+                  {t('common.User')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Contact
+                  {t('common.Contact')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Subscription
+                  {t('common.Subscription')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment
+                  {t('common.Payment')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  {t('common.Status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {t('common.Actions')}
                 </th>
               </tr>
             </thead>
@@ -368,14 +361,12 @@ const Dashboard = () => {
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                         }`}>
-                        {subscriber.status}
+                        {t(`common.${subscriber.status}`)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => {
-                          console.log('Opening modal for subscriber:', subscriber)
-                          console.log('User ID:', subscriber.userId)
                           setSelectedUser(subscriber)
                           setIsModalOpen(true)
                         }}
@@ -399,7 +390,7 @@ const Dashboard = () => {
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-gray-100 pt-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm text-gray-700">Items per page:</label>
+            <label className="text-sm text-gray-700">{t('common.Items per page')}:</label>
             <select
               value={itemsPerPage}
               onChange={(e) => {
@@ -420,7 +411,7 @@ const Dashboard = () => {
                 const total = filteredSubscribers.length
                 const start = total > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0
                 const end = Math.min(currentPage * itemsPerPage, total)
-                return `Showing ${start}–${end} of ${total}`
+                return `${t('common.Showing')} ${start}–${end} ${t('common.of')} ${total}`
               })()}
             </p>
             <div className="flex items-center gap-2">
@@ -429,15 +420,15 @@ const Dashboard = () => {
                 disabled={currentPage === 1}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('common.Previous')}
               </button>
-              <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+              <span className="text-sm text-gray-600">{t('common.Page')} {currentPage} {t('common.of')} {totalPages}</span>
               <button
                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                 disabled={currentPage >= totalPages}
                 className="px-3 py-2 text-sm border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next
+                {t('common.Next')}
               </button>
             </div>
           </div>
