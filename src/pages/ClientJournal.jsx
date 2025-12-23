@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getDailyNutrition, getUserData, getUserCaloriesHistory } from '../services/loggedinApi'
 import LZString from 'lz-string'
 import { sumTotalsByMealsApplied } from '../util/menuDisplay'
@@ -110,6 +111,7 @@ const MealSection = ({ title, items = [], photoUrl }) => (
 )
 
 const ClientJournal = ({ client }) => {
+  const { t } = useTranslation()
   const [showCalendar, setShowCalendar] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
   const [markedDates, setMarkedDates] = useState({})
@@ -475,8 +477,8 @@ const ClientJournal = ({ client }) => {
   if (!client) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Client Journal</h2>
-        <p className="text-gray-600">Select a client from the Clients list to view their journal.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('pages.clientJournal.title')}</h2>
+        <p className="text-gray-600">{t('pages.clientJournal.selectPrompt')}</p>
       </div>
     )
   }
@@ -485,7 +487,7 @@ const ClientJournal = ({ client }) => {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Client Journal</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('pages.clientJournal.title')}</h1>
           <p className="text-gray-600 mt-1">{userName}</p>
         </div>
         {!showCalendar ? (
@@ -537,10 +539,10 @@ const ClientJournal = ({ client }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <MealSection title="Breakfast" items={daily.breakfast} photoUrl={daily.breakfastPhotoUrl} />
-            <MealSection title="Lunch" items={daily.lunch} photoUrl={daily.lunchPhotoUrl} />
-            <MealSection title="Dinner" items={daily.dinner} photoUrl={daily.dinnerPhotoUrl} />
-            <MealSection title="Snack" items={daily.snack} photoUrl={daily.snackPhotoUrl} />
+            <MealSection title={t('pages.clientJournal.breakfast')} items={daily.breakfast} photoUrl={daily.breakfastPhotoUrl} />
+            <MealSection title={t('pages.clientJournal.lunch')} items={daily.lunch} photoUrl={daily.lunchPhotoUrl} />
+            <MealSection title={t('pages.clientJournal.dinner')} items={daily.dinner} photoUrl={daily.dinnerPhotoUrl} />
+            <MealSection title={t('pages.clientJournal.snack')} items={daily.snack} photoUrl={daily.snackPhotoUrl} />
           </div>
 
           {Array.isArray(daily.exercises) && daily.exercises.length > 0 && (

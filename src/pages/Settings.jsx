@@ -5,6 +5,7 @@ import { saveUserDataFromWelcomeScreen, getAvatars, getUserData, getUserById } f
 import { useState, useEffect, useRef, useCallback } from 'react'
 import FormField from '../components/FormField'
 import FormSelect from '../components/FormSelect'
+import { useTranslation } from 'react-i18next'
 import {
   UserIcon,
   EnvelopeIcon,
@@ -28,6 +29,7 @@ const Settings = () => {
   const userData = useSelector(selectUserData)
   const isAdmin = useSelector(selectIsAdmin)
   const userType = useSelector(selectUserType)
+  const { t, i18n } = useTranslation()
   const dispatch = useDispatch()
 
   const [editMode, setEditMode] = useState(false)
@@ -986,10 +988,36 @@ const Settings = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('pages.settings.title')}</h1>
         <p className="mt-2 text-gray-600">
-          Manage your account settings and preferences
+          {t('pages.settings.subtitle')}
         </p>
+      </div>
+
+      {/* Language Selector */}
+      <div className="mb-6">
+        <div className="relative overflow-hidden rounded-2xl backdrop-blur-xl bg-gradient-to-br from-white/85 to-white/60 border border-white/20 shadow-2xl p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{t('pages.settings.language')}</p>
+              <p className="text-xs text-gray-500 mt-1">en / fr / es / ro</p>
+            </div>
+            <select
+              value={i18n.language}
+              onChange={(e) => {
+                const lang = e.target.value
+                i18n.changeLanguage(lang)
+                try { localStorage.setItem('lang', lang) } catch (_) {}
+              }}
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white"
+            >
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="ro">Română</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Firebase User Info - Glass Morphism */}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -35,6 +36,7 @@ const mealTypeOptions = [
 ]
 
 const Menus = () => {
+  const { t } = useTranslation()
   // Glass UI utility classes
   const glassCardClass = 'relative rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl'
   const glassSurfaceClass = 'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
@@ -1455,7 +1457,7 @@ const Menus = () => {
           <h2 className="text-lg font-semibold text-gray-900">Created Menu Templates</h2>
           <div className="flex items-center gap-2">
             {loadingTemplates && (
-              <span className="text-sm text-gray-500">Loading...</span>
+              <span className="text-sm text-gray-500">{t('common.loading')}</span>
             )}
             {templatesExpanded ? <ChevronUpIcon className="w-5 h-5 text-gray-600" /> : <ChevronDownIcon className="w-5 h-5 text-gray-600" />}
           </div>
@@ -2046,7 +2048,7 @@ const Menus = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">User Menus</h2>
             {loadingUserMenus && (
-              <span className="text-sm text-gray-500">Loading...</span>
+                <span className="text-sm text-gray-500">{t('common.loading')}</span>
             )}
           </div>
 

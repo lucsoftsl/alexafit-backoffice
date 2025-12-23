@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { selectUserData } from '../store/userSlice'
 import { getUserCheckins } from '../services/loggedinApi'
 import ProgressChart from '../components/ProgressChart'
@@ -14,6 +15,7 @@ import AddProgressModal from '../components/AddProgressModal'
 import { PencilIcon, PlusIcon } from '@heroicons/react/24/outline'
 
 const UserProgress = () => {
+  const { t } = useTranslation()
   const userData = useSelector(selectUserData)
   const [checkins, setCheckins] = useState([])
   const [filteredCheckins, setFilteredCheckins] = useState([])
@@ -382,7 +384,7 @@ const UserProgress = () => {
           <div className="flex items-center justify-center h-80 bg-white/50 backdrop-blur-md rounded-3xl border border-white/20">
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-3"></div>
-              <p className="text-gray-600">Loading progress data...</p>
+              <p className="text-gray-600">{t('pages.userProgress.loading')}</p>
             </div>
           </div>
         ) : filteredCheckins.length > 0 ? (

@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from 'react-i18next'
 import { selectIsAdmin, selectIsNutritionist } from '../store/userSlice'
 
 const Sidebar = ({
@@ -27,23 +28,24 @@ const Sidebar = ({
   onClientMenuSelect
 }) => {
   const { currentUser } = useAuth()
+  const { t } = useTranslation()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
 
   const allMenuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: HomeIcon, adminOnly: true },
-    { id: 'myday', label: 'My Day', icon: HomeIcon, adminOnly: false },
-    { id: 'progress', label: 'Progress', icon: ChartBarIcon, adminOnly: false },
-    { id: 'myusers', label: 'Clients', icon: UsersIcon, nutritionistOnly: true },
-    { id: 'mymenus', label: 'My Menus', icon: CakeIcon, nutritionistOnly: true },
-    { id: 'users', label: 'Users', icon: UsersIcon, adminOnly: true },
-    { id: 'unapprovedItems', label: '⏳ Items', icon: ListBulletIcon, adminOnly: true },
-    { id: 'menus', label: 'Menus', icon: CakeIcon, adminOnly: true },
-    { id: 'recipes', label: 'Recipes', icon: BookOpenIcon, adminOnly: true },
-    { id: 'subscribers', label: 'Subscribers', icon: UserGroupIcon, adminOnly: true },
-    { id: 'analytics', label: 'Analytics', icon: ChartBarIcon, adminOnly: true },
-    { id: 'settings', label: 'My Profile', icon: CogIcon, adminOnly: false },
-    { id: 'user-notes', label: 'User Notes', icon: DocumentTextIcon, adminOnly: false },
+    { id: 'dashboard', labelKey: 'sidebar.dashboard', icon: HomeIcon, adminOnly: true },
+    { id: 'myday', labelKey: 'sidebar.myDay', icon: HomeIcon, adminOnly: false },
+    { id: 'progress', labelKey: 'sidebar.progress', icon: ChartBarIcon, adminOnly: false },
+    { id: 'myusers', labelKey: 'sidebar.clients', icon: UsersIcon, nutritionistOnly: true },
+    { id: 'mymenus', labelKey: 'sidebar.myMenus', icon: CakeIcon, nutritionistOnly: true },
+    { id: 'users', labelKey: 'sidebar.users', icon: UsersIcon, adminOnly: true },
+    { id: 'unapprovedItems', labelKey: 'sidebar.unapprovedItems', icon: ListBulletIcon, adminOnly: true },
+    { id: 'menus', labelKey: 'sidebar.menus', icon: CakeIcon, adminOnly: true },
+    { id: 'recipes', labelKey: 'sidebar.recipes', icon: BookOpenIcon, adminOnly: true },
+    { id: 'subscribers', labelKey: 'sidebar.subscribers', icon: UserGroupIcon, adminOnly: true },
+    { id: 'analytics', labelKey: 'sidebar.analytics', icon: ChartBarIcon, adminOnly: true },
+    { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
+    { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },
   ]
 
   // Filter menu items based on admin/nutritionist status
@@ -54,10 +56,10 @@ const Sidebar = ({
   })
 
   const clientMenuItems = [
-    { id: 'profile', label: 'Client Profile', icon: UserCircleIcon },
-    { id: 'journal', label: 'Client Journal', icon: ClipboardDocumentListIcon },
-    { id: 'meal-plans', label: 'Client Meal Plans', icon: CakeIcon },
-    { id: 'all-clients', label: 'All Clients', icon: UsersIcon }
+    { id: 'profile', labelKey: 'sidebar.clientProfile', icon: UserCircleIcon },
+    { id: 'journal', labelKey: 'sidebar.clientJournal', icon: ClipboardDocumentListIcon },
+    { id: 'meal-plans', labelKey: 'sidebar.clientMealPlans', icon: CakeIcon },
+    { id: 'all-clients', labelKey: 'sidebar.allClients', icon: UsersIcon }
   ]
 
   // Get user display info
@@ -144,7 +146,7 @@ const Sidebar = ({
                         }`}
                     >
                       <Icon className="w-5 h-5 mr-3" />
-                      {item.label}
+                      {t(item.labelKey)}
                     </button>
                   )
                 })}
@@ -167,7 +169,7 @@ const Sidebar = ({
                         }`}
                     >
                       <Icon className="w-5 h-5 mr-3" />
-                      {item.label}
+                      {t(item.labelKey)}
                     </button>
                   )
                 })}

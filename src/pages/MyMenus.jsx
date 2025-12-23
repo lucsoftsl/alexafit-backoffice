@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -43,6 +44,7 @@ const glassSurfaceClass = 'rounded-2xl border border-white/50 bg-white/60 backdr
 const softBadgeClass = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/80 text-gray-800 shadow-inner'
 
 const MyMenus = () => {
+  const { t } = useTranslation()
   const [showBuilderModal, setShowBuilderModal] = useState(false)
   const [menuName, setMenuName] = useState('')
   const [countryCode, setCountryCode] = useState('RO')
@@ -682,7 +684,7 @@ const MyMenus = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading menus...</p>
+            <p className="mt-4 text-gray-600">{t('pages.myMenus.loading')}</p>
         </div>
       </div>
     )

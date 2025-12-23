@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -25,6 +26,7 @@ const AVAILABLE_COUNTRY_CODES = {
 }
 
 const Recipes = () => {
+  const { t } = useTranslation()
   const [recipeItems, setRecipeItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -783,7 +785,7 @@ const Recipes = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading recipes...</p>
+            <p className="mt-4 text-gray-600">{t('pages.recipes.loading')}</p>
           </div>
         </div>
       </div>
@@ -830,7 +832,7 @@ const Recipes = () => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Refresh Data
+                {t('pages.dashboard.refresh')} Data
             </button>
             <button
               onClick={() => {

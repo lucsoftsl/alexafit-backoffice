@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -16,6 +17,7 @@ import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
 
 const Subscribers = () => {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPlan, setFilterPlan] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -260,7 +262,7 @@ const Subscribers = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading subscribers...</p>
+            <p className="mt-4 text-gray-600">{t('pages.subscribers.loading')}</p>
           </div>
         </div>
       </div>
@@ -280,13 +282,13 @@ const Subscribers = () => {
           <div className="flex items-center">
             <ExclamationTriangleIcon className="h-8 w-8 text-red-600 mr-4" />
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Error Loading Data</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('pages.subscribers.error')}</h3>
               <p className="text-gray-600 mt-1">{error}</p>
               <button 
                 onClick={refreshSubscribers} 
                 className="btn-primary mt-4"
               >
-                Try Again
+                {t('common.tryAgain')}
               </button>
             </div>
           </div>

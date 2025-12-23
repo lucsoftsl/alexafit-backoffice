@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import {
   MagnifyingGlassIcon,
   CheckIcon,
@@ -13,6 +14,7 @@ import { selectIsAdmin } from '../store/userSlice'
 import LZString from 'lz-string'
 
 const UnapprovedItems = () => {
+  const { t } = useTranslation()
   const [foodItems, setFoodItems] = useState([])
   const [exerciseItems, setExerciseItems] = useState([])
   const [loading, setLoading] = useState(true)

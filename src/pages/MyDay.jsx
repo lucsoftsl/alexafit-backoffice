@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 import { getDailyNutrition, getUserData, getUserMenuByDate } from '../services/loggedinApi'
 import { sumTotalsByMealsApplied, computeAppliedTotals, detectIsRecipe, findDefaultServing, findServingByIdentifier, getServingIdentifier, calculateDisplayValues, safeNutrients } from '../util/menuDisplay'
@@ -158,6 +159,7 @@ const MealSection = ({ title, items = [], photoUrl, onItemClick }) => (
 )
 
 const MyDay = () => {
+  const { t } = useTranslation()
   const { currentUser } = useAuth()
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const [loading, setLoading] = useState(false)
@@ -347,7 +349,7 @@ const MyDay = () => {
         <div className={`${glassSurfaceClass} p-8 flex items-center justify-center`}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
-            <p className="mt-3 text-gray-700">Loading your day...</p>
+              <p className="mt-3 text-gray-700">{t('pages.myDay.loading')}</p>
           </div>
         </div>
       )}

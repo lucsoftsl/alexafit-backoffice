@@ -16,6 +16,7 @@ import {
   XMarkIcon,
   CheckIcon
 } from '@heroicons/react/24/outline'
+import { useTranslation } from 'react-i18next'
 
 const formatDate = (d) => {
   if (!d) return ''
@@ -45,6 +46,7 @@ const normalizeDate = (n) => {
 const getId = (n) => n?.noteId || n?.id || n?._id || null
 
 export default function UserNotes() {
+  const { t } = useTranslation()
   const userData = useSelector(selectUserData)
   const userId = userData?.userId
   const [notes, setNotes] = useState([])
@@ -143,8 +145,8 @@ export default function UserNotes() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-4 md:mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">User Notes</h1>
-        <p className="mt-1 md:mt-2 text-sm md:text-base text-gray-600">Create, update, and organize your private notes.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('pages.userNotes.title')}</h1>
+        <p className="mt-1 md:mt-2 text-sm md:text-base text-gray-600">{t('pages.userNotes.subtitle')}</p>
       </div>
 
       <div className="relative overflow-hidden rounded-2xl md:rounded-3xl backdrop-blur-xl bg-gradient-to-br from-white/80 to-white/50 border border-white/20 shadow-2xl">
@@ -156,8 +158,8 @@ export default function UserNotes() {
                 <DocumentTextIcon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">Notes</p>
-                <p className="text-xs text-gray-500">Sorted by last update</p>
+                <p className="text-sm font-semibold text-gray-900">{t('pages.userNotes.notes')}</p>
+                <p className="text-xs text-gray-500">{t('pages.userNotes.sortedByUpdate')}</p>
               </div>
             </div>
             <div className="w-full md:w-auto flex flex-col md:flex-row items-stretch md:items-center gap-2">
@@ -167,14 +169,14 @@ export default function UserNotes() {
                 title="Refresh"
               >
                 <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                {t('pages.userNotes.refresh')}
               </button>
               <button
                 onClick={openNew}
                 className="w-full md:w-auto px-3 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-center gap-2 text-sm shadow-md hover:shadow-lg"
               >
                 <PlusIcon className="w-4 h-4" />
-                New Note
+                {t('pages.userNotes.newNote')}
               </button>
             </div>
           </div>
@@ -186,9 +188,9 @@ export default function UserNotes() {
           )}
 
           {loading ? (
-            <div className="py-10 md:py-12 text-center text-gray-500 text-sm md:text-base">Loading notes…</div>
+            <div className="py-10 md:py-12 text-center text-gray-500 text-sm md:text-base">{t('pages.userNotes.loading')}</div>
           ) : sortedNotes.length === 0 ? (
-            <div className="py-10 md:py-12 text-center text-gray-500 text-sm md:text-base">No notes yet. Create your first note.</div>
+            <div className="py-10 md:py-12 text-center text-gray-500 text-sm md:text-base">{t('pages.userNotes.empty')}</div>
           ) : (
             <ul className="space-y-3">
               {sortedNotes.map((n) => {
@@ -204,7 +206,7 @@ export default function UserNotes() {
                       <div className="min-w-0">
                         <p className="text-sm md:text-base text-gray-900 whitespace-pre-wrap break-words">{text}</p>
                         {dateStr && (
-                          <p className="mt-2 text-xs text-gray-500">Updated: {dateStr}</p>
+                          <p className="mt-2 text-xs text-gray-500">{t('pages.userNotes.updated')}: {dateStr}</p>
                         )}
                       </div>
                       <div className="flex-shrink-0 flex items-center gap-2 opacity-90">
@@ -251,7 +253,7 @@ export default function UserNotes() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                   <DocumentTextIcon className="w-5 h-5 text-blue-600" />
-                  {editing.id ? 'Edit Note' : 'New Note'}
+                  {editing.id ? t('pages.userNotes.editNote') : t('pages.userNotes.newNote')}
                 </h2>
                 <button onClick={closeEditor} className="p-2 rounded-lg hover:bg-gray-100">
                   <XMarkIcon className="w-5 h-5 text-gray-600" />
@@ -261,7 +263,7 @@ export default function UserNotes() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 rows={6}
-                placeholder="Write your note…"
+                placeholder={t('pages.userNotes.writePlaceholder')}
                 className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 text-sm md:text-base"
               />
               <div className="mt-4 flex flex-col-reverse md:flex-row md:items-center md:justify-end gap-2">
@@ -270,7 +272,7 @@ export default function UserNotes() {
                   disabled={submitting}
                   className="px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700"
                 >
-                  Cancel
+                  {t('pages.userNotes.cancel')}
                 </button>
                 <button
                   onClick={onSubmit}
@@ -278,7 +280,7 @@ export default function UserNotes() {
                   className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center gap-2 disabled:opacity-60"
                 >
                   <CheckIcon className="w-4 h-4" />
-                  {submitting ? 'Saving…' : 'Save'}
+                  {submitting ? t('pages.userNotes.saving') : t('pages.userNotes.save')}
                 </button>
               </div>
             </div>

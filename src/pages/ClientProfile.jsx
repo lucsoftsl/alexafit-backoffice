@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import ClientProgress from '../components/ClientProgress'
 import { saveUserDataFromWelcomeScreen, getUserCheckins } from '../services/loggedinApi'
 import { PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
@@ -24,6 +25,7 @@ const InfoRow = ({ label, value }) => (
 )
 
 const ClientProfile = ({ client }) => {
+  const { t } = useTranslation()
   const [editGoalMode, setEditGoalMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -180,7 +182,7 @@ const ClientProfile = ({ client }) => {
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               <PencilIcon className="w-4 h-4" />
-              Edit Goal
+                {t('common.edit')} Goal
             </button>
           )}
         </div>
@@ -248,7 +250,7 @@ const ClientProfile = ({ client }) => {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckIcon className="w-4 h-4" />
-                {loading ? 'Saving...' : 'Save Changes'}
+                {loading ? `${t('common.save')}ing...` : `${t('common.save')} Changes`}
               </button>
               <button
                 onClick={handleCancelGoalEdit}

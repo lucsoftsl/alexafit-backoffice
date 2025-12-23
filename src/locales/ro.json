@@ -1,0 +1,179 @@
+{
+  "common": {
+    "tryAgain": "Încercați din nou",
+    "loading": "Se încarcă...",
+    "error": "Eroare",
+    "save": "Salvare",
+    "cancel": "Anulare",
+    "delete": "Șterge",
+    "edit": "Editare",
+    "create": "Creare"
+  },
+  "app": {
+    "brand": "AlexaFit",
+    "tagline": "Ghid de nutriție",
+    "roles": {
+      "Admin": "Administrator",
+      "Nutritionist": "Nutriționist",
+      "User": "Utilizator"
+    }
+  },
+  "sidebar": {
+    "dashboard": "Panou de control",
+    "myDay": "Ziua mea",
+    "progress": "Progres",
+    "clients": "Clienți",
+    "myMenus": "Meniurile mele",
+    "users": "Utilizatori",
+    "unapprovedItems": "⏳ Elemente",
+    "menus": "Meniuri",
+    "recipes": "Rețete",
+    "subscribers": "Abonați",
+    "analytics": "Analitice",
+    "settings": "Profilul meu",
+    "userNotes": "Note",
+    "clientProfile": "Profilul clientului",
+    "clientJournal": "Jurnalul clientului",
+    "clientMealPlans": "Planuri de mese ale clientului",
+    "allClients": "Toți clienții"
+  },
+  "pages": {
+    "userNotes": {
+      "title": "Note",
+      "subtitle": "Creați, actualizați și organizați notele private.",
+      "notes": "Note",
+      "sortedByUpdate": "Sortate după ultima actualizare",
+      "refresh": "Reîmprospătează",
+      "newNote": "Notă nouă",
+      "loading": "Se încarcă notele…",
+      "empty": "Nicio notă încă. Creați prima notă.",
+      "editNote": "Editează nota",
+      "writePlaceholder": "Scrieți nota…",
+      "save": "Salvează",
+      "saving": "Se salvează…",
+      "cancel": "Anulează",
+      "updated": "Actualizat"
+    },
+    "settings": {
+      "title": "Profilul meu",
+      "subtitle": "Gestionați setările și preferințele contului",
+      "language": "Limbă",
+      "languageSaved": "Limba a fost actualizată"
+    },
+    "clientJournal": {
+      "title": "Jurnalul clientului",
+      "selectPrompt": "Selectați un client din listă pentru a-i vedea jurnalul.",
+      "breakfast": "Mic dejun",
+      "lunch": "Prânz",
+      "dinner": "Cină",
+      "snack": "Gustare"
+    },
+    "clientMealPlans": {
+      "title": "Planuri de mese ale clientului",
+      "selectPrompt": "Selectați un client pentru a vedea meniurile atribuite."
+    },
+    "clientProfile": {
+      "title": "Profilul clientului",
+      "selectPrompt": "Selectați un client pentru a-i vedea profilul."
+    },
+    "access": {
+      "restricted": "Acces restricționat",
+      "noPermission": "Nu aveți permisiunea de a accesa această pagină.",
+      "adminRequired": "Sunt necesare privilegii de administrator.",
+      "adminOrNutritionistRequired": "Sunt necesare privilegii de administrator sau nutriționist.",
+      "nutritionistRequired": "Sunt necesare privilegii de nutriționist."
+    },
+    "app": {
+      "loadingUserData": "Se încarcă datele utilizatorului..."
+    },
+    "dashboard": {
+      "title": "Panou de control",
+      "subscribers": "Abonați",
+      "loading": "Se încarcă abonații…",
+      "error": "Eroare la încărcarea datelor",
+      "refresh": "Reîmprospătează",
+      "view": "Vizualizează"
+    },
+    "myDay": {
+      "title": "Ziua mea",
+      "today": "Azi",
+      "loading": "Se încarcă…"
+    },
+    "myUsers": {
+      "title": "Clienții mei",
+      "search": "Caută clienți…",
+      "filter": "Filtrează după status",
+      "all": "Toți",
+      "active": "Activ",
+      "inactive": "Inactiv",
+      "loading": "Se încarcă clienții…",
+      "error": "Eroare la încărcarea clienților. Încercați din nou.",
+      "noClients": "Nu au fost găsiți clienți.",
+      "assignNew": "Asignează client nou",
+      "unassign": "Anulează asignarea",
+      "confirmUnassign": "Sunteți sigur că doriți să anulați asignarea acestui utilizator?"
+    },
+    "users": {
+      "title": "Gestionarea utilizatorilor",
+      "loading": "Se încarcă utilizatorii…",
+      "error": "Eroare la încărcarea datelor",
+      "noUsers": "Nu au fost găsiți utilizatori.",
+      "delete": "Șterge",
+      "edit": "Editează",
+      "confirmDelete": "Sunteți sigur că doriți să ștergeți acest utilizator?"
+    },
+    "recipes": {
+      "title": "Rețete",
+      "loading": "Se încarcă rețete…",
+      "error": "Eroare la încărcarea rețetelor",
+      "noRecipes": "Nu sunt disponibile rețete.",
+      "create": "Creează rețetă",
+      "edit": "Editează",
+      "delete": "Șterge",
+      "confirmDelete": "Sunteți sigur că doriți să ștergeți această rețetă?"
+    },
+    "menus": {
+      "title": "Meniuri",
+      "loading": "Se încarcă meniuri…",
+      "error": "Eroare la încărcarea meniurilor",
+      "noMenus": "Nu sunt disponibile meniuri.",
+      "create": "Creează meniu",
+      "edit": "Editează",
+      "delete": "Șterge",
+      "confirmDelete": "Sunteți sigur că doriți să ștergeți acest meniu?"
+    },
+    "subscribers": {
+      "title": "Abonați",
+      "loading": "Se încarcă abonații…",
+      "error": "Eroare la încărcarea abonați",
+      "noSubscribers": "Nu au fost găsiți abonați.",
+      "name": "Nume",
+      "email": "Email",
+      "status": "Status",
+      "view": "Vizualizează"
+    },
+    "unapprovedItems": {
+      "title": "Elemente neaprobate",
+      "loading": "Se încarcă elemente…",
+      "error": "Eroare la încărcarea elementelor",
+      "noItems": "Niciun element în așteptarea aprobării.",
+      "approve": "Aprobă",
+      "reject": "Respinge",
+      "confirmApprove": "Aprobi acest element?",
+      "confirmReject": "Respingi acest element?"
+    },
+    "myMenus": {
+      "title": "Meniurile mele",
+      "loading": "Se încarcă meniuri…",
+      "error": "Eroare la încărcarea meniurilor",
+      "noMenus": "Niciun meniu creat încă.",
+      "create": "Creează meniu"
+    },
+    "userProgress": {
+      "title": "Progres",
+      "loading": "Se încarcă progresul…",
+      "error": "Eroare la încărcarea datelor de progres",
+      "noData": "Nu sunt disponibile date de progres."
+    }
+  }
+}

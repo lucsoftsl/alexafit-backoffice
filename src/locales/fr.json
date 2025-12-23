@@ -1,0 +1,179 @@
+{
+  "common": {
+    "tryAgain": "Réessayer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer"
+  },
+  "app": {
+    "brand": "AlexaFit",
+    "tagline": "Guide Nutritionnel",
+    "roles": {
+      "Admin": "Admin",
+      "Nutritionist": "Nutritionniste",
+      "User": "Utilisateur"
+    }
+  },
+  "sidebar": {
+    "dashboard": "Tableau de bord",
+    "myDay": "Ma journée",
+    "progress": "Progrès",
+    "clients": "Clients",
+    "myMenus": "Mes menus",
+    "users": "Utilisateurs",
+    "unapprovedItems": "⏳ Éléments",
+    "menus": "Menus",
+    "recipes": "Recettes",
+    "subscribers": "Abonnés",
+    "analytics": "Analytique",
+    "settings": "Mon profil",
+    "userNotes": "Notes",
+    "clientProfile": "Profil du client",
+    "clientJournal": "Journal du client",
+    "clientMealPlans": "Menus du client",
+    "allClients": "Tous les clients"
+  },
+  "pages": {
+    "userNotes": {
+      "title": "Notes",
+      "subtitle": "Créez, mettez à jour et organisez vos notes privées.",
+      "notes": "Notes",
+      "sortedByUpdate": "Triées par dernière mise à jour",
+      "refresh": "Rafraîchir",
+      "newNote": "Nouvelle note",
+      "loading": "Chargement des notes…",
+      "empty": "Aucune note. Créez votre première note.",
+      "editNote": "Modifier la note",
+      "writePlaceholder": "Écrivez votre note…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler",
+      "updated": "Mis à jour"
+    },
+    "settings": {
+      "title": "Mon profil",
+      "subtitle": "Gérez les paramètres et préférences de votre compte",
+      "language": "Langue",
+      "languageSaved": "Langue mise à jour"
+    },
+    "clientJournal": {
+      "title": "Journal du client",
+      "selectPrompt": "Sélectionnez un client dans la liste pour voir son journal.",
+      "breakfast": "Petit-déjeuner",
+      "lunch": "Déjeuner",
+      "dinner": "Dîner",
+      "snack": "Collation"
+    },
+    "clientMealPlans": {
+      "title": "Menus du client",
+      "selectPrompt": "Sélectionnez un client pour voir ses menus assignés."
+    },
+    "clientProfile": {
+      "title": "Profil du client",
+      "selectPrompt": "Sélectionnez un client pour voir son profil."
+    },
+    "access": {
+      "restricted": "Accès restreint",
+      "noPermission": "Vous n'avez pas l'autorisation d'accéder à cette page.",
+      "adminRequired": "Privilèges administrateur requis.",
+      "adminOrNutritionistRequired": "Privilèges administrateur ou nutritionniste requis.",
+      "nutritionistRequired": "Privilèges nutritionniste requis."
+    },
+    "app": {
+      "loadingUserData": "Chargement des données utilisateur..."
+    },
+    "dashboard": {
+      "title": "Tableau de bord",
+      "subscribers": "Abonnés",
+      "loading": "Chargement des abonnés…",
+      "error": "Erreur lors du chargement",
+      "refresh": "Actualiser",
+      "view": "Afficher"
+    },
+    "myDay": {
+      "title": "Ma journée",
+      "today": "Aujourd'hui",
+      "loading": "Chargement…"
+    },
+    "myUsers": {
+      "title": "Mes clients",
+      "search": "Chercher des clients…",
+      "filter": "Filtrer par statut",
+      "all": "Tous",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "loading": "Chargement des clients…",
+      "error": "Échec du chargement des clients. Veuillez réessayer.",
+      "noClients": "Aucun client trouvé.",
+      "assignNew": "Assigner un nouveau client",
+      "unassign": "Retirer l'assignation",
+      "confirmUnassign": "Êtes-vous sûr de vouloir retirer l'assignation de cet utilisateur ?"
+    },
+    "users": {
+      "title": "Gestion des utilisateurs",
+      "loading": "Chargement des utilisateurs…",
+      "error": "Erreur lors du chargement",
+      "noUsers": "Aucun utilisateur trouvé.",
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?"
+    },
+    "recipes": {
+      "title": "Recettes",
+      "loading": "Chargement des recettes…",
+      "error": "Échec du chargement des recettes",
+      "noRecipes": "Aucune recette disponible.",
+      "create": "Créer une recette",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette recette ?"
+    },
+    "menus": {
+      "title": "Menus",
+      "loading": "Chargement des menus…",
+      "error": "Échec du chargement des menus",
+      "noMenus": "Aucun menu disponible.",
+      "create": "Créer un menu",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce menu ?"
+    },
+    "subscribers": {
+      "title": "Abonnés",
+      "loading": "Chargement des abonnés…",
+      "error": "Échec du chargement des abonnés",
+      "noSubscribers": "Aucun abonné trouvé.",
+      "name": "Nom",
+      "email": "Email",
+      "status": "Statut",
+      "view": "Afficher"
+    },
+    "unapprovedItems": {
+      "title": "Éléments non approuvés",
+      "loading": "Chargement des éléments…",
+      "error": "Échec du chargement des éléments",
+      "noItems": "Aucun élément en attente d'approbation.",
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "confirmApprove": "Approuver cet élément ?",
+      "confirmReject": "Rejeter cet élément ?"
+    },
+    "myMenus": {
+      "title": "Mes menus",
+      "loading": "Chargement des menus…",
+      "error": "Échec du chargement des menus",
+      "noMenus": "Aucun menu créé pour l'instant.",
+      "create": "Créer un menu"
+    },
+    "userProgress": {
+      "title": "Progrès",
+      "loading": "Chargement du progrès…",
+      "error": "Échec du chargement des données de progrès",
+      "noData": "Aucune donnée de progrès disponible."
+    }
+  }
+}

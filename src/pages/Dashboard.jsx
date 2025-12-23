@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import {
   UsersIcon,
   UserGroupIcon,
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const hasLoadedRef = useRef(false)
   const isAdmin = useSelector(selectIsAdmin)
+  const { t } = useTranslation()
 
   useEffect(() => {
     const loadSubscribers = async () => {
@@ -181,7 +183,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading subscribers...</p>
+          <p className="mt-4 text-gray-600">{t('pages.dashboard.loading')}</p>
         </div>
       </div>
     )
@@ -196,7 +198,7 @@ const Dashboard = () => {
             onClick={refreshSubscribers}
             className="mt-2 text-blue-600 hover:text-blue-900 underline"
           >
-            Try again
+            {t('common.tryAgain')}
           </button>
         </div>
       </div>
@@ -207,14 +209,14 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('pages.dashboard.title')}</h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Welcome back! Here's what's happening with your fitness platform.</p>
         </div>
         <button
           onClick={refreshSubscribers}
           className="btn-primary"
         >
-          Refresh Data
+          {t('pages.dashboard.refresh')}
         </button>
       </div>
 
@@ -241,7 +243,7 @@ const Dashboard = () => {
       {/* Subscribers Table */}
       <div className="card p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Program Subscribers</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('pages.dashboard.subscribers')}</h2>
           <span className="text-sm text-gray-500">{filteredSubscribers.length} subscribers</span>
         </div>
         <div className="space-y-3 md:hidden">

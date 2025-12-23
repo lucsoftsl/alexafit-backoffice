@@ -1,0 +1,179 @@
+{
+  "common": {
+    "tryAgain": "Try Again",
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create"
+  },
+  "app": {
+    "brand": "AlexaFit",
+    "tagline": "Nutrition Guide",
+    "roles": {
+      "Admin": "Admin",
+      "Nutritionist": "Nutritionist",
+      "User": "User"
+    }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "myDay": "My Day",
+    "progress": "Progress",
+    "clients": "Clients",
+    "myMenus": "My Menus",
+    "users": "Users",
+    "unapprovedItems": "⏳ Items",
+    "menus": "Menus",
+    "recipes": "Recipes",
+    "subscribers": "Subscribers",
+    "analytics": "Analytics",
+    "settings": "My Profile",
+    "userNotes": "User Notes",
+    "clientProfile": "Client Profile",
+    "clientJournal": "Client Journal",
+    "clientMealPlans": "Client Meal Plans",
+    "allClients": "All Clients"
+  },
+  "pages": {
+    "userNotes": {
+      "title": "User Notes",
+      "subtitle": "Create, update, and organize your private notes.",
+      "notes": "Notes",
+      "sortedByUpdate": "Sorted by last update",
+      "refresh": "Refresh",
+      "newNote": "New Note",
+      "loading": "Loading notes…",
+      "empty": "No notes yet. Create your first note.",
+      "editNote": "Edit Note",
+      "writePlaceholder": "Write your note…",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "updated": "Updated"
+    },
+    "settings": {
+      "title": "My Profile",
+      "subtitle": "Manage your account settings and preferences",
+      "language": "Language",
+      "languageSaved": "Language updated"
+    },
+    "clientJournal": {
+      "title": "Client Journal",
+      "selectPrompt": "Select a client from the Clients list to view their journal.",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack"
+    },
+    "clientMealPlans": {
+      "title": "Client Meal Plans",
+      "selectPrompt": "Select a client from the Clients list to view their assigned menus."
+    },
+    "clientProfile": {
+      "title": "Client Profile",
+      "selectPrompt": "Select a client from the Clients list to view their profile."
+    },
+    "access": {
+      "restricted": "Access Restricted",
+      "noPermission": "You don't have permission to access this page.",
+      "adminRequired": "Admin privileges required.",
+      "adminOrNutritionistRequired": "Admin or Nutritionist privileges required.",
+      "nutritionistRequired": "Nutritionist privileges required."
+    },
+    "app": {
+      "loadingUserData": "Loading user data..."
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "subscribers": "Subscribers",
+      "loading": "Loading subscribers...",
+      "error": "Error Loading Data",
+      "refresh": "Refresh",
+      "view": "View"
+    },
+    "myDay": {
+      "title": "My Day",
+      "today": "Today",
+      "loading": "Loading..."
+    },
+    "myUsers": {
+      "title": "My Clients",
+      "search": "Search clients...",
+      "filter": "Filter by status",
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive",
+      "loading": "Loading clients...",
+      "error": "Failed to load clients. Please try again.",
+      "noClients": "No clients found.",
+      "assignNew": "Assign New Client",
+      "unassign": "Unassign",
+      "confirmUnassign": "Are you sure you want to unassign this user?"
+    },
+    "users": {
+      "title": "Users Management",
+      "loading": "Loading users...",
+      "error": "Error Loading Data",
+      "noUsers": "No users found.",
+      "delete": "Delete",
+      "edit": "Edit",
+      "confirmDelete": "Are you sure you want to delete this user?"
+    },
+    "recipes": {
+      "title": "Recipes",
+      "loading": "Loading recipes...",
+      "error": "Failed to load recipes",
+      "noRecipes": "No recipes available.",
+      "create": "Create Recipe",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this recipe?"
+    },
+    "menus": {
+      "title": "Menus",
+      "loading": "Loading menus...",
+      "error": "Failed to load menus",
+      "noMenus": "No menus available.",
+      "create": "Create Menu",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this menu?"
+    },
+    "subscribers": {
+      "title": "Subscribers",
+      "loading": "Loading subscribers...",
+      "error": "Failed to load subscribers",
+      "noSubscribers": "No subscribers found.",
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "view": "View"
+    },
+    "unapprovedItems": {
+      "title": "Unapproved Items",
+      "loading": "Loading items...",
+      "error": "Failed to load items",
+      "noItems": "No unapproved items.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "confirmApprove": "Approve this item?",
+      "confirmReject": "Reject this item?"
+    },
+    "myMenus": {
+      "title": "My Menus",
+      "loading": "Loading menus...",
+      "error": "Failed to load menus",
+      "noMenus": "No menus created yet.",
+      "create": "Create Menu"
+    },
+    "userProgress": {
+      "title": "Progress",
+      "loading": "Loading progress...",
+      "error": "Failed to load progress data",
+      "noData": "No progress data available."
+    }
+  }
+}

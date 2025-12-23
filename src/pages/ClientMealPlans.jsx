@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getUserMenuByDate } from '../services/loggedinApi'
 import { findDefaultServing, calculateDisplayValues, safeNutrients } from '../util/menuDisplay'
 
@@ -53,6 +54,7 @@ const ClientMealPlans = ({ client }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [menu, setMenu] = useState(null)
+  const { t } = useTranslation()
 
   const userId = useMemo(() => Array.isArray(client?.userId) ? client.userId[0] : client?.userId, [client])
   const userName = useMemo(() => client?.userData?.name || client?.loginDetails?.displayName || 'User', [client])
@@ -77,8 +79,8 @@ const ClientMealPlans = ({ client }) => {
   if (!client) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Client Meal Plans</h2>
-        <p className="text-gray-600">Select a client from the Clients list to view their assigned menus.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('pages.clientMealPlans.title')}</h2>
+        <p className="text-gray-600">{t('pages.clientMealPlans.selectPrompt')}</p>
       </div>
     )
   }
@@ -87,7 +89,7 @@ const ClientMealPlans = ({ client }) => {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Client Meal Plans</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('pages.clientMealPlans.title')}</h1>
           <p className="text-gray-600 mt-1">{userName}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -114,10 +116,10 @@ const ClientMealPlans = ({ client }) => {
         )}
         {!loading && !error && menu && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <MealBlock label="Breakfast" items={menu.breakfastPlan || []} />
-            <MealBlock label="Lunch" items={menu.lunchPlan || []} />
-            <MealBlock label="Dinner" items={menu.dinnerPlan || []} />
-            <MealBlock label="Snack" items={menu.snackPlan || []} />
+            <MealBlock label={t('pages.clientJournal.breakfast')} items={menu.breakfastPlan || []} />
+            <MealBlock label={t('pages.clientJournal.lunch')} items={menu.lunchPlan || []} />
+            <MealBlock label={t('pages.clientJournal.dinner')} items={menu.dinnerPlan || []} />
+            <MealBlock label={t('pages.clientJournal.snack')} items={menu.snackPlan || []} />
           </div>
         )}
       </div>

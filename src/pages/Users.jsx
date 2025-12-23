@@ -1,6 +1,7 @@
 /* eslint-disable max-len */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -15,6 +16,7 @@ import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
 
 const Users = () => {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [users, setUsers] = useState([])
@@ -148,17 +150,17 @@ const Users = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('pages.users.title')}</h1>
             <p className="text-gray-600 mt-2">Manage and monitor all platform users</p>
           </div>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading users...</p>
+            <p className="mt-4 text-gray-600">{t('pages.users.loading')}</p>
           </div>
         </div>
       </div>
@@ -167,10 +169,10 @@ const Users = () => {
 
   if (error) {
     return (
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('pages.users.title')}</h1>
             <p className="text-gray-600 mt-2">Manage and monitor all platform users</p>
           </div>
         </div>
@@ -178,9 +180,9 @@ const Users = () => {
           <div className="flex items-center">
             <ExclamationTriangleIcon className="h-8 w-8 text-red-600 mr-4" />
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Error Loading Data</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('pages.users.error')}</h3>
               <p className="text-gray-600 mt-1">{error}</p>
-              <button onClick={refreshUsers} className="btn-primary mt-4">Try Again</button>
+              <button onClick={refreshUsers} className="btn-primary mt-4">{t('common.tryAgain')}</button>
             </div>
           </div>
         </div>
@@ -192,7 +194,7 @@ const Users = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">Users Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('pages.users.title')}</h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage and monitor all platform users</p>
         </div>
         <div className="flex flex-wrap justify-center sm:justify-end gap-2">

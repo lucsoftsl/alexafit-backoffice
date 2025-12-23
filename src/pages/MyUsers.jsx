@@ -1,6 +1,7 @@
 /* eslint-disable max-len */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import {
   MagnifyingGlassIcon,
   TrashIcon,
@@ -29,6 +30,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
   const [usersPerPage, setUsersPerPage] = useState(5)
   const userData = useSelector(selectUserData)
   const { currentUser } = useAuth()
+  const { t } = useTranslation()
 
   // Assign user form state
   const [assignUserId, setAssignUserId] = useState('')
@@ -241,7 +243,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         <div className={`${glassSurfaceClass} p-8 flex items-center justify-center`}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-700">Loading clients...</p>
+            <p className="mt-4 text-gray-700">{t('pages.myUsers.loading')}</p>
           </div>
         </div>
       </div>
@@ -265,9 +267,9 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
           <div className="flex items-center">
             <ExclamationTriangleIcon className="h-8 w-8 text-rose-600 mr-4" />
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Error Loading Data</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myUsers.error')}</h3>
               <p className="text-gray-700 mt-1">{error}</p>
-              <button onClick={refreshUsers} className="btn-primary mt-4">Try Again</button>
+              <button onClick={refreshUsers} className="btn-primary mt-4">{t('common.tryAgain')}</button>
             </div>
           </div>
         </div>
