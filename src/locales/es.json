@@ -177,9 +177,97 @@
     "clientActions": "Acciones del cliente",
     "clientActionsSubtitle": "Enlaces rápidos para este cliente",
     "backToMainMenu": "Volver al menú principal",
-    "backofficeAdmin": "Admin de oficina"
+    "backofficeAdmin": "Admin de oficina",
+    "tutorials": "Tutoriales"
   },
   "pages": {
+    "tutorials": {
+      "title": "Tutoriales",
+      "subtitle": "Recorridos rápidos de los flujos principales que usas a diario.",
+      "badge": "Consejos según rol para admins y nutricionistas",
+      "sections": {
+        "myDay": {
+          "title": "Mi día",
+          "description": "Revisa tu ingesta, ejercicios, agua y menú asignado por fecha.",
+          "steps": [
+            "Usa las flechas o el selector de fecha para cambiar de día; el icono de recarga trae el último registro.",
+            "Consulta en el héroe las calorías ingeridas, quemadas, agua y el nombre del menú asignado.",
+            "Recorre cada comida para ver alimentos o ejercicios; toca un ítem para ver detalles y fotos.",
+            "Compara ingestión vs objetivos con el carrusel y las tarjetas de macros para detectar brechas rápido."
+          ]
+        },
+        "userProgress": {
+          "title": "Progreso del usuario",
+          "description": "Controla tu peso y medidas con gráficas y filtros.",
+          "steps": [
+            "Pulsa Agregar entrada para registrar un check-in con peso y medidas opcionales.",
+            "Usa Actualizar para sincronizar y luego elige un rango (14d–1a) para enfocar las gráficas.",
+            "Expande una fila de medida para ver su gráfica; el valor más reciente aparece junto a la etiqueta.",
+            "Ordena por fecha o peso para auditar cambios y reabre entradas si necesitas ajustarlas."
+          ]
+        },
+        "clientProgress": {
+          "title": "Progreso del cliente",
+          "description": "Revisa el peso y las medidas registradas del cliente seleccionado.",
+          "steps": [
+            "Abre un cliente desde Mis clientes y baja al bloque de Progreso para cargar sus datos.",
+            "Filtra por ventana de tiempo y expande una medida para recorrer el historial en la gráfica.",
+            "Usa Actualizar para traer check-ins recientes si el cliente acaba de registrar datos.",
+            "Detecta tendencias con las tarjetas (actual, inicio, promedio, mínimo, cambio) antes de ajustar planes."
+          ]
+        },
+        "myUsers": {
+          "title": "Mis clientes",
+          "description": "Busca, filtra, asigna y abre los clientes que gestionas.",
+          "steps": [
+            "Busca por nombre o correo y filtra por estado; la paginación controla las filas visibles.",
+            "Usa Actualizar para sincronizar asignaciones, o Asignar usuario para vincular un ID a ti.",
+            "Haz clic en la tarjeta/fila para abrir su contexto (Perfil, Diario, Planes de comida).",
+            "Desasigna desde el menú de acciones cuando ya no gestiones a ese usuario."
+          ]
+        },
+        "clientProfile": {
+          "title": "Perfil del cliente",
+          "description": "Consulta datos clave y define objetivo y peso meta del cliente.",
+          "steps": [
+            "Abre un cliente desde Mis clientes y usa Editar objetivo para ajustar peso meta, unidades y tipo de objetivo.",
+            "Guarda para enviar los cambios; cancela para mantener el valor anterior.",
+            "Revisa fecha de asignación, estado y contacto en la tarjeta de detalles.",
+            "Usa la sección de progreso debajo para validar si el objetivo coincide con las medidas recientes."
+          ]
+        },
+        "clientJournal": {
+          "title": "Diario del cliente",
+          "description": "Visualiza comidas, ejercicios y agua del cliente por día.",
+          "steps": [
+            "Elige una fecha en el calendario (o vista semanal) para cargar el registro de ese día.",
+            "Revisa tarjetas de macros y secciones de comidas; se muestran fotos si el cliente las agregó.",
+            "Consulta ejercicios y totales de agua para evaluar adherencia en el día elegido.",
+            "Usa Siguiente/Anterior para moverte por los días manteniendo el mismo cliente."
+          ]
+        },
+        "clientMealPlans": {
+          "title": "Planes de comida del cliente",
+          "description": "Verifica qué menú tiene asignado el cliente en una fecha.",
+          "steps": [
+            "Selecciona fecha con el selector para ver el plan asignado ese día.",
+            "Cada bloque de comida lista los alimentos/recetas y el resumen de macros.",
+            "Si no ves plan, asígnalo desde Mis menús → Asignar a cliente.",
+            "Usa esta vista al ajustar objetivos para confirmar que el plan coincide con las metas diarias."
+          ]
+        },
+        "myMenus": {
+          "title": "Mis menús",
+          "description": "Crea plantillas, administra comidas y asigna menús a clientes.",
+          "steps": [
+            "Crea una nueva plantilla con + Nuevo, ponle nombre y elige pestaña de comida (Desayuno/Almuerzo/Cena/Merienda).",
+            "Busca alimentos o recetas (activar Solo recetas) y agrégalos; ajusta raciones por entrada.",
+            "Guarda la plantilla y luego expándela para editarla o quitar ítems si es necesario.",
+            "Asigna una plantilla a un cliente con fecha; expande la fila del cliente para ver asignaciones previas."
+          ]
+        }
+      }
+    },
     "userNotes": {
       "title": "Notas",
       "subtitle": "Crea, actualiza y organiza tus notas privadas.",

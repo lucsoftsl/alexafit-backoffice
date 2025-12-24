@@ -177,9 +177,97 @@
     "clientActions": "Client Actions",
     "clientActionsSubtitle": "Quick links for this client",
     "backToMainMenu": "Back to main menu",
-    "backofficeAdmin": "Backoffice Admin"
+    "backofficeAdmin": "Backoffice Admin",
+    "tutorials": "Tutorials"
   },
   "pages": {
+    "tutorials": {
+      "title": "Tutorials",
+      "subtitle": "Quick walkthroughs of the main workflows you use every day.",
+      "badge": "Role-aware tips for admins and nutritionists",
+      "sections": {
+        "myDay": {
+          "title": "My Day",
+          "description": "Review your own intake, workouts, water and assigned menu by date.",
+          "steps": [
+            "Use the date arrows or picker to move across days; the refresh icon pulls the latest log.",
+            "Check the hero stats for calories eaten, burned, water and the menu name assigned for the day.",
+            "Scroll each meal card to see foods or exercises; tap an item to inspect its details and photos.",
+            "Compare intake vs goals with the carousel and macro cards to spot gaps quickly."
+          ]
+        },
+        "userProgress": {
+          "title": "User Progress",
+          "description": "Track your own weight and measurements with charts and filters.",
+          "steps": [
+            "Select Add Entry to log a new check-in; include weight and optional measurements.",
+            "Use Refresh to sync the latest data, then pick a time range (14d–1y) to focus the charts.",
+            "Expand a measurement row to see its chart; the latest value shows beside the label.",
+            "Sort entries by date or weight to audit changes, and reopen entries to adjust if needed."
+          ]
+        },
+        "clientProgress": {
+          "title": "Client Progress",
+          "description": "Review a selected client's tracked weight and measurements.",
+          "steps": [
+            "Open a client from My Clients, then scroll to the Progress block to load their data.",
+            "Filter by time window and expand a measurement to browse its chart history.",
+            "Use Refresh to pull new check-ins if the client has recently updated their app.",
+            "Spot trends with the cards (current, start, average, min, change) before adjusting plans."
+          ]
+        },
+        "myUsers": {
+          "title": "My Clients",
+          "description": "Search, filter, assign, and open clients you manage.",
+          "steps": [
+            "Search by name or email and filter by status; pagination controls the visible rows.",
+            "Use Refresh to sync assignments, or Assign User to link a user ID to you.",
+            "Click a client card/row to open their context (Profile, Journal, Meal Plans).",
+            "Unassign from the action menu when you no longer manage that user."
+          ]
+        },
+        "clientProfile": {
+          "title": "Client Profile",
+          "description": "See core details and set the client's goal and target weight.",
+          "steps": [
+            "Open a client from My Clients, then use Edit Goal to adjust target weight, units, and goal type.",
+            "Save changes to push updates; cancel to keep the previous target.",
+            "Review assigned date, status, and contact details in the details card.",
+            "Use the progress section below to validate if goals align with recent measurements."
+          ]
+        },
+        "clientJournal": {
+          "title": "Client Journal",
+          "description": "View a client's day-by-day meals, exercises, and water.",
+          "steps": [
+            "Pick a date from the calendar (or weekly view) to load that day's log.",
+            "Check macro cards and meal sections; photos show when the client attached one.",
+            "Review exercises and water totals to judge adherence for the selected day.",
+            "Use Next/Prev to move across days while keeping the same client context."
+          ]
+        },
+        "clientMealPlans": {
+          "title": "Client Meal Plans",
+          "description": "See which menu is assigned to the client for a specific date.",
+          "steps": [
+            "Choose a date with the picker to check the assigned plan for that day.",
+            "Each meal block lists the foods/recipes and macro summary for quick review.",
+            "If no plan shows, assign one from My Menus → Assign to client.",
+            "Use this view while adjusting goals to ensure plans match daily targets."
+          ]
+        },
+        "myMenus": {
+          "title": "My Menus",
+          "description": "Build templates, manage meals, and assign menus to clients.",
+          "steps": [
+            "Start a new template with + New, name it, and pick a meal tab (Breakfast/Lunch/Dinner/Snack).",
+            "Search foods or recipes (toggle Only recipes) and add items; adjust servings per meal entry.",
+            "Save the template, then expand it to edit, duplicate meals, or remove items as needed.",
+            "Assign a template to a client with date selection; expand a client row to see past assignments."
+          ]
+        }
+      }
+    },
     "userNotes": {
       "title": "User Notes",
       "subtitle": "Create, update, and organize your private notes.",

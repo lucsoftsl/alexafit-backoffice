@@ -177,9 +177,97 @@
     "clientActions": "Actions du client",
     "clientActionsSubtitle": "Liens rapides pour ce client",
     "backToMainMenu": "Retour au menu principal",
-    "backofficeAdmin": "Admin back-office"
+    "backofficeAdmin": "Admin back-office",
+    "tutorials": "Tutoriels"
   },
   "pages": {
+    "tutorials": {
+      "title": "Tutoriels",
+      "subtitle": "Parcours rapides des principaux flux que vous utilisez au quotidien.",
+      "badge": "Conseils selon le rôle pour admins et nutritionnistes",
+      "sections": {
+        "myDay": {
+          "title": "Ma journée",
+          "description": "Consultez votre apport, vos exercices, l'eau et le menu assigné par date.",
+          "steps": [
+            "Utilisez les flèches ou le sélecteur de date pour changer de jour ; l'icône de recharge récupère les dernières données.",
+            "Vérifiez les statistiques (calories ingérées, brûlées, eau et nom du menu du jour).",
+            "Parcourez chaque repas pour voir les aliments ou exercices ; touchez un élément pour voir ses détails et photos.",
+            "Comparez apport et objectifs avec le carrousel et les cartes de macros pour détecter les écarts."
+          ]
+        },
+        "userProgress": {
+          "title": "Progrès utilisateur",
+          "description": "Suivez votre poids et vos mesures avec graphiques et filtres.",
+          "steps": [
+            "Cliquez sur Ajouter une entrée pour enregistrer un check-in avec poids et mesures optionnelles.",
+            "Appuyez sur Actualiser puis choisissez une période (14j–1an) pour concentrer les graphiques.",
+            "Déployez une mesure pour afficher son graphique ; la dernière valeur s'affiche à côté du libellé.",
+            "Triez par date ou poids pour auditer les évolutions et réouvrez les entrées si besoin d'ajustement."
+          ]
+        },
+        "clientProgress": {
+          "title": "Progrès du client",
+          "description": "Consultez le poids et les mesures du client sélectionné.",
+          "steps": [
+            "Ouvrez un client depuis Mes clients puis descendez au bloc Progrès pour charger ses données.",
+            "Filtrez par période et déployez une mesure pour parcourir l'historique du graphique.",
+            "Utilisez Actualiser pour récupérer les check-ins récents si le client vient de se mettre à jour.",
+            "Observez les tendances avec les cartes (actuel, départ, moyenne, min, variation) avant d'ajuster les plans."
+          ]
+        },
+        "myUsers": {
+          "title": "Mes clients",
+          "description": "Recherchez, filtrez, assignez et ouvrez les clients que vous gérez.",
+          "steps": [
+            "Recherchez par nom ou email et filtrez par statut ; la pagination contrôle les lignes visibles.",
+            "Utilisez Actualiser pour synchroniser, ou Assigner un utilisateur pour lier un ID à votre compte.",
+            "Cliquez sur la carte/ligne d'un client pour ouvrir son contexte (Profil, Journal, Plans).",
+            "Désassignez via le menu d'actions lorsque vous ne gérez plus cet utilisateur."
+          ]
+        },
+        "clientProfile": {
+          "title": "Profil du client",
+          "description": "Consultez les infos clés et définissez l'objectif et le poids cible du client.",
+          "steps": [
+            "Ouvrez un client depuis Mes clients puis utilisez Modifier l'objectif pour ajuster poids cible, unités et type d'objectif.",
+            "Enregistrez pour appliquer les changements ; annulez pour conserver la valeur précédente.",
+            "Vérifiez date d'assignation, statut et contact dans la carte de détails.",
+            "Servez-vous de la section progrès en dessous pour confirmer que l'objectif colle aux mesures récentes."
+          ]
+        },
+        "clientJournal": {
+          "title": "Journal du client",
+          "description": "Visualisez les repas, exercices et eau d'un client par journée.",
+          "steps": [
+            "Choisissez une date dans le calendrier (ou la vue hebdo) pour charger le journal de ce jour.",
+            "Consultez les cartes de macros et les sections repas ; les photos s'affichent si le client en a ajouté.",
+            "Passez en revue exercices et total d'eau pour évaluer l'adhérence du jour choisi.",
+            "Utilisez Suivant/Précédent pour naviguer entre les jours en gardant le même client."
+          ]
+        },
+        "clientMealPlans": {
+          "title": "Menus du client",
+          "description": "Vérifiez quel menu est assigné au client pour une date donnée.",
+          "steps": [
+            "Sélectionnez une date via le sélecteur pour voir le plan assigné ce jour-là.",
+            "Chaque bloc repas liste aliments/recettes et un résumé des macros.",
+            "S'il n'y a pas de plan, assignez-en un depuis Mes menus → Assigner au client.",
+            "Utilisez cette vue lors des ajustements d'objectifs pour vérifier l'alignement quotidien."
+          ]
+        },
+        "myMenus": {
+          "title": "Mes menus",
+          "description": "Créez des modèles, gérez les repas et assignez des menus aux clients.",
+          "steps": [
+            "Créez un nouveau modèle avec + Nouveau, nommez-le et choisissez l'onglet repas (Petit-déj/Déjeuner/Dîner/Collation).",
+            "Recherchez des aliments ou recettes (option Seulement recettes) et ajoutez-les ; ajustez les portions par entrée.",
+            "Enregistrez le modèle puis déployez-le pour l'éditer ou retirer des éléments si nécessaire.",
+            "Assignez un modèle à un client avec une date ; déployez la ligne du client pour voir les affectations précédentes."
+          ]
+        }
+      }
+    },
     "userNotes": {
       "title": "Notes",
       "subtitle": "Créez, mettez à jour et organisez vos notes privées.",

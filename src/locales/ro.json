@@ -177,9 +177,97 @@
     "clientActions": "Acțiuni client",
     "clientActionsSubtitle": "Linkuri rapide pentru acest client",
     "backToMainMenu": "Înapoi la meniu principal",
-    "backofficeAdmin": "Admin birou"
+    "backofficeAdmin": "Admin birou",
+    "tutorials": "Tutoriale"
   },
   "pages": {
+    "tutorials": {
+      "title": "Tutoriale",
+      "subtitle": "Ghiduri rapide pentru fluxurile pe care le folosești zilnic.",
+      "badge": "Sfaturi pe rol pentru admini și nutriționiști",
+      "sections": {
+        "myDay": {
+          "title": "Ziua mea",
+          "description": "Vezi aportul, exercițiile, apa și meniul alocat pe dată.",
+          "steps": [
+            "Folosește săgețile sau selectorul de dată pentru a schimba ziua; pictograma de reîmprospătare aduce cele mai noi date.",
+            "Verifică statisticile de sus pentru calorii mâncate, arse, apă și numele meniului zilei.",
+            "Parcurge fiecare masă pentru a vedea alimentele sau exercițiile; atinge un element pentru detalii și fotografii.",
+            "Compară aportul cu obiectivele folosind caruselul și cardurile de macro pentru a observa rapid diferențele."
+          ]
+        },
+        "userProgress": {
+          "title": "Progres utilizator",
+          "description": "Urmărește greutatea și măsurătorile tale cu grafice și filtre.",
+          "steps": [
+            "Apasă Adaugă înregistrare pentru un nou check-in cu greutate și măsurători opționale.",
+            "Folosește Reîmprospătare, apoi alege o perioadă (14z–1an) pentru a concentra graficele.",
+            "Extinde o măsurătoare pentru a vedea graficul; ultima valoare apare lângă etichetă.",
+            "Sortează după dată sau greutate pentru a audita schimbările și redeschide înregistrări dacă trebuie ajustate."
+          ]
+        },
+        "clientProgress": {
+          "title": "Progres client",
+          "description": "Consultă greutatea și măsurătorile clientului selectat.",
+          "steps": [
+            "Deschide un client din Clienții mei și derulează la blocul Progres pentru a încărca datele.",
+            "Filtrează după perioadă și extinde o măsurătoare pentru a vedea istoricul în grafic.",
+            "Folosește Reîmprospătare pentru a aduce check-in-uri noi dacă clientul tocmai s-a actualizat.",
+            "Observă tendințele cu cardurile (actual, început, medie, minim, schimbare) înainte de a ajusta planurile."
+          ]
+        },
+        "myUsers": {
+          "title": "Clienții mei",
+          "description": "Caută, filtrează, atribuie și deschide clienții pe care îi gestionezi.",
+          "steps": [
+            "Caută după nume sau email și filtrează după statut; paginarea controlează rândurile vizibile.",
+            "Folosește Reîmprospătare pentru a sincroniza atribuirile sau Atribuie utilizator pentru a lega un ID la tine.",
+            "Fă clic pe card/rând pentru a deschide contextul lui (Profil, Jurnal, Planuri de mese).",
+            "Dezatribuie din meniul de acțiuni când nu mai gestionezi utilizatorul."
+          ]
+        },
+        "clientProfile": {
+          "title": "Profilul clientului",
+          "description": "Vezi detalii cheie și setează obiectivul și greutatea țintă.",
+          "steps": [
+            "Deschide un client din Clienții mei și folosește Editează obiectiv pentru a ajusta greutatea țintă, unitățile și tipul obiectivului.",
+            "Salvează pentru a aplica modificările; anulează pentru a păstra valoarea anterioară.",
+            "Verifică data asignării, statutul și contactul în cardul de detalii.",
+            "Folosește secțiunea de progres de dedesubt pentru a confirma că obiectivul se potrivește cu măsurătorile recente."
+          ]
+        },
+        "clientJournal": {
+          "title": "Jurnalul clientului",
+          "description": "Vizualizează mesele, exercițiile și apa clientului pe zile.",
+          "steps": [
+            "Alege o dată din calendar (sau din vizualizarea săptămânală) pentru a încărca jurnalul acelei zile.",
+            "Consultă cardurile de macro și secțiunile de masă; apar fotografii dacă clientul le-a atașat.",
+            "Verifică exercițiile și totalul de apă pentru a evalua aderența pe ziua selectată.",
+            "Folosește Înainte/Înapoi pentru a naviga între zile păstrând același client."
+          ]
+        },
+        "clientMealPlans": {
+          "title": "Planuri de mese ale clientului",
+          "description": "Vezi ce meniu are alocat clientul într-o anumită zi.",
+          "steps": [
+            "Selectează o dată cu selectorul pentru a vedea planul alocat în acea zi.",
+            "Fiecare bloc de masă listează alimentele/rețetele și un rezumat de macro.",
+            "Dacă nu apare plan, alocă unul din Meniurile mele → Asignare către client.",
+            "Folosește această vizualizare când ajustezi obiectivele pentru a verifica alinierea zilnică."
+          ]
+        },
+        "myMenus": {
+          "title": "Meniurile mele",
+          "description": "Construiește șabloane, gestionează mesele și atribuie meniuri clienților.",
+          "steps": [
+            "Creează un șablon nou cu + Nou, denumește-l și alege fila de masă (Mic dejun/Prânz/Cină/Gustare).",
+            "Caută alimente sau rețete (opțiunea Doar rețete) și adaugă-le; ajustează porțiile pe intrare.",
+            "Salvează șablonul, apoi extinde-l pentru a-l edita sau a elimina elemente după nevoie.",
+            "Atribuie un șablon unui client cu o dată; extinde rândul clientului pentru a vedea asignările anterioare."
+          ]
+        }
+      }
+    },
     "userNotes": {
       "title": "Note",
       "subtitle": "Creați, actualizați și organizați notele private.",

@@ -16,6 +16,7 @@ import UserNotes from './pages/UserNotes'
 import ClientJournal from './pages/ClientJournal'
 import ClientProfile from './pages/ClientProfile'
 import ClientMealPlans from './pages/ClientMealPlans'
+import Tutorials from './pages/Tutorials'
 import Login from './components/Login'
 import { useAuth } from './contexts/AuthContext'
 import {
@@ -185,6 +186,8 @@ function App() {
         return <UserNotes />
       case 'progress':
         return <UserProgress />
+      case 'tutorials':
+        return <Tutorials />
       default:
         return <Dashboard />
     }
