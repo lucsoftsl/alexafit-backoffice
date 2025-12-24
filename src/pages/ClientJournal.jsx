@@ -41,13 +41,13 @@ const Progress = ({ percent }) => (
   </div>
 )
 
-const MacroCard = ({ label, value, unit = '', goal }) => {
+const MacroCard = ({ label, value, unit = '', goal, t }) => {
   const pct = goal ? Math.round(((value || 0) / goal) * 100) : null
   return (
     <div className="p-3 bg-gray-50 rounded-lg">
       <div className="flex justify-between items-baseline">
         <p className="text-xs text-gray-500">{label}</p>
-        {goal ? <p className="text-xs text-gray-400">Goal: {goal}{unit}</p> : null}
+        {goal ? <p className="text-xs text-gray-400">{t('pages.clientJournal.goal')}: {goal}{unit}</p> : null}
       </div>
       <p className="text-lg font-semibold text-gray-900">{value}{unit}</p>
       {pct !== null && (
@@ -73,7 +73,7 @@ const getItemCalories = (it) => {
   return Math.round(it?.totalCalories || 0)
 }
 
-const ItemRow = ({ it }) => {
+const ItemRow = ({ it, t }) => {
   const name = getItemDisplay(it)
   const kcal = getItemCalories(it)
   const category = it?.food?.category || it?.category || (it?.exercise ? 'exerciseGeneral' : '')
@@ -83,16 +83,16 @@ const ItemRow = ({ it }) => {
     <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
       <div className="flex items-center gap-2 overflow-hidden">
         <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-          {img ? <img src={img} alt={name} className="w-8 h-8 object-cover" /> : <span className="text-xs text-gray-400">{category || 'item'}</span>}
+          {img ? <img src={img} alt={name} className="w-8 h-8 object-cover" /> : <span className="text-xs text-gray-400">{category || t('pages.clientJournal.item')}</span>}
         </div>
         <span className="text-sm text-gray-800 truncate">{name}</span>
       </div>
-      <span className="text-sm text-gray-500 ml-2">{kcal} kcal</span>
+      <span className="text-sm text-gray-500 ml-2">{kcal} {t('pages.clientJournal.kcal')}</span>
     </div>
   )
 }
 
-const MealSection = ({ title, items = [], photoUrl }) => (
+const MealSection = ({ title, items = [], photoUrl, t }) => (
   <div className="border border-gray-200 rounded-lg p-3 bg-white shadow-sm">
     <div className="flex justify-between items-center mb-2">
       <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
@@ -101,11 +101,11 @@ const MealSection = ({ title, items = [], photoUrl }) => (
     {items && items.length > 0 ? (
       <div className="space-y-1">
         {items.map((it, idx) => (
-          <ItemRow key={idx} it={it} />
+          <ItemRow key={idx} it={it} t={t} />
         ))}
       </div>
     ) : (
-      <p className="text-xs text-gray-500">No items added.</p>
+      <p className="text-xs text-gray-500">{t('pages.clientJournal.noItems')}</p>
     )}
   </div>
 )
@@ -349,13 +349,13 @@ const ClientJournal = ({ client }) => {
     return (
       <div className="w-full">
         <div className="flex items-center justify-between mb-4">
-          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={prevMonth}>Prev</button>
+          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={prevMonth}>{t('pages.clientJournal.prev')}</button>
           <h2 className="text-xl font-semibold text-gray-900">{monthLabel}</h2>
-          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={nextMonth}>Next</button>
+          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={nextMonth}>{t('pages.clientJournal.next')}</button>
         </div>
         <div className="grid grid-cols-7 gap-2 text-xs text-gray-500 mb-2">
-          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
-            <div key={d} className="text-center">{d}</div>
+          {[t('pages.clientJournal.mon'),t('pages.clientJournal.tue'),t('pages.clientJournal.wed'),t('pages.clientJournal.thu'),t('pages.clientJournal.fri'),t('pages.clientJournal.sat'),t('pages.clientJournal.sun')].map((d, idx) => (
+            <div key={idx} className="text-center">{d}</div>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-2">
@@ -389,7 +389,7 @@ const ClientJournal = ({ client }) => {
                           <div className={`w-full rounded-full px-1.5 py-1 shadow-sm border text-center flex items-center justify-center gap-1 ${pillClasses}`}>
                             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }}></span>
                             <span className="text-[10px] font-semibold leading-tight">
-                              {consumed} / {goal || '-'} kcal
+                              {consumed} / {goal || '-'} {t('pages.clientJournal.kcal')}
                             </span>
                           </div>
                         </div>
@@ -421,12 +421,12 @@ const ClientJournal = ({ client }) => {
     return (
       <div className="w-full">
         <div className="flex items-center justify-between mb-3">
-          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={prevWeek}>Prev</button>
+          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={prevWeek}>{t('pages.clientJournal.prev')}</button>
           <div className="text-center">
-            <p className="text-xs text-gray-500">Week</p>
+            <p className="text-xs text-gray-500">{t('pages.clientJournal.week')}</p>
             <h2 className="text-lg font-semibold text-gray-900">{weekLabel}</h2>
           </div>
-          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={nextWeek}>Next</button>
+          <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50" onClick={nextWeek}>{t('pages.clientJournal.next')}</button>
         </div>
         <div className="grid grid-cols-3 gap-3 justify-items-center">
           {days.map((day, idx) => (
@@ -455,7 +455,7 @@ const ClientJournal = ({ client }) => {
                 return (
                   <div className={`w-full rounded-full px-1.5 py-1 shadow-sm border text-center flex items-center justify-center gap-1 ${pillClasses}`}>
                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }}></span>
-                    <span className="text-[10px] font-semibold leading-tight">{consumed} / {goal || '-'} kcal</span>
+                    <span className="text-[10px] font-semibold leading-tight">{consumed} / {goal || '-'} {t('pages.clientJournal.kcal')}</span>
                   </div>
                 )
               })()}
@@ -496,7 +496,7 @@ const ClientJournal = ({ client }) => {
               className="px-3 py-1.5 text-sm rounded-md bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition"
               onClick={() => setShowCalendar(true)}
             >
-              Back to Calendar
+              {t('pages.clientJournal.backToCalendar')}
             </button>
           </div>
         ) : null}
@@ -524,36 +524,36 @@ const ClientJournal = ({ client }) => {
           <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs text-gray-500">Selected Day</p>
+                <p className="text-xs text-gray-500">{t('pages.clientJournal.selectedDay')}</p>
                 <p className="text-lg font-semibold text-gray-900">{dateLabel}</p>
               </div>
-              {loading && <span className="text-sm text-gray-500">Loading...</span>}
+              {loading && <span className="text-sm text-gray-500">{t('pages.clientJournal.loading')}</span>}
               {error && <span className="text-sm text-red-600">{error}</span>}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <MacroCard label="Calories" value={macroTotals.calories || 0} unit=" kcal" goal={Math.round(daily.goals.calories || 0)} />
-              <MacroCard label="Protein" value={macroTotals.proteinsInGrams || 0} unit=" g" goal={Math.round(daily.goals.protein || 0)} />
-              <MacroCard label="Carbs" value={macroTotals.carbohydratesInGrams || 0} unit=" g" goal={Math.round(daily.goals.carbs || 0)} />
-              <MacroCard label="Fat" value={macroTotals.fatInGrams || 0} unit=" g" goal={Math.round(daily.goals.fat || 0)} />
+              <MacroCard t={t} label="Calories" value={macroTotals.calories || 0} unit=" kcal" goal={Math.round(daily.goals.calories || 0)} />
+              <MacroCard t={t} label="Protein" value={macroTotals.proteinsInGrams || 0} unit=" g" goal={Math.round(daily.goals.protein || 0)} />
+              <MacroCard t={t} label="Carbs" value={macroTotals.carbohydratesInGrams || 0} unit=" g" goal={Math.round(daily.goals.carbs || 0)} />
+              <MacroCard t={t} label="Fat" value={macroTotals.fatInGrams || 0} unit=" g" goal={Math.round(daily.goals.fat || 0)} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <MealSection title={t('pages.clientJournal.breakfast')} items={daily.breakfast} photoUrl={daily.breakfastPhotoUrl} />
-            <MealSection title={t('pages.clientJournal.lunch')} items={daily.lunch} photoUrl={daily.lunchPhotoUrl} />
-            <MealSection title={t('pages.clientJournal.dinner')} items={daily.dinner} photoUrl={daily.dinnerPhotoUrl} />
-            <MealSection title={t('pages.clientJournal.snack')} items={daily.snack} photoUrl={daily.snackPhotoUrl} />
+            <MealSection t={t} title={t('pages.clientJournal.breakfast')} items={daily.breakfast} photoUrl={daily.breakfastPhotoUrl} />
+            <MealSection t={t} title={t('pages.clientJournal.lunch')} items={daily.lunch} photoUrl={daily.lunchPhotoUrl} />
+            <MealSection t={t} title={t('pages.clientJournal.dinner')} items={daily.dinner} photoUrl={daily.dinnerPhotoUrl} />
+            <MealSection t={t} title={t('pages.clientJournal.snack')} items={daily.snack} photoUrl={daily.snackPhotoUrl} />
           </div>
 
           {Array.isArray(daily.exercises) && daily.exercises.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-sm font-semibold text-gray-900">Exercise</h3>
-                <span className="text-xs text-gray-600">Total: {Math.round(daily.exerciseCalories)} kcal</span>
+                <h3 className="text-sm font-semibold text-gray-900">{t('pages.clientJournal.exercise')}</h3>
+                <span className="text-xs text-gray-600">Total: {Math.round(daily.exerciseCalories)} {t('pages.clientJournal.kcal')}</span>
               </div>
               <div className="space-y-1">
                 {daily.exercises.map((ex, idx) => (
-                  <ItemRow key={idx} it={ex} />
+                  <ItemRow key={idx} it={ex} t={t} />
                 ))}
               </div>
             </div>
@@ -562,13 +562,13 @@ const ClientJournal = ({ client }) => {
           {Array.isArray(daily.waterEntries) && daily.waterEntries.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-sm font-semibold text-gray-900">Water Intake</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t('pages.clientJournal.waterIntake')}</h3>
                 <span className="text-xs text-gray-600">Total: {Math.round(daily.waterTotalMl || 0)} ml</span>
               </div>
               <div className="space-y-1">
                 {daily.waterEntries.map((we, idx) => (
                   <div key={idx} className="flex justify-between text-sm p-2">
-                    <span className="text-gray-800">{we?.label || 'Water'}</span>
+                    <span className="text-gray-800">{we?.label || t('pages.clientJournal.water')}</span>
                     <span className="text-gray-500">{Math.round(we?.quantity || we?.ml || 0)} ml</span>
                   </div>
                 ))}

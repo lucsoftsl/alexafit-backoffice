@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   XMarkIcon,
   CheckIcon,
@@ -7,6 +8,7 @@ import {
 import { saveUserCheckin, updateUserCheckin, deleteUserCheckin } from '../services/loggedinApi'
 
 const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     checkInDateTime: new Date().toISOString().split('T')[0],
     currentWeightInKg: '',
@@ -64,7 +66,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
 
   const handleSave = async () => {
     if (!formData.currentWeightInKg) {
-      setError('Weight is required')
+      setError(t('pages.progressModal.errors.weightRequired'))
       return
     }
 
@@ -96,7 +98,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
       onClose()
     } catch (err) {
       console.error('Error saving checkin:', err)
-      setError(err.message || 'Failed to save checkin')
+      setError(err.message || t('pages.progressModal.errors.saveFailed'))
     } finally {
       setLoading(false)
     }
@@ -115,7 +117,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
       onClose()
     } catch (err) {
       console.error('Error deleting checkin:', err)
-      setError(err.message || 'Failed to delete checkin')
+      setError(err.message || t('pages.progressModal.errors.deleteFailed'))
     } finally {
       setLoading(false)
     }
@@ -129,7 +131,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
         {/* Header */}
         <div className="sticky top-0 flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 to-purple-50/50 border-b border-purple-100">
           <h2 className="text-2xl font-bold text-gray-900">
-            {checkin ? 'Edit Progress Entry' : 'Add Progress Entry'}
+            {checkin ? t('pages.progressModal.title.edit') : t('pages.progressModal.title.add')}
           </h2>
           <button
             onClick={onClose}
@@ -150,7 +152,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
           {/* Date */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Date
+              {t('pages.progressModal.fields.date')}
             </label>
             <input
               type="date"
@@ -165,7 +167,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
           {/* Weight */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Weight (kg) *
+              {t('pages.progressModal.fields.weightRequired')}
             </label>
             <input
               type="number"
@@ -173,7 +175,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
               name="currentWeightInKg"
               value={formData.currentWeightInKg}
               onChange={handleInputChange}
-              placeholder="Enter weight"
+              placeholder={t('pages.progressModal.placeholders.weight')}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
             />
@@ -184,7 +186,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
             {/* Fat Percentage */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Fat (%)
+                {t('pages.progressModal.fields.fatPercentage')}
               </label>
               <input
                 type="number"
@@ -192,7 +194,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
                 name="currentFatPercentage"
                 value={formData.currentFatPercentage}
                 onChange={handleInputChange}
-                placeholder="Enter fat %"
+                placeholder={t('pages.progressModal.placeholders.fatPercentage')}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -201,7 +203,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
             {/* Waist Size */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Waist (cm)
+                {t('pages.progressModal.fields.waist')}
               </label>
               <input
                 type="number"
@@ -209,7 +211,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
                 name="currentWaistSizeInCm"
                 value={formData.currentWaistSizeInCm}
                 onChange={handleInputChange}
-                placeholder="Enter waist size"
+                placeholder={t('pages.progressModal.placeholders.waist')}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -218,7 +220,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
             {/* Chest Size */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Chest (cm)
+                {t('pages.progressModal.fields.chest')}
               </label>
               <input
                 type="number"
@@ -226,7 +228,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
                 name="currentChestSizeInCm"
                 value={formData.currentChestSizeInCm}
                 onChange={handleInputChange}
-                placeholder="Enter chest size"
+                placeholder={t('pages.progressModal.placeholders.chest')}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -235,7 +237,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
             {/* Hip Size */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Hips (cm)
+                {t('pages.progressModal.fields.hips')}
               </label>
               <input
                 type="number"
@@ -243,7 +245,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
                 name="currentHipSizeInCm"
                 value={formData.currentHipSizeInCm}
                 onChange={handleInputChange}
-                placeholder="Enter hip size"
+                placeholder={t('pages.progressModal.placeholders.hips')}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -252,7 +254,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
             {/* Thigh Size */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Thigh (cm)
+                {t('pages.progressModal.fields.thigh')}
               </label>
               <input
                 type="number"
@@ -260,7 +262,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
                 name="currentThighSizeInCm"
                 value={formData.currentThighSizeInCm}
                 onChange={handleInputChange}
-                placeholder="Enter thigh size"
+                placeholder={t('pages.progressModal.placeholders.thigh')}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -269,7 +271,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
             {/* Arm Size */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Arm (cm)
+                {t('pages.progressModal.fields.arm')}
               </label>
               <input
                 type="number"
@@ -277,7 +279,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
                 name="currentArmSizeInCm"
                 value={formData.currentArmSizeInCm}
                 onChange={handleInputChange}
-                placeholder="Enter arm size"
+                placeholder={t('pages.progressModal.placeholders.arm')}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -286,7 +288,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
             {/* Water Percentage */}
             <div className="col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Water (%)
+                {t('pages.progressModal.fields.water')}
               </label>
               <input
                 type="number"
@@ -294,7 +296,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
                 name="currentWaterPercentage"
                 value={formData.currentWaterPercentage}
                 onChange={handleInputChange}
-                placeholder="Enter water percentage"
+                placeholder={t('pages.progressModal.placeholders.water')}
                 disabled={loading}
                 className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
               />
@@ -304,21 +306,21 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
           {/* Delete Confirmation */}
           {showDeleteConfirm && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-red-800 font-semibold mb-3">Are you sure you want to delete this entry?</p>
+              <p className="text-red-800 font-semibold mb-3">{t('pages.progressModal.deleteConfirm.message')}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => handleDelete()}
                   disabled={loading}
                   className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  {loading ? 'Deleting...' : 'Yes, Delete'}
+                  {loading ? t('pages.progressModal.actions.deleting') : t('pages.progressModal.deleteConfirm.confirm')}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
                   disabled={loading}
                   className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  {t('pages.progressModal.deleteConfirm.cancel')}
                 </button>
               </div>
             </div>
@@ -334,7 +336,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
               className="flex items-center justify-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-medium transition-colors disabled:opacity-50"
             >
               <TrashIcon className="w-4 h-4" />
-              Delete
+              {t('pages.progressModal.actions.delete')}
             </button>
           )}
           <div className="flex-1 flex gap-3">
@@ -343,7 +345,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
               disabled={loading}
               className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-medium transition-colors disabled:opacity-50"
             >
-              Cancel
+              {t('pages.progressModal.actions.cancel')}
             </button>
             <button
               onClick={handleSave}
@@ -351,7 +353,7 @@ const AddProgressModal = ({ isOpen, onClose, userId, checkin, onSuccess }) => {
               className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
             >
               <CheckIcon className="w-4 h-4" />
-              {loading ? 'Saving...' : checkin ? 'Update' : 'Add'}
+              {loading ? t('pages.progressModal.actions.saving') : checkin ? t('pages.progressModal.actions.update') : t('pages.progressModal.actions.save')}
             </button>
           </div>
         </div>

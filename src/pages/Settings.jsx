@@ -220,7 +220,7 @@ const Settings = () => {
       // Reset success message after 4.5 seconds
       setTimeout(() => setSuccess(false), 4500)
     } catch (err) {
-      setError(err.message || 'Failed to save profile. Please try again.')
+      setError(err.message || t('pages.settings.failedToSaveProfile'))
       console.error('Error saving user data:', err)
     } finally {
       setLoading(false)
@@ -296,7 +296,7 @@ const Settings = () => {
     if (!userData) {
       return (
         <div className="text-center py-8">
-          <p className="text-gray-500">No user data available</p>
+          <p className="text-gray-500">{t('pages.settings.noUserDataAvailable')}</p>
         </div>
       )
     }
@@ -311,7 +311,7 @@ const Settings = () => {
             <div className="relative">
               <h3 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
                 <PencilIcon className="w-6 h-6 mr-3 text-blue-600" />
-                Edit Profile
+                {t('pages.settings.editProfile')}
               </h3>
 
               {error && (
@@ -322,7 +322,7 @@ const Settings = () => {
 
               {success && (
                 <div className="mb-6 p-4 bg-green-50/80 backdrop-blur-md border border-green-200/30 rounded-2xl text-green-700">
-                  Profile updated successfully!
+                  {t('pages.settings.profileUpdatedSuccessfully')}
                 </div>
               )}
 
@@ -330,7 +330,7 @@ const Settings = () => {
               <div className="mb-8 p-6 bg-gradient-to-br from-blue-50/40 to-purple-50/40 backdrop-blur-md border border-blue-200/20 rounded-2xl">
                 <h4 className="text-sm font-semibold text-gray-900 mb-6 flex items-center">
                   <PhotoIcon className="w-5 h-5 mr-2 text-blue-600" />
-                  Avatar
+                  {t('pages.settings.avatar')}
                 </h4>
 
                 <div className="flex flex-col gap-6">
@@ -353,8 +353,8 @@ const Settings = () => {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-600 mb-1">Current Avatar</p>
-                      <p className="text-sm text-gray-500">Click below to change</p>
+                      <p className="text-xs font-medium text-gray-600 mb-1">{t('pages.settings.currentAvatar')}</p>
+                      <p className="text-sm text-gray-500">{t('pages.settings.clickToChange')}</p>
                     </div>
                   </div>
 
@@ -365,14 +365,14 @@ const Settings = () => {
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-md"
                     >
                       <PhotoIcon className="w-4 h-4" />
-                      {showAvatarSelector ? 'Hide Avatars' : 'Choose Avatar'}
+                      {showAvatarSelector ? t('pages.settings.hideAvatars') : t('pages.settings.chooseAvatar')}
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-gradient-to-r from-blue-50/40 to-blue-100/40 border border-blue-200/50 rounded-xl hover:from-blue-100/60 hover:to-blue-150/60 transition-all duration-200 backdrop-blur-md"
                     >
                       <ArrowUpTrayIcon className="w-4 h-4" />
-                      Upload
+                      {t('pages.settings.upload')}
                     </button>
                     <input
                       ref={fileInputRef}
@@ -390,12 +390,12 @@ const Settings = () => {
                       {avatars.generic.length > 0 && (
                         <div className="mb-6">
                           <div className="flex items-center justify-between mb-3">
-                            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Available Avatars</p>
+                            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{t('pages.settings.availableAvatars')}</p>
                             <button
                               onClick={() => fetchAvatars(true)}
                               disabled={avatarLoading}
                               className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Refresh avatars"
+                              title={t('pages.settings.refreshAvatars')}
                             >
                               <ArrowPathIcon className={`w-4 h-4 ${avatarLoading ? 'animate-spin' : ''}`} />
                             </button>
@@ -431,7 +431,7 @@ const Settings = () => {
                       {/* Pro Avatars */}
                       {avatars.pro.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Premium Avatars</p>
+                          <p className="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">{t('pages.settings.premiumAvatars')}</p>
                           <div className="grid grid-cols-4 gap-3">
                             {avatars.pro.map((avatar, idx) => (
                               <button
@@ -472,7 +472,7 @@ const Settings = () => {
             {/* Name */}
             <div className="md:col-span-2">
               <FormField
-                label="Full Name"
+                label={t('pages.settings.fullName')}
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
@@ -481,20 +481,20 @@ const Settings = () => {
 
             {/* Gender */}
             <FormSelect
-              label="Gender"
+              label={t('pages.settings.gender')}
               name="selectedGender"
               value={formData.selectedGender}
               onChange={handleInputChange}
               options={[
-                { value: 'MALE', label: 'Male' },
-                { value: 'FEMALE', label: 'Female' },
-                { value: 'OTHER', label: 'Other' }
+                { value: 'MALE', label: t('pages.settings.male') },
+                { value: 'FEMALE', label: t('pages.settings.female') },
+                { value: 'OTHER', label: t('pages.settings.other') }
               ]}
             />
 
             {/* Birth Date */}
             <FormField
-              label="Birth Date"
+              label={t('pages.settings.birthDate')}
               name="selectedBirthDate"
               type="date"
               value={formData.selectedBirthDate}
@@ -504,14 +504,14 @@ const Settings = () => {
             {/* Feminine Health (only for female users) */}
             {formData.selectedGender === 'FEMALE' && (
               <FormSelect
-                label="Women's Health Status"
+                label={t('pages.settings.womensHealthStatus')}
                 name="selectedFemininOption"
                 value={formData.selectedFemininOption}
                 onChange={handleInputChange}
                 options={[
-                  { value: 'NONE', label: 'None' },
-                  { value: 'PREGNANT', label: 'Pregnant' },
-                  { value: 'BREASTFEEDING', label: 'Breastfeeding' },
+                  { value: 'NONE', label: t('pages.settings.none') },
+                  { value: 'PREGNANT', label: t('pages.settings.pregnant') },
+                  { value: 'BREASTFEEDING', label: t('pages.settings.breastfeeding') },
                 ]}
               />
             )}
@@ -519,7 +519,7 @@ const Settings = () => {
             {/* Height */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Height
+                {t('pages.settings.height')}
               </label>
               <div className="flex gap-2">
                 <input
@@ -527,7 +527,7 @@ const Settings = () => {
                   name="selectedHeight"
                   value={formData.selectedHeight}
                   onChange={handleInputChange}
-                  placeholder="Height"
+                  placeholder={t('pages.settings.height')}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <select
@@ -536,8 +536,8 @@ const Settings = () => {
                   onChange={handleInputChange}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="METRIC">cm</option>
-                  <option value="IMPERIAL">in</option>
+                  <option value="METRIC">{t('pages.settings.cm')}</option>
+                  <option value="IMPERIAL">{t('pages.settings.in')}</option>
                 </select>
               </div>
             </div>
@@ -545,7 +545,7 @@ const Settings = () => {
             {/* Weight */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Current Weight
+                {t('pages.settings.currentWeight')}
               </label>
               <div className="flex gap-2">
                 <input
@@ -553,7 +553,7 @@ const Settings = () => {
                   name="selectedWeight"
                   value={formData.selectedWeight}
                   onChange={handleInputChange}
-                  placeholder="Weight"
+                  placeholder={t('pages.settings.currentWeight')}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <select
@@ -562,8 +562,8 @@ const Settings = () => {
                   onChange={handleInputChange}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="METRIC">kg</option>
-                  <option value="IMPERIAL">lb</option>
+                  <option value="METRIC">{t('pages.settings.kg')}</option>
+                  <option value="IMPERIAL">{t('pages.settings.lb')}</option>
                 </select>
               </div>
             </div>
@@ -571,7 +571,7 @@ const Settings = () => {
             {/* Target Weight */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Target Weight
+                {t('pages.settings.targetWeight')}
               </label>
               <div className="flex gap-2">
                 <input
@@ -579,7 +579,7 @@ const Settings = () => {
                   name="selectedTargetWeight"
                   value={formData.selectedTargetWeight}
                   onChange={handleInputChange}
-                  placeholder="Target Weight"
+                  placeholder={t('pages.settings.targetWeight')}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <select
@@ -588,36 +588,36 @@ const Settings = () => {
                   onChange={handleInputChange}
                   className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="METRIC">kg</option>
-                  <option value="IMPERIAL">lb</option>
+                  <option value="METRIC">{t('pages.settings.kg')}</option>
+                  <option value="IMPERIAL">{t('pages.settings.lb')}</option>
                 </select>
               </div>
             </div>
 
             {/* Activity Level */}
             <FormSelect
-              label="Activity Level"
+              label={t('pages.settings.activityLevel')}
               name="selectedActivityType"
               value={formData.selectedActivityType}
               onChange={handleInputChange}
               options={[
-                { value: 'NOT_ACTIVE', label: 'Not Active' },
-                { value: 'LIGHTLY_ACTIVE', label: 'Lightly Active' },
-                { value: 'MODERATELY_ACTIVE', label: 'Moderately Active' },
-                { value: 'VERY_ACTIVE', label: 'Very Active' }
+                { value: 'NOT_ACTIVE', label: t('pages.settings.notActive') },
+                { value: 'LIGHTLY_ACTIVE', label: t('pages.settings.lightlyActive') },
+                { value: 'MODERATELY_ACTIVE', label: t('pages.settings.moderatelyActive') },
+                { value: 'VERY_ACTIVE', label: t('pages.settings.veryActive') }
               ]}
             />
 
             {/* Goal Type */}
             <FormSelect
-              label="Goal"
+              label={t('pages.settings.goal')}
               name="selectedGoalType"
               value={formData.selectedGoalType}
               onChange={handleInputChange}
               options={[
-                { value: 'LOSE_WEIGHT', label: 'Lose Weight' },
-                { value: 'MAINTAIN_WEIGHT', label: 'Maintain Weight' },
-                { value: 'GAIN_WEIGHT', label: 'Gain Weight' }
+                { value: 'LOSE_WEIGHT', label: t('pages.settings.loseWeight') },
+                { value: 'MAINTAIN_WEIGHT', label: t('pages.settings.maintainWeight') },
+                { value: 'GAIN_WEIGHT', label: t('pages.settings.gainWeight') }
               ]}
             />
           </div>
@@ -630,7 +630,7 @@ const Settings = () => {
               className="flex-1 flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckIcon className="w-4 h-4" />
-              {loading ? 'Saving...' : 'Save Changes'}
+              {loading ? t('pages.settings.saving') : t('pages.settings.saveChanges')}
             </button>
             <button
               onClick={handleCancel}
@@ -638,7 +638,7 @@ const Settings = () => {
               className="flex-1 flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-gray-700 bg-gradient-to-r from-gray-100/40 to-gray-200/40 border border-gray-200/50 rounded-xl hover:from-gray-200/60 hover:to-gray-300/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200 backdrop-blur-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <XMarkIcon className="w-4 h-4" />
-              Cancel
+              {t('pages.settings.cancel')}
             </button>
           </div>
             </div>
@@ -656,7 +656,7 @@ const Settings = () => {
             className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <PencilIcon className="w-4 h-4" />
-            Edit Profile
+            {t('pages.settings.editProfile')}
           </button>
         </div>
 
@@ -669,7 +669,7 @@ const Settings = () => {
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center mr-3 shadow-md">
                 <UserIcon className="w-6 h-6 text-blue-600" />
               </div>
-              Account Information
+              {t('pages.settings.accountInformation')}
             </h3>
 
             {/* Grid Layout for Account Info */}
@@ -684,7 +684,7 @@ const Settings = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">User ID</p>
+                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">{t('pages.settings.userId')}</p>
                     <p className="mt-2 text-sm font-medium text-gray-900 break-all">
                       {userData.userId || currentUser?.uid}
                     </p>
@@ -702,7 +702,7 @@ const Settings = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Email</p>
+                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">{t('pages.settings.email')}</p>
                     <p className="mt-2 text-sm font-medium text-gray-900 break-all">
                       {userData.email || currentUser?.email}
                     </p>
@@ -720,7 +720,7 @@ const Settings = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">User Type</p>
+                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">{t('pages.settings.userType')}</p>
                     <p className="mt-2 text-sm font-bold text-purple-700">
                       {userType}
                     </p>
@@ -742,9 +742,9 @@ const Settings = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wider">Admin Status</p>
+                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wider">{t('pages.settings.adminStatus')}</p>
                     <p className={`mt-2 text-sm font-bold ${isAdmin ? 'text-yellow-700' : 'text-gray-600'}`}>
-                      {isAdmin ? 'Administrator' : 'Regular User'}
+                      {isAdmin ? t('pages.settings.administrator') : t('pages.settings.regularUser')}
                     </p>
                   </div>
                 </div>
@@ -763,13 +763,13 @@ const Settings = () => {
                 <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center mr-3 shadow-md">
                   <UserIcon className="w-6 h-6 text-purple-600" />
                 </div>
-                Profile Information
+                {t('pages.settings.profileInformation')}
               </h3>
 
               {/* Avatar Section */}
               {(userData.userData.avatar?.avatarUrl || currentUser?.photoURL) && (
                 <div className="mb-8">
-                  <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-4">Avatar</p>
+                  <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-4">{t('pages.settings.avatar')}</p>
                   <div className="flex gap-4">
                     {userData.userData.avatar?.avatarUrl ? (
                       <img
@@ -805,7 +805,7 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50/50 to-purple-100/30 backdrop-blur-sm border border-purple-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-600/0 group-hover:from-purple-500/5 group-hover:to-purple-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Full Name</p>
+                      <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">{t('pages.settings.fullName')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">{userData.userData.name || userData.userData.displayName}</p>
                     </div>
                   </div>
@@ -816,7 +816,7 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-50/50 to-pink-100/30 backdrop-blur-sm border border-pink-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-pink-500/0 to-pink-600/0 group-hover:from-pink-500/5 group-hover:to-pink-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-pink-600 uppercase tracking-wider">Gender</p>
+                      <p className="text-xs font-semibold text-pink-600 uppercase tracking-wider">{t('pages.settings.gender')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">{userData.userData.selectedGender}</p>
                     </div>
                   </div>
@@ -827,7 +827,7 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-50/50 to-teal-100/30 backdrop-blur-sm border border-teal-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-teal-500/0 to-teal-600/0 group-hover:from-teal-500/5 group-hover:to-teal-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-teal-600 uppercase tracking-wider">Women's Health Status</p>
+                      <p className="text-xs font-semibold text-teal-600 uppercase tracking-wider">{t('pages.settings.womensHealthStatus')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">{userData.userData.selectedFemininOption}</p>
                     </div>
                   </div>
@@ -838,7 +838,7 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50/50 to-orange-100/30 backdrop-blur-sm border border-orange-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/5 group-hover:to-orange-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-orange-600 uppercase tracking-wider">Birth Date</p>
+                      <p className="text-xs font-semibold text-orange-600 uppercase tracking-wider">{t('pages.settings.birthDate')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">{userData.userData.selectedBirthDate}</p>
                     </div>
                   </div>
@@ -849,9 +849,9 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/50 to-green-100/30 backdrop-blur-sm border border-green-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-600/0 group-hover:from-green-500/5 group-hover:to-green-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wider">Height</p>
+                      <p className="text-xs font-semibold text-green-600 uppercase tracking-wider">{t('pages.settings.height')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">
-                        {userData.userData.selectedHeight} {userData.userData.selectedHeightMeasurementUnit === 'METRIC' ? 'cm' : 'in'}
+                        {userData.userData.selectedHeight} {userData.userData.selectedHeightMeasurementUnit === 'METRIC' ? t('pages.settings.cm') : t('pages.settings.in')}
                       </p>
                     </div>
                   </div>
@@ -862,9 +862,9 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-50/50 to-cyan-100/30 backdrop-blur-sm border border-cyan-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-cyan-600/0 group-hover:from-cyan-500/5 group-hover:to-cyan-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-cyan-600 uppercase tracking-wider">Current Weight</p>
+                      <p className="text-xs font-semibold text-cyan-600 uppercase tracking-wider">{t('pages.settings.currentWeight')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">
-                        {userData.userData.selectedWeight} {userData.userData.selectedWeightMeasurementUnit === 'METRIC' ? 'kg' : 'lb'}
+                        {userData.userData.selectedWeight} {userData.userData.selectedWeightMeasurementUnit === 'METRIC' ? t('pages.settings.kg') : t('pages.settings.lb')}
                       </p>
                     </div>
                   </div>
@@ -875,9 +875,9 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 backdrop-blur-sm border border-indigo-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-indigo-600/0 group-hover:from-indigo-500/5 group-hover:to-indigo-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Target Weight</p>
+                      <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">{t('pages.settings.targetWeight')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">
-                        {userData.userData.selectedTargetWeight} {userData.userData.selectedTargetWeightMeasurementUnit === 'METRIC' ? 'kg' : 'lb'}
+                        {userData.userData.selectedTargetWeight} {userData.userData.selectedTargetWeightMeasurementUnit === 'METRIC' ? t('pages.settings.kg') : t('pages.settings.lb')}
                       </p>
                     </div>
                   </div>
@@ -888,7 +888,7 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50/50 to-amber-100/30 backdrop-blur-sm border border-amber-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-amber-500/0 to-amber-600/0 group-hover:from-amber-500/5 group-hover:to-amber-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Activity Level</p>
+                      <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">{t('pages.settings.activityLevel')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">{userData.userData.selectedActivityType.replace(/_/g, ' ')}</p>
                     </div>
                   </div>
@@ -899,7 +899,7 @@ const Settings = () => {
                   <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-50/50 to-rose-100/30 backdrop-blur-sm border border-rose-200/30 p-5 hover:shadow-lg transition-all duration-300">
                     <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-rose-600/0 group-hover:from-rose-500/5 group-hover:to-rose-600/5 transition-all duration-300"></div>
                     <div className="relative">
-                      <p className="text-xs font-semibold text-rose-600 uppercase tracking-wider">Goal</p>
+                      <p className="text-xs font-semibold text-rose-600 uppercase tracking-wider">{t('pages.settings.goal')}</p>
                       <p className="mt-2 text-sm font-medium text-gray-900">{userData.userData.selectedGoalType.replace(/_/g, ' ')}</p>
                     </div>
                   </div>
@@ -919,7 +919,7 @@ const Settings = () => {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-100 to-red-50 flex items-center justify-center mr-3">
                   <LockClosedIcon className="w-5 h-5 text-red-600" />
                 </div>
-                Login Details
+                {t('pages.settings.loginDetails')}
               </h3>
 
               <div className="space-y-0">
@@ -928,13 +928,13 @@ const Settings = () => {
                     <CheckCircleIcon className="w-5 h-5 text-green-400" />
                   </div>
                   <div className="ml-4 flex-1">
-                    <p className="text-sm font-medium text-gray-500">Logged In Status</p>
+                    <p className="text-sm font-medium text-gray-500">{t('pages.settings.loggedInStatus')}</p>
                     <p className="mt-1 text-sm text-gray-900 font-medium">
                       <span className="inline-block px-3 py-1 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 rounded-lg text-green-700 text-xs font-semibold">
                         {userData.loginDetails.isLoggedIn === 'true' ||
                         userData.loginDetails.isLoggedIn === true
-                          ? 'Active'
-                          : 'Inactive'}
+                          ? t('pages.settings.active')
+                          : t('pages.settings.inactive')}
                       </span>
                     </p>
                   </div>
@@ -946,7 +946,7 @@ const Settings = () => {
                       <CalendarIcon className="w-5 h-5 text-red-400" />
                     </div>
                     <div className="ml-4 flex-1">
-                      <p className="text-sm font-medium text-gray-500">Last Login</p>
+                      <p className="text-sm font-medium text-gray-500">{t('pages.settings.lastLogin')}</p>
                       <p className="mt-1 text-sm text-gray-900 font-medium">
                         {formatDate(userData.loginDetails.lastLoginDate)}
                       </p>
@@ -960,7 +960,7 @@ const Settings = () => {
                       <UserIcon className="w-5 h-5 text-red-400" />
                     </div>
                     <div className="ml-4 flex-1">
-                      <p className="text-sm font-medium text-gray-500">Login Count</p>
+                      <p className="text-sm font-medium text-gray-500">{t('pages.settings.loginCount')}</p>
                       <p className="mt-1 text-sm text-gray-900 font-medium">
                         {userData.loginDetails.loginCount}
                       </p>
@@ -974,7 +974,7 @@ const Settings = () => {
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                   >
                     <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    Logout
+                    {t('pages.settings.logout')}
                   </button>
                 </div>
               </div>

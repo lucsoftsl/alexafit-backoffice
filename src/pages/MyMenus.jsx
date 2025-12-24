@@ -87,7 +87,7 @@ const MyMenus = () => {
       setTemplates(Array.isArray(data?.data) ? data.data : (data?.templates || []))
     } catch (e) {
       console.error('Failed to load menu templates', e)
-      setError('Failed to load menu templates')
+      setError(t('pages.myMenus.failedLoadTemplates'))
     } finally {
       setLoadingTemplates(false)
     }
@@ -148,7 +148,7 @@ const MyMenus = () => {
       setClients(Array.isArray(data?.data) ? data.data : (data?.clients || []))
     } catch (e) {
       console.error('Failed to load clients', e)
-      setError('Failed to load clients')
+      setError(t('pages.myMenus.failedLoadClients'))
     } finally {
       setLoadingClients(false)
     }
@@ -222,7 +222,7 @@ const MyMenus = () => {
       setSearchResults(Array.isArray(data) ? data : [])
     } catch (e) {
       console.error('Search failed', e)
-      setError('Search failed')
+      setError(t('pages.myMenus.failedSearchFood'))
     } finally {
       setSearching(false)
     }
@@ -380,7 +380,7 @@ const MyMenus = () => {
       setSearchResults([])
     } catch (e) {
       console.error('Failed to add item', e)
-      setError('Failed to add item')
+      setError(t('pages.myMenus.failedAddItem'))
     }
   }
 
@@ -411,7 +411,7 @@ const MyMenus = () => {
   const handleSaveTemplate = async (e) => {
     e.preventDefault()
     if (!menuName.trim()) {
-      setError('Please enter a menu name')
+      setError(t('pages.myMenus.pleaseEnterMenuName'))
       return
     }
 
@@ -475,26 +475,26 @@ const MyMenus = () => {
       setShowBuilderModal(false)
     } catch (e) {
       console.error('Failed to save template', e)
-      setError(e?.message || 'Failed to save template')
+      setError(e?.message || t('pages.myMenus.failedSaveTemplate'))
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDeleteTemplate = async (templateId) => {
-    if (!window.confirm('Are you sure you want to delete this menu template?')) return
+    if (!window.confirm(t('pages.myMenus.confirmDeleteTemplate'))) return
 
     try {
       await deleteMenuTemplateByIdBO({ menuTemplateId: templateId, createdByUserId: nutritionistId })
       await loadTemplates()
     } catch (e) {
       console.error('Failed to delete template', e)
-      setError('Failed to delete template')
+      setError(t('pages.myMenus.failedDeleteTemplate'))
     }
   }
 
   const handleDeleteItem = async (templateId, itemType, itemId) => {
-    if (!window.confirm('Remove this item from the menu?')) return
+    if (!window.confirm(t('pages.myMenus.confirmDeleteItem'))) return
 
     try {
       await deleteMenuTemplateItemByIdBO({
@@ -506,13 +506,13 @@ const MyMenus = () => {
       await loadTemplates()
     } catch (e) {
       console.error('Failed to delete item', e)
-      setError('Failed to delete item')
+      setError(t('pages.myMenus.failedDeleteItem'))
     }
   }
 
   const handleAssignMenu = async (templateId) => {
     if (!selectedClientId || !assignmentDate) {
-      setError('Please select a client and date')
+      setError(t('pages.myMenus.pleaseSelectClientAndDate'))
       return
     }
 
@@ -525,19 +525,19 @@ const MyMenus = () => {
         replaceExisting: true
       })
       setError(null)
-      alert('Menu assigned successfully')
+      alert(t('pages.myMenus.menuAssignedSuccessfully'))
       // Refresh templates after assignment
       await loadTemplates()
     } catch (e) {
       console.error('Failed to assign menu', e)
-      setError('Failed to assign menu')
+      setError(t('pages.myMenus.failedAssignMenu'))
     } finally {
       setAssigningMenu(false)
     }
   }
 
   const handleUnassignMenu = async (templateId, clientId, dateApplied) => {
-    if (!window.confirm('Are you sure you want to unassign this menu from the client?')) return
+    if (!window.confirm(t('pages.myMenus.confirmUnassignMenu'))) return
 
     try {
       await removeMenuFromUserBO({
@@ -546,12 +546,12 @@ const MyMenus = () => {
         dateApplied
       })
       setError(null)
-      alert('Menu unassigned successfully')
+      alert(t('pages.myMenus.menuUnassignedSuccessfully'))
       // Refresh templates after unassignment
       await loadTemplates()
     } catch (e) {
       console.error('Failed to unassign menu', e)
-      setError('Failed to unassign menu')
+      setError(t('pages.myMenus.failedUnassignMenu'))
     }
   }
 
@@ -704,26 +704,26 @@ const MyMenus = () => {
           <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-b from-blue-500/20 to-purple-500/10 blur-3xl" />
           <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">Menu Studio</p>
-              <h1 className="mt-2 text-3xl font-bold md:text-4xl">My Menus</h1>
+              <p className="text-sm font-semibold uppercase tracking-wide text-gray-600">{t('pages.myMenus.menuStudio')}</p>
+              <h1 className="mt-2 text-3xl font-bold md:text-4xl">{t('pages.myMenus.title')}</h1>
             </div>
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <button
                 onClick={openBuilderForNew}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
               >
-                <PlusIcon className="h-4 w-4" /> Add Menu Template
+                <PlusIcon className="h-4 w-4" /> {t('pages.myMenus.addMenuTemplate')}
               </button>
               <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 md:w-auto">
               <div className={`${glassSurfaceClass} px-4 py-3`}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">Templates</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('pages.myMenus.templates')}</p>
                 <p className="text-2xl font-bold text-gray-900">{templates.length}</p>
-                <p className="text-xs text-gray-500">Saved menu blueprints</p>
+                <p className="text-xs text-gray-500">{t('pages.myMenus.savedMenuBlueprints')}</p>
               </div>
               <div className={`${glassSurfaceClass} px-4 py-3`}>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">Clients</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('pages.myMenus.clients')}</p>
                 <p className="text-2xl font-bold text-gray-900">{clients.length}</p>
-                <p className="text-xs text-gray-500">Assignable profiles</p>
+                <p className="text-xs text-gray-500">{t('pages.myMenus.assignableProfiles')}</p>
               </div>
             </div>
           </div>
@@ -743,15 +743,15 @@ const MyMenus = () => {
           <div className="relative">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">Library</p>
-                <h2 className="text-2xl font-semibold text-gray-900">Menu Templates ({filteredTemplates.length})</h2>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('pages.myMenus.library')}</p>
+                <h2 className="text-2xl font-semibold text-gray-900">{t('pages.myMenus.menuTemplates')} ({filteredTemplates.length})</h2>
               </div>
               <div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center">
                 <div className="relative flex-1 md:w-72">
                   <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search templates..."
+                    placeholder={t('pages.myMenus.searchTemplates')}
                     value={templateSearchTerm}
                     onChange={e => setTemplateSearchTerm(e.target.value)}
                     className="w-full rounded-2xl border border-white/70 bg-white/90 py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -762,14 +762,14 @@ const MyMenus = () => {
                     onClick={loadTemplates}
                     disabled={loadingTemplates}
                     className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white/80 p-3 text-blue-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white"
-                    title="Refresh templates list"
+                    title={t('pages.myMenus.refreshTemplatesList')}
                   >
                     <ArrowPathIcon className={`w-5 h-5 ${loadingTemplates ? 'animate-spin' : ''}`} />
                   </button>
                   <button
                     onClick={() => setTemplatesExpanded(!templatesExpanded)}
                     className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white/80 p-3 text-gray-700 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-200 hover:bg-white"
-                    title={templatesExpanded ? 'Collapse templates' : 'Expand templates'}
+                    title={templatesExpanded ? t('pages.myMenus.collapseTemplates') : t('pages.myMenus.expandTemplates')}
                   >
                     {templatesExpanded ? <ChevronUpIcon className="w-5 h-5" /> : <ChevronDownIcon className="w-5 h-5" />}
                   </button>
@@ -781,7 +781,7 @@ const MyMenus = () => {
               <>
                 {filteredTemplates.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-600">No menu templates yet. Create one above!</p>
+                    <p className="text-gray-600">{t('pages.myMenus.noTemplates')}</p>
                   </div>
                 ) : (
                   <>
@@ -793,7 +793,7 @@ const MyMenus = () => {
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <h3 className="text-lg font-semibold text-gray-900">{template?.name}</h3>
-                                <p className="text-xs text-gray-600">ID: {template?.id}</p>
+                                <p className="text-xs text-gray-600">{t('pages.myMenus.id')}: {template?.id}</p>
                               </div>
                               <div className="flex gap-2">
                                 <button
@@ -824,18 +824,18 @@ const MyMenus = () => {
 
                             <div className="rounded-xl border border-blue-200/60 bg-blue-50/70 p-4 text-sm text-gray-800">
                               <div className="mb-2 flex items-center justify-between">
-                                <p className="font-semibold text-gray-900">Assigned to Clients</p>
+                                <p className="font-semibold text-gray-900">{t('pages.myMenus.assignedUsers')}</p>
                                 <button
                                   onClick={loadClients}
                                   disabled={loadingClients}
                                   className="inline-flex items-center justify-center rounded-full bg-white/90 p-2 text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
-                                  title="Refresh clients list"
+                                  title={t('pages.myMenus.refreshClientsList')}
                                 >
                                   <ArrowPathIcon className={`w-4 h-4 ${loadingClients ? 'animate-spin' : ''}`} />
                                 </button>
                               </div>
                               {clients.length === 0 ? (
-                                <p className="text-xs text-gray-600">No clients</p>
+                                <p className="text-xs text-gray-600">{t('pages.myMenus.noClientsFound')}</p>
                               ) : (
                                 <div className="space-y-1 max-h-44 overflow-y-auto">
                                   {clients.map(client => {
@@ -870,14 +870,14 @@ const MyMenus = () => {
                                         </button>
                                         {isExpanded && (
                                           <div className="mt-2 space-y-2 text-xs text-gray-700">
-                                            <p>User ID: {clientId}</p>
-                                            <p>Assigned: {new Date(assignmentInfo.dateApplied).toLocaleDateString()}</p>
+                                            <p>{t('pages.myMenus.userId')}: {clientId}</p>
+                                            <p>{t('pages.myMenus.assignedDate')}: {new Date(assignmentInfo.dateApplied).toLocaleDateString()}</p>
                                             <button
                                               onClick={() => handleUnassignMenu(template.id, clientId, assignmentInfo.dateApplied)}
                                               className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-700 transition hover:bg-red-100"
                                             >
                                               <XMarkIcon className="h-3 w-3" />
-                                              Unassign
+                                              {t('pages.myMenus.unassign')}
                                             </button>
                                           </div>
                                         )}
@@ -895,7 +895,7 @@ const MyMenus = () => {
                                 className="w-full rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-sm font-medium text-gray-800 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:w-auto sm:flex-1"
                                 disabled={loadingClients}
                               >
-                                <option value="">Select client to assign...</option>
+                                <option value="">{t('pages.myMenus.selectClientToAssign')}</option>
                                 {clients.map(client => {
                                   const clientName = client?.user?.userData?.name || client?.user?.loginDetails?.displayName || 'Unknown'
                                   const clientId = Array.isArray(client?.user?.userId) ? client.user.userId[0] : client?.user?.userId
@@ -918,7 +918,7 @@ const MyMenus = () => {
                                   disabled={assigningMenu || !selectedClientId}
                                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
                                 >
-                                  {assigningMenu ? 'Assigning...' : 'Assign'}
+                                  {assigningMenu ? t('pages.myMenus.assigning') : t('pages.myMenus.assign')}
                                 </button>
                               </div>
                             </div>
@@ -930,7 +930,7 @@ const MyMenus = () => {
                     <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-700">Rows per page</span>
+                          <span className="text-sm text-gray-700">{t('pages.myMenus.rowsPerPage')}</span>
                           <select
                             value={itemsPerPage}
                             onChange={(e) => {
@@ -945,7 +945,7 @@ const MyMenus = () => {
                           </select>
                         </div>
                         <span className="text-sm text-gray-700">
-                          Showing {filteredTemplates.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredTemplates.length)} of {filteredTemplates.length}
+                          {t('pages.myMenus.showing')} {filteredTemplates.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredTemplates.length)} {t('pages.myMenus.of')} {filteredTemplates.length}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -954,15 +954,15 @@ const MyMenus = () => {
                           onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                           disabled={currentPage === 1}
                         >
-                          Previous
+                          {t('pages.myMenus.previous')}
                         </button>
-                        <span className="text-sm text-gray-700">Page {currentPage} of {totalPages}</span>
+                        <span className="text-sm text-gray-700">{t('pages.myMenus.page')} {currentPage} {t('pages.myMenus.of')} {totalPages}</span>
                         <button
                           className="rounded-full border border-white/70 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm transition hover:-translate-y-0.5 hover:border-gray-200 hover:bg-white disabled:opacity-60"
                           onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                           disabled={currentPage === totalPages}
                         >
-                          Next
+                          {t('pages.myMenus.next')}
                         </button>
                       </div>
                     </div>
@@ -986,13 +986,13 @@ const MyMenus = () => {
               <div className="relative">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">Menu Builder</p>
-                    <h2 className="text-3xl font-bold text-gray-900">{editingTemplateId ? 'Edit Menu Template' : 'Create Menu Template'}</h2>
-                    <p className="mt-2 text-sm text-gray-600">Curate meals, tweak servings, and save as reusable templates.</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('pages.myMenus.menuBuilder')}</p>
+                    <h2 className="text-3xl font-bold text-gray-900">{editingTemplateId ? t('pages.myMenus.editMenuTemplate') : t('pages.myMenus.createMenuTemplate')}</h2>
+                    <p className="mt-2 text-sm text-gray-600">{t('pages.myMenus.curateMeals')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {editingTemplateId && (
-                      <span className={softBadgeClass}>Editing existing</span>
+                      <span className={softBadgeClass}>{t('pages.myMenus.editingExisting')}</span>
                     )}
                     <button
                       onClick={() => {
@@ -1010,19 +1010,19 @@ const MyMenus = () => {
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div className="md:col-span-2 space-y-4">
                       <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">Menu Name</label>
+                        <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">{t('pages.myMenus.menuName')}</label>
                         <input
                           type="text"
                           value={menuName}
                           onChange={e => setMenuName(e.target.value)}
                           className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                          placeholder="e.g., Keto Glow Plan, High Protein Sprint"
+                          placeholder={t('pages.myMenus.menuNamePlaceholder')}
                         />
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur-md">
                         <div className="flex-1 min-w-[180px]">
-                          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">Country</label>
+                          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">{t('pages.myMenus.country')}</label>
                           <select
                             value={countryCode}
                             onChange={(e) => setCountryCode(e.target.value)}
@@ -1045,16 +1045,16 @@ const MyMenus = () => {
                             onChange={e => setIsAssignableByUser(e.target.checked)}
                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
                           />
-                          Assignable by user
+                          {t('pages.myMenus.assignableByUser')}
                         </label>
                       </div>
                     </div>
                     <div className="space-y-3 rounded-2xl border border-white/60 bg-gradient-to-br from-blue-50/80 via-purple-50/70 to-white/70 p-4 shadow-inner backdrop-blur">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">Quick tips</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('pages.myMenus.quickTips')}</p>
                       <ul className="space-y-2 text-sm text-gray-700">
-                        <li className="flex items-start gap-2"><span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-blue-500" />Use short, memorable names.</li>
-                        <li className="flex items-start gap-2"><span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-purple-500" />Group recipes by meal type.</li>
-                        <li className="flex items-start gap-2"><span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" />Enable user assignment when relevant.</li>
+                        <li className="flex items-start gap-2"><span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-blue-500" />{t('pages.myMenus.tip1')}</li>
+                        <li className="flex items-start gap-2"><span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-purple-500" />{t('pages.myMenus.tip2')}</li>
+                        <li className="flex items-start gap-2"><span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" />{t('pages.myMenus.tip3')}</li>
                       </ul>
                     </div>
                   </div>
@@ -1068,7 +1068,7 @@ const MyMenus = () => {
                           type="text"
                           value={searchText}
                           onChange={e => setSearchText(e.target.value)}
-                          placeholder="Search foods or recipes..."
+                          placeholder={t('pages.myMenus.searchFoodsRecipes')}
                           className="w-full rounded-2xl border border-white/70 bg-white/90 py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
                       </div>
@@ -1079,14 +1079,14 @@ const MyMenus = () => {
                           onChange={e => setOnlyRecipes(e.target.checked)}
                           className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
                         />
-                        Recipes only
+                        {t('pages.myMenus.recipesOnly')}
                       </label>
                       <button
                         type="submit"
                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:opacity-60"
                         disabled={searching}
                       >
-                        {searching ? 'Searching…' : 'Search'}
+                        {searching ? t('pages.myMenus.searching') : t('pages.myMenus.search')}
                       </button>
                     </div>
                   </form>
@@ -1132,7 +1132,7 @@ const MyMenus = () => {
                               onClick={() => addItemToPlan(item)}
                               className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:shadow-lg"
                             >
-                              <PlusIcon className="h-4 w-4" /> Add
+                              <PlusIcon className="h-4 w-4" /> {t('pages.myMenus.addItem')}
                             </button>
                           </div>
                         )
@@ -1144,8 +1144,8 @@ const MyMenus = () => {
                   {plans[activeMealType]?.length > 0 && (
                     <div className="space-y-3 rounded-2xl border border-white/70 bg-white/80 p-4 backdrop-blur">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-800">Items in {mealTypeOptions.find(m => m.id === activeMealType)?.label}</p>
-                        <span className={softBadgeClass}>{plans[activeMealType].length} items</span>
+                        <p className="text-sm font-semibold text-gray-800">{t('pages.myMenus.itemsIn', { mealType: mealTypeOptions.find(m => m.id === activeMealType)?.label })}</p>
+                        <span className={softBadgeClass}>{plans[activeMealType].length} {t('pages.myMenus.items')}</span>
                       </div>
                       {plans[activeMealType].map((item, idx) => {
                         const isRecipeItem = detectIsRecipe(item)
@@ -1206,7 +1206,7 @@ const MyMenus = () => {
 
                             {hasServings && (
                               <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
-                                <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">Serving</label>
+                                <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">{t('pages.myMenus.serving')}</label>
                                 <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
                                   <select
                                     value={currentServingId || ''}
@@ -1264,7 +1264,7 @@ const MyMenus = () => {
                                         }
                                       }}
                                       className="w-24 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                      placeholder="Amount"
+                                      placeholder={t('pages.myMenus.amount')}
                                     />
                                     <span className="text-xs font-medium text-gray-600">
                                       {findServingByIdentifier(servingOptions, currentServingId)?.unit || 'g'}
@@ -1276,15 +1276,15 @@ const MyMenus = () => {
 
                             {isRecipeItem && (
                               <div className="mt-2 text-xs text-gray-600">
-                                <span className="font-semibold">Original Serving:</span> {item?.numberOfServings || item?.originalServings || 1}
+                                <span className="font-semibold">{t('pages.myMenus.originalServing')}:</span> {item?.numberOfServings || item?.originalServings || 1}
                               </div>
                             )}
 
                             <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-4">
-                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>Calories: {adjustedCalories}</div>
-                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>Proteins: {Math.round(Number(adjustedNutrients?.proteinsInGrams) || 0)} g</div>
-                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>Carbs: {Math.round(Number(adjustedNutrients?.carbohydratesInGrams) || 0)} g</div>
-                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>Fat: {Math.round(Number(adjustedNutrients?.fatInGrams) || 0)} g</div>
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>{t('pages.myMenus.calories')}: {adjustedCalories}</div>
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>{t('pages.myMenus.proteins')}: {Math.round(Number(adjustedNutrients?.proteinsInGrams) || 0)} g</div>
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>{t('pages.myMenus.carbs')}: {Math.round(Number(adjustedNutrients?.carbohydratesInGrams) || 0)} g</div>
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>{t('pages.myMenus.fat')}: {Math.round(Number(adjustedNutrients?.fatInGrams) || 0)} g</div>
                             </div>
                           </div>
                         )
@@ -1298,7 +1298,7 @@ const MyMenus = () => {
                       disabled={submitting || !menuName.trim()}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-60 sm:w-auto"
                     >
-                      {submitting ? 'Saving...' : editingTemplateId ? 'Update Menu' : 'Create Menu'}
+                      {submitting ? t('pages.myMenus.saving') : editingTemplateId ? t('pages.myMenus.updateMenu') : t('pages.myMenus.createMenu')}
                     </button>
                     <button
                       onClick={() => {
@@ -1307,7 +1307,7 @@ const MyMenus = () => {
                       }}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/60 bg-white/80 px-6 py-3 text-sm font-semibold text-gray-800 shadow-sm transition hover:-translate-y-0.5 hover:shadow sm:w-auto"
                     >
-                      Cancel
+                      {t('pages.myMenus.cancel')}
                     </button>
                   </div>
                 </div>

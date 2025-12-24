@@ -56,7 +56,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       setUsers(usersArray)
       setError(null)
     } catch (err) {
-      setError('Failed to refresh clients. Please try again.')
+      setError(t('pages.myUsers.errors.refresh'))
       console.error('Error refreshing clients:', err)
     } finally {
       setLoading(false)
@@ -76,7 +76,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
 
         const nutritionistId = currentUser?.uid || userData?.userId
         if (!nutritionistId) {
-          setError('User ID not found')
+          setError(t('pages.myUsers.errors.userIdNotFound'))
           setLoading(false)
           return
         }
@@ -94,8 +94,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         setError(null)
         setLoading(false)
       } catch (err) {
-        const errorMessage = 'Failed to load clients. Please try again.'
-        setError(errorMessage)
+        setError(t('pages.myUsers.error'))
         setLoading(false)
         console.error('Error loading clients:', err)
       }
@@ -109,7 +108,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       const name = user?.userData?.name || 
                    user?.loginDetails?.displayName || 
                    `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
-                   'Unknown'
+                   t('pages.myUsers.list.unknown')
       const email = user?.loginDetails?.email || user?.email || ''
       const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -140,9 +139,15 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       suspended: 'bg-rose-400/15 text-rose-300 border-rose-300/30'
     }
     const style = statusStyles[normalized] || statusStyles.inactive
+    const statusLabels = {
+      active: t('pages.myUsers.active'),
+      inactive: t('pages.myUsers.inactive'),
+      suspended: t('pages.myUsers.list.unknown')
+    }
+    const label = statusLabels[normalized] || (normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : t('pages.myUsers.list.unknown'))
     return (
       <span className={`${softBadgeClass} ${style}`}>
-        {normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unknown'}
+        {label}
       </span>
     )
   }
@@ -167,7 +172,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
 
     try {
       if (!assignUserId) {
-        setAssignError('Please enter a valid user ID')
+        setAssignError(t('pages.myUsers.errors.assignUserIdMissing'))
         setAssigning(false)
         return
       }
@@ -179,7 +184,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       })
 
       if (!response?.ok) {
-        throw new Error(response?.error || 'Failed to assign user')
+        throw new Error(response?.error || t('pages.myUsers.errors.assignFailed'))
       }
 
       // Reset form and close modal
@@ -188,7 +193,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       // Refresh users list
       await refreshUsers()
     } catch (err) {
-      setAssignError(err?.message || 'Failed to assign user. Please try again.')
+      setAssignError(err?.message || t('pages.myUsers.errors.assignFailedRetry'))
       console.error('Error assigning user:', err)
     } finally {
       setAssigning(false)
@@ -196,7 +201,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
   }
 
   const handleUnassignUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to unassign this user?')) {
+    if (!window.confirm(t('pages.myUsers.confirmUnassign'))) {
       return
     }
 
@@ -208,13 +213,13 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       })
 
       if (!response?.ok) {
-        throw new Error(response?.error || 'Failed to unassign user')
+        throw new Error(response?.error || t('pages.myUsers.errors.unassignFailed'))
       }
 
       // Refresh users list
       await refreshUsers()
     } catch (err) {
-      setError(err?.message || 'Failed to unassign user. Please try again.')
+      setError(err?.message || t('pages.myUsers.errors.unassignFailedRetry'))
       console.error('Error unassigning user:', err)
     }
   }
@@ -234,8 +239,8 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <div className="flex items-center gap-3">
               <SparklesIcon className="w-6 h-6 text-indigo-400" />
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
-                <p className="text-gray-700">Manage your clients and track their progress</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myUsers.headerTitle')}</h1>
+                <p className="text-gray-700">{t('pages.myUsers.headerSubtitle')}</p>
               </div>
             </div>
           </div>
@@ -258,8 +263,8 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
           <div className="flex items-center gap-3">
             <SparklesIcon className="w-6 h-6 text-indigo-400" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
-              <p className="text-gray-700">Manage your clients and track their progress</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myUsers.headerTitle')}</h1>
+              <p className="text-gray-700">{t('pages.myUsers.headerSubtitle')}</p>
             </div>
           </div>
         </div>
@@ -286,8 +291,8 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
           <div className="flex items-start gap-3">
             <SparklesIcon className="w-7 h-7 text-indigo-400" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
-              <p className="text-gray-700 mt-1">Manage your clients and track their progress</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myUsers.headerTitle')}</h1>
+              <p className="text-gray-700 mt-1">{t('pages.myUsers.headerSubtitle')}</p>
             </div>
           </div>
           <div className="flex gap-2 items-center justify-center sm:justify-end">
@@ -299,14 +304,14 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              {loading ? 'Loading...' : 'Refresh'}
+              {loading ? t('pages.myUsers.actions.loading') : t('pages.myUsers.actions.refresh')}
             </button>
             <button
               onClick={() => setIsAssignModalOpen(true)}
               className="btn-primary flex items-center"
             >
               <UserPlusIcon className="w-5 h-5 mr-2" />
-              Assign User
+              {t('pages.myUsers.actions.assignUser')}
             </button>
           </div>
         </div>
@@ -314,19 +319,19 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         {/* Stats */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">Total Clients</p>
+            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.total')}</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">Active</p>
+            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.active')}</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.active}</p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">Inactive</p>
+            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.inactive')}</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.inactive}</p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">Assigned (7d)</p>
+            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.assigned7d')}</p>
             <p className="text-2xl font-semibold text-gray-900">{stats.recentAssigned}</p>
           </div>
         </div>
@@ -340,7 +345,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search users by name or email..."
+                placeholder={t('pages.myUsers.filters.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="input pl-10 bg-white/40 backdrop-blur-sm border-white/30"
@@ -353,9 +358,9 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               onChange={(e) => setFilterStatus(e.target.value)}
               className="input w-40 bg-white/40 backdrop-blur-sm border-white/30"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">{t('pages.myUsers.filters.allStatus')}</option>
+              <option value="active">{t('pages.myUsers.active')}</option>
+              <option value="inactive">{t('pages.myUsers.inactive')}</option>
             </select>
           </div>
         </div>
@@ -366,11 +371,11 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         {paginatedUsers.map((user) => {
           const name = user?.userData?.name || 
                      user?.loginDetails?.displayName || 
-                     `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
-                     'Unknown'
-          const email = user?.loginDetails?.email || user?.email || 'N/A'
+                             `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
+                             t('pages.myUsers.list.unknown')
+          const email = user?.loginDetails?.email || user?.email || t('pages.myUsers.list.notAvailable')
           const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-          const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : 'N/A'
+                  const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : t('pages.myUsers.list.notAvailable')
           const accountStatus = (user?.status || '').toString().toLowerCase()
           const userId = Array.isArray(user?.userId) ? user.userId[0] : user?.userId
           return (
@@ -396,7 +401,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                       handleUnassignUser(userId)
                     }}
                     className="text-rose-600 hover:text-rose-800"
-                    title="Unassign user"
+                    title={t('pages.myUsers.unassign')}
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -404,11 +409,11 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="space-y-1">
-                  <p className="text-gray-500">Status</p>
+                  <p className="text-gray-500">{t('pages.myUsers.list.status')}</p>
                   {getStatusBadge(accountStatus)}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-gray-500">Assigned</p>
+                  <p className="text-gray-500">{t('pages.myUsers.list.assigned')}</p>
                   <p className="text-gray-800 text-sm">{assignedDate}</p>
                 </div>
               </div>
@@ -420,7 +425,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         <div className={`mt-2 ${glassSurfaceClass} px-4 py-3 flex flex-col gap-3`}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-700">Per page</label>
+              <label className="text-sm text-gray-700">{t('pages.myUsers.pagination.perPage')}</label>
               <select
                 value={usersPerPage}
                 onChange={(e) => {
@@ -434,7 +439,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                 <option value="25">25</option>
               </select>
             </div>
-            <span className="text-xs text-gray-600">Page {currentPage} / {totalPages}</span>
+            <span className="text-xs text-gray-600">{t('pages.myUsers.pagination.pageOf', { current: currentPage, total: totalPages })}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <button
@@ -442,20 +447,24 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               disabled={currentPage === 1}
               className="w-full px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Previous
+              {t('common.Previous')}
             </button>
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage >= totalPages}
               className="w-full px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next
+              {t('common.Next')}
             </button>
           </div>
           <div className="text-xs text-gray-600 text-center">
             {filteredUsers.length === 0
-              ? 'Showing 0 of 0 results'
-              : `Showing ${((currentPage - 1) * usersPerPage) + 1} - ${Math.min(currentPage * usersPerPage, filteredUsers.length)} of ${filteredUsers.length}`}
+              ? t('pages.myUsers.pagination.showingZero')
+              : t('pages.myUsers.pagination.showingRange', {
+                  start: ((currentPage - 1) * usersPerPage) + 1,
+                  end: Math.min(currentPage * usersPerPage, filteredUsers.length),
+                  total: filteredUsers.length
+                })}
           </div>
         </div>
       </div>
@@ -467,16 +476,16 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <thead className="bg-white/10">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  User
+                  {t('pages.myUsers.list.user')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Status
+                  {t('pages.myUsers.list.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Assigned Date
+                  {t('pages.myUsers.list.assignedDate')}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Actions
+                  {t('pages.myUsers.list.actions')}
                 </th>
               </tr>
             </thead>
@@ -485,10 +494,10 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                 const name = user?.userData?.name || 
                            user?.loginDetails?.displayName || 
                            `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
-                           'Unknown'
-                const email = user?.loginDetails?.email || user?.email || 'N/A'
+                           t('pages.myUsers.list.unknown')
+                const email = user?.loginDetails?.email || user?.email || t('pages.myUsers.list.notAvailable')
                 const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : 'N/A'
+                const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : t('pages.myUsers.list.notAvailable')
                 const accountStatus = (user?.status || '').toString().toLowerCase()
                 const userId = Array.isArray(user?.userId) ? user.userId[0] : user?.userId
                 return (
@@ -524,7 +533,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                             handleUnassignUser(userId)
                           }}
                           className="text-rose-600 hover:text-rose-800"
-                          title="Unassign user"
+                          title={t('pages.myUsers.unassign')}
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>
@@ -540,7 +549,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         {/* Pagination */}
         <div className={`px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-white/15 sm:px-6`}>
           <div className="flex items-center gap-3">
-            <label className="text-sm text-gray-700">Items per page:</label>
+            <label className="text-sm text-gray-700">{t('pages.myUsers.pagination.perPage')}:</label>
             <select
               value={usersPerPage}
               onChange={(e) => {
@@ -556,11 +565,15 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
-            <span className="font-medium">Page {currentPage} of {totalPages}</span>
+            <span className="font-medium">{t('pages.myUsers.pagination.pageOf', { current: currentPage, total: totalPages })}</span>
             <span className="text-gray-600">
               {filteredUsers.length === 0
-                ? 'Showing 0 of 0 results'
-                : `Showing ${((currentPage - 1) * usersPerPage) + 1} to ${Math.min(currentPage * usersPerPage, filteredUsers.length)} of ${filteredUsers.length} results`}
+                ? t('pages.myUsers.pagination.showingZero')
+                : t('pages.myUsers.pagination.showingRangeResults', {
+                    start: ((currentPage - 1) * usersPerPage) + 1,
+                    end: Math.min(currentPage * usersPerPage, filteredUsers.length),
+                    total: filteredUsers.length
+                  })}
             </span>
           </div>
 
@@ -570,7 +583,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               disabled={currentPage === 1}
               className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Previous
+              {t('common.Previous')}
             </button>
 
             <button
@@ -578,7 +591,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               disabled={currentPage >= totalPages}
               className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Next
+              {t('common.Next')}
             </button>
           </div>
         </div>
@@ -589,9 +602,9 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className={`${glassCardClass} w-full max-w-md p-6`}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Assign Existing User</h3>
+              <h3 className="text-lg font-semibold text-white">{t('pages.myUsers.actions.assignExisting')}</h3>
               <button
-                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                className="text-white hover:text-gray-300 cursor-pointer"
                 onClick={() => {
                   setIsAssignModalOpen(false)
                   setAssignError(null)
@@ -605,18 +618,18 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <form onSubmit={handleAssignUser}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    User ID <span className="text-red-500">*</span>
+                  <label className="block text-sm font-medium text-white mb-1">
+                    {t('pages.myUsers.form.userIdLabel')} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={assignUserId}
                     onChange={(e) => setAssignUserId(e.target.value)}
                     className="input w-full bg-white/40 backdrop-blur-sm border-white/30"
-                    placeholder="Enter user ID"
+                    placeholder={t('pages.myUsers.form.userIdPlaceholder')}
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">Enter the ID of an existing user to assign them to your client list</p>
+                  <p className="text-xs text-white mt-1">{t('pages.myUsers.form.help')}</p>
                 </div>
 
                 {assignError && (
@@ -637,14 +650,14 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                   }}
                   disabled={assigning}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="btn-primary px-4 py-2"
                   disabled={assigning}
                 >
-                  {assigning ? 'Assigning...' : 'Assign User'}
+                  {assigning ? t('pages.myUsers.actions.assigning') : t('pages.myUsers.actions.assignUser')}
                 </button>
               </div>
             </form>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getUserCheckins } from '../services/loggedinApi'
 import ProgressChart from '../components/ProgressChart'
 import {
@@ -10,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 const ClientProgress = ({ client }) => {
+  const { t } = useTranslation()
   const [checkins, setCheckins] = useState([])
   const [filteredCheckins, setFilteredCheckins] = useState([])
   const [loading, setLoading] = useState(false)
@@ -44,7 +46,7 @@ const ClientProgress = ({ client }) => {
       setCheckins(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error('Error fetching client checkins:', err)
-      setError('Failed to load progress data')
+      setError(t('pages.userProgress.error'))
     } finally {
       setLoading(false)
     }
@@ -171,8 +173,8 @@ const ClientProgress = ({ client }) => {
             <ChartBarIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Weight Progress</h2>
-            <p className="text-sm text-gray-600 mt-0.5 sm:mt-1">Track client's weight and health metrics</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('pages.userProgress.title')}</h2>
+            <p className="text-sm text-gray-600 mt-0.5 sm:mt-1">{t('pages.userProgress.subtitle')}</p>
           </div>
         </div>
         <button
@@ -181,7 +183,7 @@ const ClientProgress = ({ client }) => {
           className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-xl bg-purple-500 hover:bg-purple-600 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
         >
           <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('pages.userProgress.refresh')}
         </button>
       </div>
 
@@ -199,9 +201,9 @@ const ClientProgress = ({ client }) => {
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50/50 to-purple-100/30 backdrop-blur-sm border border-purple-200/30 p-4 hover:shadow-lg transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-600/0 group-hover:from-purple-500/5 group-hover:to-purple-600/5 transition-all duration-300"></div>
             <div className="relative">
-              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Current</p>
+              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">{t('pages.userProgress.current')}</p>
               <p className="mt-1 text-xl font-bold text-gray-900">{stats.current}</p>
-              <p className="text-xs text-gray-500">kg</p>
+              <p className="text-xs text-gray-500">{t('pages.userProgress.kg')}</p>
             </div>
           </div>
 
@@ -209,9 +211,9 @@ const ClientProgress = ({ client }) => {
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/50 to-blue-100/30 backdrop-blur-sm border border-blue-200/30 p-4 hover:shadow-lg transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-600/0 group-hover:from-blue-500/5 group-hover:to-blue-600/5 transition-all duration-300"></div>
             <div className="relative">
-              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Start</p>
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">{t('pages.userProgress.start')}</p>
               <p className="mt-1 text-xl font-bold text-gray-900">{stats.start}</p>
-              <p className="text-xs text-gray-500">kg</p>
+              <p className="text-xs text-gray-500">{t('pages.userProgress.kg')}</p>
             </div>
           </div>
 
@@ -219,9 +221,9 @@ const ClientProgress = ({ client }) => {
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-50/50 to-cyan-100/30 backdrop-blur-sm border border-cyan-200/30 p-4 hover:shadow-lg transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-cyan-600/0 group-hover:from-cyan-500/5 group-hover:to-cyan-600/5 transition-all duration-300"></div>
             <div className="relative">
-              <p className="text-xs font-semibold text-cyan-600 uppercase tracking-wider">Average</p>
+              <p className="text-xs font-semibold text-cyan-600 uppercase tracking-wider">{t('pages.userProgress.average')}</p>
               <p className="mt-1 text-xl font-bold text-gray-900">{stats.avg}</p>
-              <p className="text-xs text-gray-500">kg</p>
+              <p className="text-xs text-gray-500">{t('pages.userProgress.kg')}</p>
             </div>
           </div>
 
@@ -229,9 +231,9 @@ const ClientProgress = ({ client }) => {
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50/50 to-green-100/30 backdrop-blur-sm border border-green-200/30 p-4 hover:shadow-lg transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-600/0 group-hover:from-green-500/5 group-hover:to-green-600/5 transition-all duration-300"></div>
             <div className="relative">
-              <p className="text-xs font-semibold text-green-600 uppercase tracking-wider">Minimum</p>
+              <p className="text-xs font-semibold text-green-600 uppercase tracking-wider">{t('pages.userProgress.minimum')}</p>
               <p className="mt-1 text-xl font-bold text-gray-900">{stats.min}</p>
-              <p className="text-xs text-gray-500">kg</p>
+              <p className="text-xs text-gray-500">{t('pages.userProgress.kg')}</p>
             </div>
           </div>
 
@@ -239,11 +241,11 @@ const ClientProgress = ({ client }) => {
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-50/50 to-rose-100/30 backdrop-blur-sm border border-rose-200/30 p-4 hover:shadow-lg transition-all duration-300">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/0 to-rose-600/0 group-hover:from-rose-500/5 group-hover:to-rose-600/5 transition-all duration-300"></div>
             <div className="relative">
-              <p className="text-xs font-semibold text-rose-600 uppercase tracking-wider">Change</p>
+              <p className="text-xs font-semibold text-rose-600 uppercase tracking-wider">{t('pages.userProgress.change')}</p>
               <p className={`mt-1 text-xl font-bold ${stats.isIncreased ? 'text-red-600' : 'text-green-600'}`}>
                 {stats.isIncreased ? '+' : ''}{stats.change}
               </p>
-              <p className="text-xs text-gray-500">kg</p>
+              <p className="text-xs text-gray-500">{t('pages.userProgress.kg')}</p>
             </div>
           </div>
         </div>
@@ -253,25 +255,25 @@ const ClientProgress = ({ client }) => {
       <div className="bg-white/50 backdrop-blur-md border border-white/20 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-sm font-semibold text-gray-900">Time Period</p>
-            <p className="text-xs text-gray-500">Filter data by date range</p>
+            <p className="text-sm font-semibold text-gray-900">{t('pages.userProgress.timePeriod')}</p>
+            <p className="text-xs text-gray-500">{t('pages.userProgress.filterByDateRange')}</p>
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="px-3 py-1 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-medium hover:shadow-lg transition-all"
           >
-            {showFilters ? 'Hide' : 'Show'} Filters
+            {showFilters ? t('pages.userProgress.hide') : t('pages.userProgress.show')} {t('pages.userProgress.filters')}
           </button>
         </div>
 
         {showFilters && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-2 border-t border-gray-200">
             {[
-              { days: 14, label: '14 Days' },
-              { days: 30, label: '1 Month' },
-              { days: 90, label: '3 Months' },
-              { days: 180, label: '6 Months' },
-              { days: 365, label: '1 Year' }
+              { days: 14, label: `14 ${t('pages.userProgress.days')}` },
+              { days: 30, label: `1 ${t('pages.userProgress.month')}` },
+              { days: 90, label: `3 ${t('pages.userProgress.months')}` },
+              { days: 180, label: `6 ${t('pages.userProgress.months')}` },
+              { days: 365, label: `1 ${t('pages.userProgress.year')}` }
             ].map(({ days, label }) => (
               <button
                 key={days}
@@ -294,12 +296,12 @@ const ClientProgress = ({ client }) => {
         <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-md rounded-3xl border border-white/20">
           <div className="flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-2"></div>
-            <p className="text-gray-600 text-sm">Loading progress data...</p>
+            <p className="text-gray-600 text-sm">{t('pages.userProgress.loading')}</p>
           </div>
         </div>
       ) : filteredCheckins.length > 0 ? (
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Measurements Overview</h3>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('pages.userProgress.measurementsOverview')}</h3>
           <div className="grid grid-cols-1 gap-3">
             {/* Weight */}
             <div className="rounded-3xl bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/20 shadow-xl overflow-hidden">
@@ -310,8 +312,8 @@ const ClientProgress = ({ client }) => {
                 <div className="flex items-center gap-3">
                   <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
                   <div className="text-left">
-                    <h4 className="text-sm font-semibold text-gray-900">Weight</h4>
-                    <p className="text-xs text-gray-600 mt-0.5">Latest: {getLatestMeasurement('currentWeightInKg')?.toFixed(1) || '-'} kg</p>
+                    <h4 className="text-sm font-semibold text-gray-900">{t('pages.userProgress.weight')}</h4>
+                    <p className="text-xs text-gray-600 mt-0.5">{t('pages.userProgress.latest')}: {getLatestMeasurement('currentWeightInKg')?.toFixed(1) || '-'} {t('pages.userProgress.kg')}</p>
                   </div>
                 </div>
                 <ChevronRightIcon className={`w-4 h-4 text-gray-600 transition-transform ${expandedMeasurements.weight ? 'rotate-90' : ''}`} />
@@ -335,8 +337,8 @@ const ClientProgress = ({ client }) => {
                   <div className="flex items-center gap-3">
                     <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
                     <div className="text-left">
-                      <h4 className="text-sm font-semibold text-gray-900">Body Fat</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Latest: {getLatestMeasurement('currentFatPercentage')?.toFixed(1) || '-'} %</p>
+                      <h4 className="text-sm font-semibold text-gray-900">{t('pages.userProgress.bodyFat')}</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{t('pages.userProgress.latest')}: {getLatestMeasurement('currentFatPercentage')?.toFixed(1) || '-'} %</p>
                     </div>
                   </div>
                   <ChevronRightIcon className={`w-4 h-4 text-gray-600 transition-transform ${expandedMeasurements.fat ? 'rotate-90' : ''}`} />
@@ -361,8 +363,8 @@ const ClientProgress = ({ client }) => {
                   <div className="flex items-center gap-3">
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
                     <div className="text-left">
-                      <h4 className="text-sm font-semibold text-gray-900">Water</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Latest: {getLatestMeasurement('currentWaterPercentage')?.toFixed(1) || '-'} %</p>
+                      <h4 className="text-sm font-semibold text-gray-900">{t('pages.userProgress.water')}</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{t('pages.userProgress.latest')}: {getLatestMeasurement('currentWaterPercentage')?.toFixed(1) || '-'} %</p>
                     </div>
                   </div>
                   <ChevronRightIcon className={`w-4 h-4 text-gray-600 transition-transform ${expandedMeasurements.water ? 'rotate-90' : ''}`} />
@@ -387,8 +389,8 @@ const ClientProgress = ({ client }) => {
                   <div className="flex items-center gap-3">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                     <div className="text-left">
-                      <h4 className="text-sm font-semibold text-gray-900">Waist</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Latest: {getLatestMeasurement('currentWaistSizeInCm')?.toFixed(1) || '-'} cm</p>
+                      <h4 className="text-sm font-semibold text-gray-900">{t('pages.userProgress.waist')}</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{t('pages.userProgress.latest')}: {getLatestMeasurement('currentWaistSizeInCm')?.toFixed(1) || '-'} {t('pages.userProgress.cm')}</p>
                     </div>
                   </div>
                   <ChevronRightIcon className={`w-4 h-4 text-gray-600 transition-transform ${expandedMeasurements.waist ? 'rotate-90' : ''}`} />
@@ -413,8 +415,8 @@ const ClientProgress = ({ client }) => {
                   <div className="flex items-center gap-3">
                     <span className="w-2.5 h-2.5 rounded-full bg-cyan-500"></span>
                     <div className="text-left">
-                      <h4 className="text-sm font-semibold text-gray-900">Chest</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Latest: {getLatestMeasurement('currentChestSizeInCm')?.toFixed(1) || '-'} cm</p>
+                      <h4 className="text-sm font-semibold text-gray-900">{t('pages.userProgress.chest')}</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{t('pages.userProgress.latest')}: {getLatestMeasurement('currentChestSizeInCm')?.toFixed(1) || '-'} {t('pages.userProgress.cm')}</p>
                     </div>
                   </div>
                   <ChevronRightIcon className={`w-4 h-4 text-gray-600 transition-transform ${expandedMeasurements.chest ? 'rotate-90' : ''}`} />
@@ -439,8 +441,8 @@ const ClientProgress = ({ client }) => {
                   <div className="flex items-center gap-3">
                     <span className="w-2.5 h-2.5 rounded-full bg-pink-500"></span>
                     <div className="text-left">
-                      <h4 className="text-sm font-semibold text-gray-900">Hips</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Latest: {getLatestMeasurement('currentHipSizeInCm')?.toFixed(1) || '-'} cm</p>
+                      <h4 className="text-sm font-semibold text-gray-900">{t('pages.userProgress.hips')}</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{t('pages.userProgress.latest')}: {getLatestMeasurement('currentHipSizeInCm')?.toFixed(1) || '-'} {t('pages.userProgress.cm')}</p>
                     </div>
                   </div>
                   <ChevronRightIcon className={`w-4 h-4 text-gray-600 transition-transform ${expandedMeasurements.hips ? 'rotate-90' : ''}`} />
@@ -465,8 +467,8 @@ const ClientProgress = ({ client }) => {
                   <div className="flex items-center gap-3">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                     <div className="text-left">
-                      <h4 className="text-sm font-semibold text-gray-900">Thigh</h4>
-                      <p className="text-xs text-gray-600 mt-0.5">Latest: {getLatestMeasurement('currentThighSizeInCm')?.toFixed(1) || '-'} cm</p>
+                      <h4 className="text-sm font-semibold text-gray-900">{t('pages.userProgress.thigh')}</h4>
+                      <p className="text-xs text-gray-600 mt-0.5">{t('pages.userProgress.latest')}: {getLatestMeasurement('currentThighSizeInCm')?.toFixed(1) || '-'} {t('pages.userProgress.cm')}</p>
                     </div>
                   </div>
                   <ChevronRightIcon className={`w-4 h-4 text-gray-600 transition-transform ${expandedMeasurements.thigh ? 'rotate-90' : ''}`} />
@@ -486,8 +488,8 @@ const ClientProgress = ({ client }) => {
         <div className="flex items-center justify-center h-64 bg-white/50 backdrop-blur-md rounded-3xl border border-white/20">
           <div className="text-center">
             <ChartBarIcon className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600 text-sm">No progress data available</p>
-            <p className="text-xs text-gray-500 mt-1">Client hasn't tracked weight yet</p>
+            <p className="text-gray-600 text-sm">{t('pages.userProgress.noProgressData')}</p>
+            <p className="text-xs text-gray-500 mt-1">{t('pages.userProgress.startTracking')}</p>
           </div>
         </div>
       )}
@@ -495,7 +497,7 @@ const ClientProgress = ({ client }) => {
       {/* Entries Table */}
       {filteredCheckins.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Recent Entries</h3>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('pages.userProgress.recentEntries')}</h3>
           {/* Desktop table */}
           <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-sm">
@@ -506,7 +508,7 @@ const ClientProgress = ({ client }) => {
                     className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-purple-50/30 transition-colors"
                   >
                     <div className="flex items-center gap-1">
-                      Date
+                      {t('pages.userProgress.date')}
                       {sortBy === 'date' && (
                         sortOrder === 'asc' ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />
                       )}
@@ -517,15 +519,15 @@ const ClientProgress = ({ client }) => {
                     className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-purple-50/30 transition-colors"
                   >
                     <div className="flex items-center gap-1">
-                      Weight
+                      {t('pages.userProgress.weight')}
                       {sortBy === 'weight' && (
                         sortOrder === 'asc' ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />
                       )}
                     </div>
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Fat %</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Waist</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Chest</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">{t('pages.userProgress.fatPercent')}</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">{t('pages.userProgress.waist')}</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 uppercase">{t('pages.userProgress.chest')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -564,7 +566,7 @@ const ClientProgress = ({ client }) => {
               <div key={idx} className="rounded-2xl bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl border border-white/20 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</p>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('pages.userProgress.date')}</p>
                     <p className="text-sm font-medium text-gray-900">
                       {new Date(checkin.checkInDateTime).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </p>
@@ -572,20 +574,20 @@ const ClientProgress = ({ client }) => {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3">
                   <div className="rounded-xl bg-white/50 border border-white/20 p-3">
-                    <p className="text-xs text-gray-500">Weight</p>
-                    <p className="text-sm font-semibold text-gray-900">{parseFloat(checkin.currentWeightInKg || 0).toFixed(1)} kg</p>
+                    <p className="text-xs text-gray-500">{t('pages.userProgress.weight')}</p>
+                    <p className="text-sm font-semibold text-gray-900">{parseFloat(checkin.currentWeightInKg || 0).toFixed(1)} {t('pages.userProgress.kg')}</p>
                   </div>
                   <div className="rounded-xl bg-white/50 border border-white/20 p-3">
-                    <p className="text-xs text-gray-500">Fat</p>
+                    <p className="text-xs text-gray-500">{t('pages.userProgress.fat')}</p>
                     <p className="text-sm font-semibold text-gray-900">{checkin.currentFatPercentage ? `${parseFloat(checkin.currentFatPercentage).toFixed(1)}%` : '-'}</p>
                   </div>
                   <div className="rounded-xl bg-white/50 border border-white/20 p-3">
-                    <p className="text-xs text-gray-500">Waist</p>
-                    <p className="text-sm font-semibold text-gray-900">{checkin.currentWaistSizeInCm ? parseFloat(checkin.currentWaistSizeInCm).toFixed(1) : '-'} cm</p>
+                    <p className="text-xs text-gray-500">{t('pages.userProgress.waist')}</p>
+                    <p className="text-sm font-semibold text-gray-900">{checkin.currentWaistSizeInCm ? parseFloat(checkin.currentWaistSizeInCm).toFixed(1) : '-'} {t('pages.userProgress.cm')}</p>
                   </div>
                   <div className="rounded-xl bg-white/50 border border-white/20 p-3">
-                    <p className="text-xs text-gray-500">Chest</p>
-                    <p className="text-sm font-semibold text-gray-900">{checkin.currentChestSizeInCm ? parseFloat(checkin.currentChestSizeInCm).toFixed(1) : '-'} cm</p>
+                    <p className="text-xs text-gray-500">{t('pages.userProgress.chest')}</p>
+                    <p className="text-sm font-semibold text-gray-900">{checkin.currentChestSizeInCm ? parseFloat(checkin.currentChestSizeInCm).toFixed(1) : '-'} {t('pages.userProgress.cm')}</p>
                   </div>
                 </div>
               </div>

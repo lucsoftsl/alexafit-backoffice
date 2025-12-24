@@ -111,21 +111,21 @@ const Sidebar = ({
             {variant === 'clients' ? (
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Client Actions</h1>
-                  <p className="text-sm text-gray-500 mt-1">Quick links for this client</p>
+                  <h1 className="text-xl font-bold text-gray-900">{t('sidebar.clientActions')}</h1>
+                  <p className="text-sm text-gray-500 mt-1">{t('sidebar.clientActionsSubtitle')}</p>
                 </div>
                 <button
                   onClick={onBackToMain}
                   className="p-2 rounded-full text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-                  aria-label="Back to main menu"
+                  aria-label={t('sidebar.backToMainMenu')}
                 >
                   <ArrowUturnLeftIcon className="w-5 h-5" />
                 </button>
               </div>
             ) : (
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">AlexaFit</h1>
-                <p className="text-sm text-gray-500 mt-1">Nutrition Guide</p>
+                <h1 className="text-2xl font-bold text-gray-900">{t('sidebar.brand')}</h1>
+                <p className="text-sm text-gray-500 mt-1">{t('sidebar.tagline')}</p>
               </div>
             )}
           </div>
@@ -190,7 +190,7 @@ const Sidebar = ({
                   {getUserDisplayName()}
                 </p>
                 <p className="text-xs text-gray-500 truncate" title={currentUser?.email || ''}>
-                  {currentUser?.email || 'Backoffice Admin'}
+                  {currentUser?.email || t('sidebar.backofficeAdmin')}
                 </p>
               </div>
             </div>

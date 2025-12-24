@@ -8,8 +8,8 @@ import FormSelect from '../components/FormSelect'
 // Module-scoped guard to persist across StrictMode remounts in dev
 const goalDataGuard = new Set()
 
-const formatDate = (val) => {
-  if (!val) return 'N/A'
+const formatDate = (val, t) => {
+  if (!val) return t('common.na')
   try {
     return new Date(val).toLocaleDateString()
   } catch {
@@ -20,7 +20,7 @@ const formatDate = (val) => {
 const InfoRow = ({ label, value }) => (
   <div className="flex justify-between items-center py-2">
     <span className="text-sm text-gray-600">{label}</span>
-    <span className="text-sm font-medium text-gray-900 text-right truncate">{value || 'N/A'}</span>
+    <span className="text-sm font-medium text-gray-900 text-right truncate">{value}</span>
   </div>
 )
 
@@ -111,7 +111,7 @@ const ClientProfile = ({ client }) => {
       // Reset success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
-      setError(err.message || 'Failed to save goal. Please try again.')
+      setError(err.message || t('pages.clientProfile.errors.saveFailed'))
       console.error('Error saving goal data:', err)
     } finally {
       setLoading(false)
@@ -133,17 +133,17 @@ const ClientProfile = ({ client }) => {
   if (!client) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Client Profile</h2>
-        <p className="text-gray-600">Select a client from the Clients list to view their profile.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('pages.clientProfile.title')}</h2>
+        <p className="text-gray-600">{t('pages.clientProfile.selectPrompt')}</p>
       </div>
     )
   }
 
-  const name = client?.userData?.name || client?.loginDetails?.displayName || `${client?.firstName || ''} ${client?.lastName || ''}`.trim() || 'Unknown'
-  const email = client?.loginDetails?.email || client?.email || 'N/A'
+  const name = client?.userData?.name || client?.loginDetails?.displayName || `${client?.firstName || ''} ${client?.lastName || ''}`.trim() || t('common.unknown')
+  const email = client?.loginDetails?.email || client?.email || t('common.na')
   const accountStatus = (client?.status || '').toString().toLowerCase()
-  const statusLabel = accountStatus ? accountStatus.charAt(0).toUpperCase() + accountStatus.slice(1) : 'Unknown'
-  const assignedDate = formatDate(client?.dateTimeAssigned)
+  const statusLabel = accountStatus ? accountStatus.charAt(0).toUpperCase() + accountStatus.slice(1) : t('common.unknown')
+  const assignedDate = formatDate(client?.dateTimeAssigned, t)
   const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
@@ -164,25 +164,25 @@ const ClientProfile = ({ client }) => {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Details</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('pages.clientProfile.details')}</h2>
         <div className="divide-y divide-gray-200">
-          <InfoRow label="Assigned Date" value={assignedDate} />
-          <InfoRow label="User ID" value={Array.isArray(client?.userId) ? client.userId[0] : client?.userId || 'N/A'} />
-          <InfoRow label="Email" value={email} />
+          <InfoRow label={t('pages.clientProfile.assignedDate')} value={assignedDate} />
+          <InfoRow label={t('common.User ID')} value={Array.isArray(client?.userId) ? client.userId[0] : client?.userId || t('common.na')} />
+          <InfoRow label={t('common.Email')} value={email} />
         </div>
       </div>
 
       {/* Goal Management Card */}
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Goal & Target Weight</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('pages.clientProfile.goalCardTitle')}</h2>
           {!editGoalMode && (
             <button
               onClick={() => setEditGoalMode(true)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               <PencilIcon className="w-4 h-4" />
-                {t('common.edit')} Goal
+                {t('pages.clientProfile.editGoal')}
             </button>
           )}
         </div>
@@ -195,7 +195,7 @@ const ClientProfile = ({ client }) => {
 
         {success && (
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-            Goal updated successfully!
+            {t('pages.clientProfile.successUpdate')}
           </div>
         )}
 
@@ -205,7 +205,7 @@ const ClientProfile = ({ client }) => {
               {/* Target Weight */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Target Weight
+                  {t('pages.clientProfile.targetWeight')}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -213,7 +213,7 @@ const ClientProfile = ({ client }) => {
                     name="selectedTargetWeight"
                     value={formData.selectedTargetWeight}
                     onChange={handleInputChange}
-                    placeholder="Target Weight"
+                    placeholder={t('pages.clientProfile.targetWeightPlaceholder')}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <select
@@ -230,14 +230,14 @@ const ClientProfile = ({ client }) => {
 
               {/* Goal Type */}
               <FormSelect
-                label="Goal Type"
+                label={t('pages.clientProfile.goalType')}
                 name="selectedGoalType"
                 value={formData.selectedGoalType}
                 onChange={handleInputChange}
                 options={[
-                  { value: 'LOSE_WEIGHT', label: 'Lose Weight' },
-                  { value: 'MAINTAIN_WEIGHT', label: 'Maintain Weight' },
-                  { value: 'GAIN_WEIGHT', label: 'Gain Weight' }
+                  { value: 'LOSE_WEIGHT', label: t('pages.clientProfile.goalTypes.LOSE_WEIGHT') },
+                  { value: 'MAINTAIN_WEIGHT', label: t('pages.clientProfile.goalTypes.MAINTAIN_WEIGHT') },
+                  { value: 'GAIN_WEIGHT', label: t('pages.clientProfile.goalTypes.GAIN_WEIGHT') }
                 ]}
               />
             </div>
@@ -250,7 +250,7 @@ const ClientProfile = ({ client }) => {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckIcon className="w-4 h-4" />
-                {loading ? `${t('common.save')}ing...` : `${t('common.save')} Changes`}
+                {loading ? t('pages.clientProfile.saving') : t('pages.clientProfile.saveChanges')}
               </button>
               <button
                 onClick={handleCancelGoalEdit}
@@ -258,7 +258,7 @@ const ClientProfile = ({ client }) => {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <XMarkIcon className="w-4 h-4" />
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -266,17 +266,17 @@ const ClientProfile = ({ client }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Goal Type Display */}
             <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-lg border border-purple-200/50">
-              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">Goal Type</p>
+              <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">{t('pages.clientProfile.goalType')}</p>
               <p className="text-lg font-bold text-gray-900">
-                {formData.selectedGoalType ? formData.selectedGoalType.replace(/_/g, ' ') : goalData?.goalType?.replace(/_/g, ' ') || 'Not Set'}
+                {formData.selectedGoalType ? t(`pages.clientProfile.goalTypes.${formData.selectedGoalType}`) : (goalData?.goalType ? t(`pages.clientProfile.goalTypes.${goalData.goalType}`) : t('pages.clientProfile.notSet'))}
               </p>
             </div>
 
             {/* Target Weight Display */}
             <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg border border-blue-200/50">
-              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-2">Target Weight</p>
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-2">{t('pages.clientProfile.targetWeight')}</p>
               <p className="text-lg font-bold text-gray-900">
-                {formData.selectedTargetWeight || goalData?.targetWeight || 'Not Set'}
+                {formData.selectedTargetWeight || goalData?.targetWeight || t('pages.clientProfile.notSet')}
                 {(formData.selectedTargetWeight || goalData?.targetWeight) && (
                   <span className="text-sm text-gray-600 ml-1">
                     {formData.selectedTargetWeightMeasurementUnit === 'METRIC' ? 'kg' : 'lb'}
