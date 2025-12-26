@@ -197,6 +197,7 @@
           ]
         },
         "userProgress": {
+          "last {{days}} days": "últimos {{days}} días",
           "title": "Progreso del usuario",
           "description": "Controla tu peso y medidas con gráficas y filtros.",
           "steps": [
@@ -614,6 +615,7 @@
       "refreshClientsList": "Actualizar lista de clientes"
     },
     "userProgress": {
+      "last {{days}} days": "últimos {{days}} días",
       "title": "Progreso de Peso",
       "subtitle": "Rastrea tu peso y métricas de salud",
       "loading": "Cargando progreso...",

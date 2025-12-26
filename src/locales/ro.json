@@ -197,6 +197,7 @@
           ]
         },
         "userProgress": {
+          "last {{days}} days": "ultimii {{days}} zile",
           "title": "Progres utilizator",
           "description": "Urmărește greutatea și măsurătorile tale cu grafice și filtre.",
           "steps": [
@@ -614,6 +615,7 @@
       "refreshClientsList": "Reîmprospătează lista de clienți"
     },
     "userProgress": {
+      "last {{days}} days": "ultimii {{days}} zile",
       "title": "Progres Greutate",
       "subtitle": "Urmărește greutatea și metricile de sănătate",
       "loading": "Se încarcă progresul...",

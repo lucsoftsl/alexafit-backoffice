@@ -21,8 +21,8 @@ const UserProgress = () => {
   const [filteredCheckins, setFilteredCheckins] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [selectedFilter, setSelectedFilter] = useState(30)
-  const [showFilters, setShowFilters] = useState(false)
+  const [selectedFilter, setSelectedFilter] = useState(180) // Default to last 180 days
+  const [showFilters, setShowFilters] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedCheckin, setSelectedCheckin] = useState(null)
   const [lastWeight, setLastWeight] = useState(null)
@@ -90,9 +90,9 @@ const UserProgress = () => {
   }
 
   const getStats = () => {
-    if (filteredCheckins.length === 0) return null
+    if (checkins.length === 0) return null
 
-    const ordered = [...filteredCheckins].sort((a, b) => new Date(a.checkInDateTime) - new Date(b.checkInDateTime))
+    const ordered = [...checkins].sort((a, b) => new Date(a.checkInDateTime) - new Date(b.checkInDateTime))
     const weights = ordered
       .map(c => c.currentWeightInKg)
       .filter(w => w !== null && w !== undefined && w !== '')
@@ -584,7 +584,10 @@ const UserProgress = () => {
 
         {filteredCheckins.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('pages.userProgress.recentEntries')}</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {t('pages.userProgress.recentEntries')}
+              <span className="ml-2 text-sm text-gray-500 font-normal">{t('pages.userProgress.last {{days}} days', { days: selectedFilter })}</span>
+            </h2>
             {/* Desktop table */}
             <div className="overflow-x-auto hidden md:block">
               <table className="w-full">
