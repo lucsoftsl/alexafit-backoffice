@@ -615,6 +615,7 @@
       "refreshClientsList": "Refresh clients list"
     },
     "userProgress": {
+      "all": "All",
       "last {{days}} days": "last {{days}} days",
       "title": "Weight Progress",
       "subtitle": "Track your weight and health metrics",

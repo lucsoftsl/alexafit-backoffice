@@ -615,6 +615,7 @@
       "refreshClientsList": "Actualizar lista de clientes"
     },
     "userProgress": {
+      "all": "Todos",
       "last {{days}} days": "últimos {{days}} días",
       "title": "Progreso de Peso",
       "subtitle": "Rastrea tu peso y métricas de salud",

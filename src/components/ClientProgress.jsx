@@ -69,6 +69,10 @@ const ClientProgress = ({ client }) => {
   }, [selectedFilter, filteredCheckins])
 
   const filterCheckinsByDateRange = () => {
+    if (selectedFilter === Infinity) {
+      setFilteredCheckins(checkins)
+      return
+    }
     const today = new Date()
     const pastDate = new Date(today.getTime() - selectedFilter * 24 * 60 * 60 * 1000)
 
@@ -273,7 +277,8 @@ const ClientProgress = ({ client }) => {
               { days: 30, label: `1 ${t('pages.userProgress.month')}` },
               { days: 90, label: `3 ${t('pages.userProgress.months')}` },
               { days: 180, label: `6 ${t('pages.userProgress.months')}` },
-              { days: 365, label: `1 ${t('pages.userProgress.year')}` }
+              { days: 365, label: `1 ${t('pages.userProgress.year')}` },
+              { days: Infinity, label: t('pages.userProgress.all') }
             ].map(({ days, label }) => (
               <button
                 key={days}
@@ -499,7 +504,7 @@ const ClientProgress = ({ client }) => {
         <div>
           <h3 className="text-sm font-semibold text-gray-900 mb-3">
             {t('pages.userProgress.recentEntries')}
-            <span className="ml-2 text-sm text-gray-500 font-normal">{t('pages.userProgress.last {{days}} days', { days: selectedFilter })}</span>
+            <span className="ml-2 text-sm text-gray-500 font-normal">{ selectedFilter === Infinity ? t('pages.userProgress.all') : t('pages.userProgress.last {{days}} days', { days: selectedFilter })}</span>
           </h3>
           {/* Desktop table */}
           <div className="overflow-x-auto hidden md:block">
