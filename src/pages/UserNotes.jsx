@@ -74,7 +74,10 @@ export default function UserNotes() {
       const res = await getUserNotes({ userId })
       // Accept a few common shapes
       const list = res?.data || res?.notes || res?.items || res || []
-      setNotes(Array.isArray(list) ? list : [])
+      const filtered = Array.isArray(list)
+        ? list.filter((n) => n?.fromUserId == null || n?.fromUserId === userId)
+        : []
+      setNotes(filtered)
     } catch (err) {
       console.error('Failed to load notes', err)
       setError(err?.message || 'Failed to load notes')
