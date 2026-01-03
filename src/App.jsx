@@ -16,6 +16,7 @@ import UserNotes from './pages/UserNotes'
 import ClientJournal from './pages/ClientJournal'
 import ClientProfile from './pages/ClientProfile'
 import ClientMealPlans from './pages/ClientMealPlans'
+import Chat from './pages/Chat'
 import Tutorials from './pages/Tutorials'
 import Login from './components/Login'
 import { useAuth } from './contexts/AuthContext'
@@ -68,7 +69,8 @@ function App() {
     const map = {
       profile: 'client-profile',
       journal: 'client-journal',
-      'meal-plans': 'client-meal-plans'
+      'meal-plans': 'client-meal-plans',
+      chat: 'client-chat'
     }
     const nextPage = map[itemId] || 'client-journal'
     setActivePage(nextPage)
@@ -168,6 +170,8 @@ function App() {
         return <ClientJournal client={selectedClient} />
       case 'client-meal-plans':
         return <ClientMealPlans client={selectedClient} />
+      case 'client-chat':
+        return <Chat selectedUserId={selectedClient?.userId} />
       case 'mymenus':
         return <MyMenus />
       case 'users':

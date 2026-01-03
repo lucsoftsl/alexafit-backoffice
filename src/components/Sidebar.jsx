@@ -10,7 +10,8 @@ import {
   BookOpenIcon,
   UserCircleIcon,
   ClipboardDocumentListIcon,
-  ArrowUturnLeftIcon
+  ArrowUturnLeftIcon,
+  ChatBubbleLeftIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
@@ -60,6 +61,7 @@ const Sidebar = ({
     { id: 'profile', labelKey: 'sidebar.clientProfile', icon: UserCircleIcon },
     { id: 'journal', labelKey: 'sidebar.clientJournal', icon: ClipboardDocumentListIcon },
     { id: 'meal-plans', labelKey: 'sidebar.clientMealPlans', icon: CakeIcon },
+    { id: 'chat', labelKey: 'sidebar.clientChat', icon: ChatBubbleLeftIcon },
     { id: 'all-clients', labelKey: 'sidebar.allClients', icon: UsersIcon }
   ]
 
