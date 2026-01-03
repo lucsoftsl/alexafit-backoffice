@@ -1,5 +1,15 @@
 {
   "common": {
+    "Loading": "Se încarcă...",
+    "Chat": "Chat",
+    "Chat with": "Chat cu",
+    "Loading messages": "Se încarcă mesajele",
+    "No messages yet": "Nu există mesaje încă. Începe o conversație!",
+    "Type your message": "Tastează mesajul tău",
+    "Sending": "Se trimite...",
+    "Select a user to start messaging": "Selectați un utilizator pentru a începe să trimiteți mesaje",
+    "Today": "Astăzi",
+    "Yesterday": "Ieri",
     "na": "N/A",
     "unknown": "Necunoscut",
     "for": "pentru",
@@ -109,7 +119,10 @@
     "Send to WhatsApp": "Trimite pe WhatsApp",
     "No Nutrition Data": "Nicio dată nutrițională",
     "Send Push Notification": "Trimite notificare push",
-    "Messages": "Mesaje"
+    "Messages": "Mesaje",
+    "New message received": "Mesaj nou primit",
+    "Please select a user to message": "Selectați un utilizator pentru a trimite un mesaj",
+    "Failed to send message": "Trimiterea mesajului a eșuat"
   },
   "login": {
     "signInTitle": "Conectați-vă la contul dvs",

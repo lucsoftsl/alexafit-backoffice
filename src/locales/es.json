@@ -1,5 +1,15 @@
 {
   "common": {
+    "Loading": "Cargando...",
+    "Chat": "Chat",
+    "Chat with": "Chat con",
+    "Loading messages": "Cargando mensajes",
+    "No messages yet": "No hay mensajes aún. ¡Comienza una conversación!",
+    "Type your message": "Escribe tu mensaje",
+    "Sending": "Enviando",
+    "Select a user to start messaging": "Selecciona un usuario para comenzar a enviar mensajes",
+    "Today": "Hoy",
+    "Yesterday": "Ayer",
     "na": "N/D",
     "unknown": "Desconocido",
     "for": "para",
@@ -109,9 +119,10 @@
     "Send to WhatsApp": "Enviar a WhatsApp",
     "No Nutrition Data": "Sin datos de nutrición",
     "Send Push Notification": "Enviar notificación push",
-    "Messages": "Mensajes"
-  },
-  "login": {
+    "Messages": "Mensajes",
+      "New message received": "Nuevo mensaje recibido",
+      "Please select a user to message": "Selecciona un usuario para enviar un mensaje",
+      "Failed to send message": "No se pudo enviar el mensaje",
     "signInTitle": "Inicia sesión en tu cuenta",
     "createAccountTitle": "Crear una nueva cuenta",
     "emailLabel": "Correo electrónico",

@@ -3,8 +3,9 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   sendChatMessage,
   getChatThread,
-  markMessagesAsRead,
+  markMessagesAsRead
 } from '../services/chatApi'
+import { sendPushNotification } from '../services/api'
 import { PaperAirplaneIcon, ArrowLeftIcon } from '@heroicons/react/24/solid'
 import { useTranslation } from 'react-i18next'
 
@@ -108,7 +109,7 @@ function ChatPage({ selectedUserId = null }) {
     }
 
     if (!selectedThreadUserId) {
-      setError('Please select a user to message')
+      setError(t('common.Please select a user to message'))
       return
     }
 
@@ -136,8 +137,25 @@ function ChatPage({ selectedUserId = null }) {
         
         setAllMessages([...allMessages, newMessage])
         setInputMessage('')
+
+        // Send push notification to recipient if token available
+        const recipientDetails = currentThreadMessages.length > 0
+          ? (currentThreadMessages[0].senderId === senderId
+            ? currentThreadMessages[0].recipientDetails
+            : currentThreadMessages[0].senderDetails)
+          : null
+
+        if (recipientDetails?.pushNotificationToken) {
+          sendPushNotification(
+            recipientDetails.pushNotificationToken,
+            t('common.New message received'),
+            ''
+          ).catch((pushErr) => {
+            console.error('Error sending push notification:', pushErr)
+          })
+        }
       } else {
-        setError('Failed to send message')
+        setError(t('common.Failed to send message'))
       }
     } catch (err) {
       console.error('Error sending message:', err)
@@ -176,7 +194,7 @@ function ChatPage({ selectedUserId = null }) {
       <div className={`${showThreadList ? 'flex' : 'hidden'} md:flex w-full md:w-80 border-r border-white/20 backdrop-blur-xl bg-white/40 flex-col`}>
         {/* Header */}
         <div className="px-4 md:px-6 py-4 border-b border-white/20 shadow-sm bg-white/60 backdrop-blur-lg">
-          <h2 className="text-lg font-bold text-gray-900">{t('Chat')}</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t('common.Chat')}</h2>
           <p className="text-xs text-gray-500 mt-1">{threadUserIds.length} {threadUserIds.length === 1 ? 'conversation' : 'conversations'}</p>
         </div>
 
@@ -184,11 +202,11 @@ function ChatPage({ selectedUserId = null }) {
         <div className="flex-1 overflow-y-auto">
           {isLoadingMessages ? (
             <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500 text-sm">{t('Loading messages')}</p>
+              <p className="text-gray-500 text-sm">{t('common.Loading messages')}</p>
             </div>
           ) : threadUserIds.length === 0 ? (
             <div className="flex items-center justify-center h-full px-4">
-              <p className="text-gray-500 text-sm text-center">{t('No conversations yet')}</p>
+              <p className="text-gray-500 text-sm text-center">{t('common.No conversations yet')}</p>
             </div>
           ) : (
             threadUserIds.map((userId) => {
@@ -243,7 +261,7 @@ function ChatPage({ selectedUserId = null }) {
             disabled={isLoadingMessages}
             className="w-full px-3 py-2 bg-white/60 hover:bg-white/80 disabled:bg-white/40 text-gray-700 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm backdrop-blur-sm"
           >
-            {isLoadingMessages ? t('Loading') + '...' : t('Refresh')}
+            {isLoadingMessages ? t('common.Loading') + '...' : t('common.Refresh')}
           </button>
         </div>
       </div>
@@ -283,7 +301,7 @@ function ChatPage({ selectedUserId = null }) {
                 disabled={isLoadingMessages}
                 className="px-3 py-2 bg-white/60 hover:bg-white/80 disabled:bg-white/40 text-gray-700 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm backdrop-blur-sm"
               >
-                {isLoadingMessages ? t('Loading') + '...' : '↻'}
+                {isLoadingMessages ? t('common.Loading') + '...' : '↻'}
               </button>
             </div>
 
@@ -291,7 +309,7 @@ function ChatPage({ selectedUserId = null }) {
             <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4 min-h-0 pb-24">
               {currentThreadMessages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">{t('No messages yet')}</p>
+                  <p className="text-gray-500">{t('common.No messages yet')}</p>
                 </div>
               ) : (
                 currentThreadMessages.map((msg) => {
@@ -346,7 +364,7 @@ function ChatPage({ selectedUserId = null }) {
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder={t('Type your message') + '...'}
+                  placeholder={t('common.Type your message') + '...'}
                   className="flex-1 px-4 py-2 md:py-3 border border-gray-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm text-sm md:text-base"
                   disabled={loading}
                 />
@@ -356,7 +374,7 @@ function ChatPage({ selectedUserId = null }) {
                   className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-sm"
                 >
                   <PaperAirplaneIcon className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="hidden md:inline">{loading ? t('Sending') + '...' : t('Send')}</span>
+                  <span className="hidden md:inline">{loading ? t('common.Sending') + '...' : t('common.Send')}</span>
                 </button>
               </div>
             </form>
@@ -364,7 +382,7 @@ function ChatPage({ selectedUserId = null }) {
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center px-4">
-              <p className="text-gray-500 text-base md:text-lg">{t('Select a conversation to start messaging')}</p>
+              <p className="text-gray-500 text-base md:text-lg">{t('common.Select a conversation to start messaging')}</p>
             </div>
           </div>
         )}
