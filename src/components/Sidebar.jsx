@@ -61,6 +61,7 @@ const Sidebar = ({
     { id: 'profile', labelKey: 'sidebar.clientProfile', icon: UserCircleIcon },
     { id: 'journal', labelKey: 'sidebar.clientJournal', icon: ClipboardDocumentListIcon },
     { id: 'meal-plans', labelKey: 'sidebar.clientMealPlans', icon: CakeIcon },
+    { id: 'notes', labelKey: 'sidebar.clientNotes', icon: DocumentTextIcon },
     { id: 'chat', labelKey: 'sidebar.clientChat', icon: ChatBubbleLeftIcon },
     { id: 'all-clients', labelKey: 'sidebar.allClients', icon: UsersIcon }
   ]

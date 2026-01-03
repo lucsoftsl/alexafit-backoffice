@@ -184,6 +184,7 @@
     "clientProfile": "Client Profile",
     "clientJournal": "Client Journal",
     "clientMealPlans": "Client Meal Plans",
+    "clientNotes": "Client Notes",
     "clientChat": "Chat with Client",
     "allClients": "All Clients",
     "brand": "AlexaFit",
@@ -298,6 +299,31 @@
       "saving": "Saving…",
       "cancel": "Cancel",
       "updated": "Updated"
+    },
+    "clientNotes": {
+      "title": "Client Notes",
+      "subtitle": "Private notes for {{client}}.",
+      "selectPrompt": "Select a client from the Clients list to view their notes.",
+      "notes": "Notes",
+      "sortedByUpdate": "Sorted by last update",
+      "refresh": "Refresh",
+      "newNote": "New Note",
+      "loading": "Loading notes…",
+      "empty": "No notes for this client yet.",
+      "editNote": "Edit Note",
+      "writePlaceholder": "Write a note for this client…",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "updated": "Updated",
+      "confirmDelete": "Delete this note?",
+      "edit": "Edit",
+      "delete": "Delete",
+      "errors": {
+        "load": "Failed to load notes",
+        "save": "Failed to save note",
+        "delete": "Failed to delete note"
+      }
     },
     "settings": {
       "title": "My Profile",

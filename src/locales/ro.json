@@ -184,6 +184,7 @@
     "clientProfile": "Profilul clientului",
     "clientJournal": "Jurnalul clientului",
     "clientMealPlans": "Planuri de mese ale clientului",
+    "clientNotes": "Notele clientului",
     "clientChat": "Chat cu clientul",
     "allClients": "Toți clienții",
     "brand": "AlexaFit",
@@ -298,6 +299,31 @@
       "saving": "Se salvează…",
       "cancel": "Anulează",
       "updated": "Actualizat"
+    },
+    "clientNotes": {
+      "title": "Notele clientului",
+      "subtitle": "Note private pentru {{client}}.",
+      "selectPrompt": "Selectați un client din listă pentru a vedea notele lui.",
+      "notes": "Note",
+      "sortedByUpdate": "Sortate după ultima actualizare",
+      "refresh": "Reîmprospătează",
+      "newNote": "Notă nouă",
+      "loading": "Se încarcă notele…",
+      "empty": "Nu există note pentru acest client încă.",
+      "editNote": "Editează nota",
+      "writePlaceholder": "Scrieți o notă pentru acest client…",
+      "save": "Salvează",
+      "saving": "Se salvează…",
+      "cancel": "Anulează",
+      "updated": "Actualizat",
+      "confirmDelete": "Ștergeți această notă?",
+      "edit": "Editează",
+      "delete": "Șterge",
+      "errors": {
+        "load": "Eroare la încărcarea notelor",
+        "save": "Eroare la salvarea notei",
+        "delete": "Eroare la ștergerea notei"
+      }
     },
     "settings": {
       "title": "Profilul meu",

@@ -301,6 +301,19 @@ export async function addUserNote({ userId, note }) {
   })
 }
 
+export async function addClientNote({
+  userId,
+  note,
+  fromUserId,
+  isFromNutritionist = true
+}) {
+  // Create a new note for a user
+  return request('/foodsync/addUserNote', {
+    method: 'POST',
+    body: { userId, note, fromUserId, isFromNutritionist }
+  })
+}
+
 export async function updateUserNote({ userId, noteId, note }) {
   // Update an existing user note
   return request('/foodsync/updateUserNote', {

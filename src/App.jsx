@@ -16,6 +16,7 @@ import UserNotes from './pages/UserNotes'
 import ClientJournal from './pages/ClientJournal'
 import ClientProfile from './pages/ClientProfile'
 import ClientMealPlans from './pages/ClientMealPlans'
+import ClientNotes from './pages/ClientNotes'
 import Chat from './pages/Chat'
 import Tutorials from './pages/Tutorials'
 import Login from './components/Login'
@@ -70,7 +71,8 @@ function App() {
       profile: 'client-profile',
       journal: 'client-journal',
       'meal-plans': 'client-meal-plans',
-      chat: 'client-chat'
+      chat: 'client-chat',
+      notes: 'client-notes'
     }
     const nextPage = map[itemId] || 'client-journal'
     setActivePage(nextPage)
@@ -107,7 +109,7 @@ function App() {
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus']
     // Nutritionist-only pages
-    const nutritionistPages = ['myusers', 'client-profile', 'client-journal', 'client-meal-plans']
+    const nutritionistPages = ['myusers', 'client-profile', 'client-journal', 'client-meal-plans', 'client-notes']
     
     // Check if current page requires admin access
     if (adminPages.includes(activePage) && !isAdmin) {
@@ -170,6 +172,8 @@ function App() {
         return <ClientJournal client={selectedClient} />
       case 'client-meal-plans':
         return <ClientMealPlans client={selectedClient} />
+      case 'client-notes':
+        return <ClientNotes client={selectedClient} />
       case 'client-chat':
         return <Chat selectedUserId={selectedClient?.userId} />
       case 'mymenus':

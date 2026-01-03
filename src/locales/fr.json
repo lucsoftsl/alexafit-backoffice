@@ -184,6 +184,7 @@
     "clientProfile": "Profil du client",
     "clientJournal": "Journal du client",
     "clientMealPlans": "Menus du client",
+    "clientNotes": "Notes client",
     "clientChat": "Chat avec le client",
     "allClients": "Tous les clients",
     "brand": "AlexaFit",
@@ -298,6 +299,31 @@
       "saving": "Enregistrement…",
       "cancel": "Annuler",
       "updated": "Mis à jour"
+    },
+    "clientNotes": {
+      "title": "Notes client",
+      "subtitle": "Notes privées pour {{client}}.",
+      "selectPrompt": "Sélectionnez un client dans la liste pour voir ses notes.",
+      "notes": "Notes",
+      "sortedByUpdate": "Triées par dernière mise à jour",
+      "refresh": "Rafraîchir",
+      "newNote": "Nouvelle note",
+      "loading": "Chargement des notes…",
+      "empty": "Pas encore de notes pour ce client.",
+      "editNote": "Modifier la note",
+      "writePlaceholder": "Écrivez une note pour ce client…",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler",
+      "updated": "Mis à jour",
+      "confirmDelete": "Supprimer cette note ?",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "errors": {
+        "load": "Échec du chargement des notes",
+        "save": "Échec de l'enregistrement de la note",
+        "delete": "Échec de la suppression de la note"
+      }
     },
     "settings": {
       "title": "Mon profil",
