@@ -53,7 +53,7 @@ const Sidebar = ({
   // Filter menu items based on admin/nutritionist status
   const menuItems = allMenuItems.filter(item => {
     if (item.adminOnly && !isAdmin) return false
-    if (item.nutritionistOnly && !isNutritionist) return false
+    if (item.nutritionistOnly && !(isNutritionist || isAdmin)) return false
     return true
   })
 

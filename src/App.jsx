@@ -138,7 +138,7 @@ function App() {
     }
 
     // Check nutritionist-only pages
-    if (nutritionistPages.includes(activePage) && !isNutritionist) {
+    if (nutritionistPages.includes(activePage) && !(isNutritionist || isAdmin)) {
       return (
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
