@@ -9,6 +9,9 @@ import { sendPushNotification } from '../services/api'
 import { PaperAirplaneIcon, ArrowLeftIcon } from '@heroicons/react/24/solid'
 import { useTranslation } from 'react-i18next'
 
+const REFRESH_INTERVAL_MS = 10000
+const RETRY_LIMIT_MS = 120000
+
 function ChatPage({ selectedUserId = null }) {
   const { t } = useTranslation()
   const { currentUser, userData } = useAuth()
@@ -21,6 +24,9 @@ function ChatPage({ selectedUserId = null }) {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [showThreadList, setShowThreadList] = useState(true)
   const messagesEndRef = useRef(null)
+  const pollingTimeoutRef = useRef(null)
+  const pollingStartRef = useRef(null)
+  const lastThreadSignatureRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -60,27 +66,88 @@ function ChatPage({ selectedUserId = null }) {
       setIsLoadingMessages(false)
     }
   }
-
-  // Group messages by recipientId or senderId (whoever is not the current user)
-  const groupedThreads = () => {
+  const buildThreads = (messages) => {
     const threads = {}
-    allMessages.forEach((msg) => {
+    messages.forEach((msg) => {
       const otherUserId = msg.senderId === senderId ? msg.recipientId : msg.senderId
       if (!threads[otherUserId]) {
         threads[otherUserId] = []
       }
       threads[otherUserId].push(msg)
     })
-    // Sort each thread by date
     Object.keys(threads).forEach((userId) => {
       threads[userId].sort((a, b) => new Date(a.dateTimeCreated) - new Date(b.dateTimeCreated))
     })
     return threads
   }
 
-  const threads = groupedThreads()
+  const getThreadSignature = (threadMessages) => {
+    if (!threadMessages?.length) return 'empty'
+    const lastMessage = threadMessages[threadMessages.length - 1]
+    return `${threadMessages.length}-${lastMessage?.id || lastMessage?.dateTimeCreated || 'unknown'}`
+  }
+
+  const threads = buildThreads(allMessages)
   const threadUserIds = Object.keys(threads)
   const currentThreadMessages = selectedThreadUserId ? threads[selectedThreadUserId] || [] : []
+
+  useEffect(() => {
+    if (!selectedThreadUserId) return
+    lastThreadSignatureRef.current = getThreadSignature(currentThreadMessages)
+  }, [selectedThreadUserId, currentThreadMessages])
+
+  useEffect(() => {
+    if (!senderId || !selectedThreadUserId) return
+
+    let stopped = false
+    pollingStartRef.current = Date.now()
+
+    const stopPolling = () => {
+      stopped = true
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current)
+        pollingTimeoutRef.current = null
+      }
+    }
+
+    const runPoll = async () => {
+      if (stopped) return
+
+      const elapsedMs = Date.now() - pollingStartRef.current
+      if (elapsedMs >= RETRY_LIMIT_MS) {
+        stopPolling()
+        return
+      }
+
+      try {
+        const response = await getChatThread(senderId)
+        if (response.ok) {
+          const incomingMessages = response.data || []
+          const incomingThreads = buildThreads(incomingMessages)
+          const incomingThreadMessages = incomingThreads[selectedThreadUserId] || []
+          const incomingSignature = getThreadSignature(incomingThreadMessages)
+          const hasNewMessages = incomingSignature !== lastThreadSignatureRef.current
+
+          setAllMessages(incomingMessages)
+
+          if (hasNewMessages) {
+            lastThreadSignatureRef.current = incomingSignature
+            pollingStartRef.current = Date.now()
+            pollingTimeoutRef.current = setTimeout(runPoll, REFRESH_INTERVAL_MS)
+            return
+          }
+        }
+      } catch (err) {
+        console.error('Error refreshing messages:', err)
+      }
+
+      pollingTimeoutRef.current = setTimeout(runPoll, REFRESH_INTERVAL_MS)
+    }
+
+    pollingTimeoutRef.current = setTimeout(runPoll, REFRESH_INTERVAL_MS)
+
+    return stopPolling
+  }, [senderId, selectedThreadUserId])
   // Mark messages as read when thread is selected
   useEffect(() => {
     if (selectedThreadUserId && currentThreadMessages.length > 0) {
