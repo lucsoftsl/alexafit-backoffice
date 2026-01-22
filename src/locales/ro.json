@@ -359,7 +359,18 @@
       "sat": "Sâm",
       "sun": "Dum",
       "week": "Săptămână",
-      "kcal": "kcal"
+      "kcal": "kcal",
+      "date": "Data",
+      "user": "Utilizator",
+      "dailyGoals": "Obiective Zilnice",
+      "calories": "Calorii",
+      "protein": "Proteine",
+      "carbs": "Carbohidrați",
+      "fat": "Grăsimi",
+      "actualIntake": "Aport Real",
+      "goalProgress": "Progres Obiectiv",
+      "total": "Total",
+      "caloriesBurned": "Calorii Arse"
     },
     "clientMealPlans": {
       "title": "Planuri de mese ale clientului",

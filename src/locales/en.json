@@ -359,7 +359,18 @@
       "sat": "Sat",
       "sun": "Sun",
       "week": "Week",
-      "kcal": "kcal"
+      "kcal": "kcal",
+      "date": "Date",
+      "user": "User",
+      "dailyGoals": "Daily Goals",
+      "calories": "Calories",
+      "protein": "Protein",
+      "carbs": "Carbs",
+      "fat": "Fat",
+      "actualIntake": "Actual Intake",
+      "goalProgress": "Goal Progress",
+      "total": "Total",
+      "caloriesBurned": "Calories Burned"
     },
     "clientMealPlans": {
       "title": "Client Meal Plans",

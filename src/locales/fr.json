@@ -359,7 +359,18 @@
       "sat": "Sam",
       "sun": "Dim",
       "week": "Semaine",
-      "kcal": "kcal"
+      "kcal": "kcal",
+      "date": "Date",
+      "user": "Utilisateur",
+      "dailyGoals": "Objectifs Quotidiens",
+      "calories": "Calories",
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Lipides",
+      "actualIntake": "Apport Réel",
+      "goalProgress": "Progrès de l'Objectif",
+      "total": "Total",
+      "caloriesBurned": "Calories Brûlées"
     },
     "clientMealPlans": {
       "title": "Menus du client",

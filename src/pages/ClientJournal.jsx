@@ -779,26 +779,48 @@ const ClientJournal = ({ client }) => {
           {(() => {
             // Build a copy-ready summary text
             const lines = []
-            lines.push(`📅 Date: ${dateLabel || selectedDate}`)
-            lines.push(`👤 User: ${userName}`)
+            lines.push(
+              `📅 ${t('pages.clientJournal.date') || 'Date'}: ${dateLabel || selectedDate}`
+            )
+            lines.push(
+              `👤 ${t('pages.clientJournal.user') || 'User'}: ${userName}`
+            )
             lines.push('')
 
             // User Goals
-            lines.push('🎯 Daily Goals:')
             lines.push(
-              `  • Calories: ${Math.round(daily.goals.calories || 0)} kcal`
+              `🎯 ${t('pages.clientJournal.dailyGoals') || 'Daily Goals'}:`
             )
-            lines.push(`  • Protein: ${Math.round(daily.goals.protein || 0)}g`)
-            lines.push(`  • Carbs: ${Math.round(daily.goals.carbs || 0)}g`)
-            lines.push(`  • Fat: ${Math.round(daily.goals.fat || 0)}g`)
+            lines.push(
+              `  • ${t('pages.clientJournal.calories') || 'Calories'}: ${Math.round(daily.goals.calories || 0)} ${t('pages.clientJournal.kcal') || 'kcal'}`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.protein') || 'Protein'}: ${Math.round(daily.goals.protein || 0)}g`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.carbs') || 'Carbs'}: ${Math.round(daily.goals.carbs || 0)}g`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.fat') || 'Fat'}: ${Math.round(daily.goals.fat || 0)}g`
+            )
             lines.push('')
 
             // Actual Intake
-            lines.push('📊 Actual Intake:')
-            lines.push(`  • Calories: ${macroTotals.calories || 0} kcal`)
-            lines.push(`  • Protein: ${macroTotals.proteinsInGrams || 0}g`)
-            lines.push(`  • Carbs: ${macroTotals.carbohydratesInGrams || 0}g`)
-            lines.push(`  • Fat: ${macroTotals.fatInGrams || 0}g`)
+            lines.push(
+              `📊 ${t('pages.clientJournal.actualIntake') || 'Actual Intake'}:`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.calories') || 'Calories'}: ${macroTotals.calories || 0} ${t('pages.clientJournal.kcal') || 'kcal'}`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.protein') || 'Protein'}: ${macroTotals.proteinsInGrams || 0}g`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.carbs') || 'Carbs'}: ${macroTotals.carbohydratesInGrams || 0}g`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.fat') || 'Fat'}: ${macroTotals.fatInGrams || 0}g`
+            )
             lines.push('')
 
             // Progress percentages
@@ -825,72 +847,106 @@ const ClientJournal = ({ client }) => {
                 ? Math.round((macroTotals.fatInGrams / daily.goals.fat) * 100)
                 : 0
 
-            lines.push('📈 Goal Progress:')
-            lines.push(`  • Calories: ${caloriesPct}%`)
-            lines.push(`  • Protein: ${proteinPct}%`)
-            lines.push(`  • Carbs: ${carbsPct}%`)
-            lines.push(`  • Fat: ${fatPct}%`)
+            lines.push(
+              `📈 ${t('pages.clientJournal.goalProgress') || 'Goal Progress'}:`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.calories') || 'Calories'}: ${caloriesPct}%`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.protein') || 'Protein'}: ${proteinPct}%`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.carbs') || 'Carbs'}: ${carbsPct}%`
+            )
+            lines.push(
+              `  • ${t('pages.clientJournal.fat') || 'Fat'}: ${fatPct}%`
+            )
             lines.push('')
 
             // Meals breakdown
             if (daily.breakfast?.length > 0) {
-              lines.push('🍳 BREAKFAST:')
+              lines.push(
+                `🍳 ${t('pages.clientJournal.breakfast')?.toUpperCase() || 'BREAKFAST'}:`
+              )
               daily.breakfast.forEach(item => {
                 const name = getItemDisplay(item)
                 const kcal = getItemCalories(item)
-                lines.push(`  • ${name}: ${kcal} kcal`)
+                lines.push(
+                  `  • ${name}: ${kcal} ${t('pages.clientJournal.kcal') || 'kcal'}`
+                )
               })
               lines.push('')
             }
 
             if (daily.lunch?.length > 0) {
-              lines.push('🍱 LUNCH:')
+              lines.push(
+                `🍱 ${t('pages.clientJournal.lunch')?.toUpperCase() || 'LUNCH'}:`
+              )
               daily.lunch.forEach(item => {
                 const name = getItemDisplay(item)
                 const kcal = getItemCalories(item)
-                lines.push(`  • ${name}: ${kcal} kcal`)
+                lines.push(
+                  `  • ${name}: ${kcal} ${t('pages.clientJournal.kcal') || 'kcal'}`
+                )
               })
               lines.push('')
             }
 
             if (daily.dinner?.length > 0) {
-              lines.push('🍽️ DINNER:')
+              lines.push(
+                `🍽️ ${t('pages.clientJournal.dinner')?.toUpperCase() || 'DINNER'}:`
+              )
               daily.dinner.forEach(item => {
                 const name = getItemDisplay(item)
                 const kcal = getItemCalories(item)
-                lines.push(`  • ${name}: ${kcal} kcal`)
+                lines.push(
+                  `  • ${name}: ${kcal} ${t('pages.clientJournal.kcal') || 'kcal'}`
+                )
               })
               lines.push('')
             }
 
             if (daily.snack?.length > 0) {
-              lines.push('🍿 SNACKS:')
+              lines.push(
+                `🍿 ${t('pages.clientJournal.snack')?.toUpperCase() || 'SNACKS'}:`
+              )
               daily.snack.forEach(item => {
                 const name = getItemDisplay(item)
                 const kcal = getItemCalories(item)
-                lines.push(`  • ${name}: ${kcal} kcal`)
+                lines.push(
+                  `  • ${name}: ${kcal} ${t('pages.clientJournal.kcal') || 'kcal'}`
+                )
               })
               lines.push('')
             }
 
             // Exercise
             if (daily.exercises?.length > 0) {
-              lines.push('💪 EXERCISE:')
               lines.push(
-                `  Total Calories Burned: ${Math.round(daily.exerciseCalories)} kcal`
+                `💪 ${t('pages.clientJournal.exercise')?.toUpperCase() || 'EXERCISE'}:`
+              )
+              lines.push(
+                `  ${t('pages.clientJournal.total') || 'Total'} ${t('pages.clientJournal.caloriesBurned') || 'Calories Burned'}: ${Math.round(daily.exerciseCalories)} ${t('pages.clientJournal.kcal') || 'kcal'}`
               )
               daily.exercises.forEach(ex => {
                 const name = getItemDisplay(ex)
                 const kcal = getItemCalories(ex)
-                lines.push(`  • ${name}: ${kcal} kcal`)
+                lines.push(
+                  `  • ${name}: ${kcal} ${t('pages.clientJournal.kcal') || 'kcal'}`
+                )
               })
               lines.push('')
             }
 
             // Water intake
             if (daily.waterTotalMl > 0) {
-              lines.push('💧 WATER INTAKE:')
-              lines.push(`  Total: ${Math.round(daily.waterTotalMl)} ml`)
+              lines.push(
+                `💧 ${t('pages.clientJournal.waterIntake')?.toUpperCase() || 'WATER INTAKE'}:`
+              )
+              lines.push(
+                `  ${t('pages.clientJournal.total') || 'Total'}: ${Math.round(daily.waterTotalMl)} ml`
+              )
               lines.push('')
             }
 
