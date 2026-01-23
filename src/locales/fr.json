@@ -370,7 +370,13 @@
       "actualIntake": "Apport Réel",
       "goalProgress": "Progrès de l'Objectif",
       "total": "Total",
-      "caloriesBurned": "Calories Brûlées"
+      "caloriesBurned": "Calories Brûlées",
+      "unit": "Unité",
+      "quantity": "Quantité",
+      "duration": "Durée",
+      "min": "min",
+      "burned": "Brûlé",
+      "close": "Fermer"
     },
     "clientMealPlans": {
       "title": "Menus du client",

@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
-import { getDailyNutrition, getUserData, getUserMenuByDate } from '../services/loggedinApi'
-import { sumTotalsByMealsApplied, computeAppliedTotals, detectIsRecipe, findDefaultServing, findServingByIdentifier, getServingIdentifier, calculateDisplayValues, safeNutrients } from '../util/menuDisplay'
+import {
+  getDailyNutrition,
+  getUserData,
+  getUserMenuByDate
+} from '../services/loggedinApi'
+import {
+  sumTotalsByMealsApplied,
+  computeAppliedTotals,
+  detectIsRecipe,
+  findDefaultServing,
+  findServingByIdentifier,
+  getServingIdentifier,
+  calculateDisplayValues,
+  safeNutrients
+} from '../util/menuDisplay'
 import { getCategoryIcon } from '../util/categoryIcons'
 import { ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline'
 
@@ -16,8 +29,10 @@ const addDays = (dateStr, days) => {
 }
 
 // Glass UI utility classes
-const glassCardClass = 'relative rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl'
-const glassSurfaceClass = 'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
+const glassCardClass =
+  'relative rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl'
+const glassSurfaceClass =
+  'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
 
 const Progress = ({ percent }) => (
   <div className="w-full h-2 bg-white/20 rounded">
@@ -35,10 +50,16 @@ const MacroCard = ({ label, value, unit = '', goal }) => {
       <div className="flex justify-between items-baseline">
         <p className="text-sm text-gray-500">{label}</p>
         {goal ? (
-          <p className="text-xs text-gray-400">Goal: {goal}{unit}</p>
+          <p className="text-xs text-gray-400">
+            Goal: {goal}
+            {unit}
+          </p>
         ) : null}
       </div>
-      <p className="text-2xl font-semibold text-gray-900">{value}{unit}</p>
+      <p className="text-2xl font-semibold text-gray-900">
+        {value}
+        {unit}
+      </p>
       {pct !== null && (
         <div className="mt-2">
           <Progress percent={pct} />
@@ -49,27 +70,28 @@ const MacroCard = ({ label, value, unit = '', goal }) => {
   )
 }
 
-const getItemDisplay = (it) => {
+const getItemDisplay = it => {
   // Prefer nested food/exercise names like RN data shape
   if (it?.food?.name) return it.food.name
   if (it?.exercise?.name) return it.exercise.name
   return it?.name || it?.foodName || 'Item'
 }
 
-const getItemCalories = (it) => {
+const getItemCalories = it => {
   // For applied food items, scale calories based on quantity
   if (it?.food && it?.quantity !== undefined && it?.food?.serving) {
     const isRecipe = detectIsRecipe(it.food)
     const baseCalories = Number(it.food.totalCalories || 0)
     const baseNutrients = it.food.totalNutrients || {}
     const quantity = Number(it.quantity) || 0
-    
+
     if (isRecipe) {
       // For recipes: totalCalories is for ALL numberOfServings servings
       const numberOfServings = it.food.numberOfServings || 1
-      const totalQuantity = baseNutrients?.totalQuantity ||
-                           baseNutrients?.weightAfterCooking ||
-                           null
+      const totalQuantity =
+        baseNutrients?.totalQuantity ||
+        baseNutrients?.weightAfterCooking ||
+        null
 
       if (totalQuantity && totalQuantity > 0 && quantity > 0) {
         // Scale recipe based on actual quantity vs total recipe weight
@@ -77,11 +99,15 @@ const getItemCalories = (it) => {
         return Math.round(baseCalories * scaleRatio)
       } else {
         // Fallback: use portion serving if available
-        const portionServing = (it.food.serving || []).find(s => s.profileId === 1)
-        const defaultServing = portionServing || findDefaultServing(it.food.serving || [])
+        const portionServing = (it.food.serving || []).find(
+          s => s.profileId === 1
+        )
+        const defaultServing =
+          portionServing || findDefaultServing(it.food.serving || [])
         const defaultServingAmount = defaultServing?.amount || 100
-        const perServingWeight = portionServing?.amount || (defaultServingAmount / numberOfServings)
-        
+        const perServingWeight =
+          portionServing?.amount || defaultServingAmount / numberOfServings
+
         if (perServingWeight && perServingWeight > 0 && quantity > 0) {
           const selectedServings = quantity / perServingWeight
           const scaleRatio = selectedServings / numberOfServings
@@ -96,7 +122,7 @@ const getItemCalories = (it) => {
       const servingArray = it.food.serving || []
       const defaultServing = findDefaultServing(servingArray)
       const defaultServingAmount = defaultServing?.amount || 100
-      
+
       if (quantity > 0) {
         const scaleRatio = quantity / defaultServingAmount
         return Math.round(baseCalories * scaleRatio)
@@ -115,9 +141,13 @@ const getItemCalories = (it) => {
 const ItemCard = ({ it, onClick }) => {
   const name = getItemDisplay(it)
   const kcal = getItemCalories(it)
-  const category = it?.food?.category || it?.category || (it?.exercise ? 'exerciseGeneral' : '')
+  const category =
+    it?.food?.category ||
+    it?.category ||
+    (it?.exercise ? 'exerciseGeneral' : '')
   const fallbackImg = category ? getCategoryIcon(category) : null
-  const img = it?.food?.photoUrl || it?.exercise?.photoUrl || it?.photoUrl || fallbackImg
+  const img =
+    it?.food?.photoUrl || it?.exercise?.photoUrl || it?.photoUrl || fallbackImg
   return (
     <button
       onClick={() => onClick?.(it)}
@@ -143,7 +173,11 @@ const MealSection = ({ title, items = [], photoUrl, onItemClick, t }) => (
     <div className="flex justify-between items-center mb-3">
       <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       {photoUrl ? (
-        <img src={photoUrl} alt={`${title} photo`} className="w-10 h-10 rounded object-cover" />
+        <img
+          src={photoUrl}
+          alt={`${title} photo`}
+          className="w-10 h-10 rounded object-cover"
+        />
       ) : null}
     </div>
     {items && items.length > 0 ? (
@@ -182,21 +216,34 @@ const MyDay = () => {
     snackPhotoUrl: null,
     waterTotalMl: 0,
     waterEntries: [],
-    menuForDay: null,
+    menuForDay: null
   })
-  const [macroTotals, setMacroTotals] = useState({ calories: 0, proteinsInGrams: 0, carbohydratesInGrams: 0, fatInGrams: 0 })
+  const [macroTotals, setMacroTotals] = useState({
+    calories: 0,
+    proteinsInGrams: 0,
+    carbohydratesInGrams: 0,
+    fatInGrams: 0
+  })
   const [activeSlide, setActiveSlide] = useState(0)
   const carouselRef = useRef(null)
   const [selectedItem, setSelectedItem] = useState(null)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
 
-  const selectedItemFallbackImg = selectedItem ? getCategoryIcon(selectedItem?.food?.category || selectedItem?.category || (selectedItem?.exercise ? 'exerciseGeneral' : '')) : null
+  const selectedItemFallbackImg = selectedItem
+    ? getCategoryIcon(
+        selectedItem?.food?.category ||
+          selectedItem?.category ||
+          (selectedItem?.exercise ? 'exerciseGeneral' : '')
+      )
+    : null
 
   const lastFetchKeyRef = useRef('')
   const dateLabel = useMemo(() => {
     try {
       return new Date(selectedDate).toLocaleDateString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric'
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       })
     } catch {
       return selectedDate
@@ -215,9 +262,15 @@ const MyDay = () => {
     setError(null)
     try {
       const [dailyRes, userRes, menuRes] = await Promise.all([
-        getDailyNutrition({ userId: currentUser.uid, dateApplied: toISO(selectedDate) }),
+        getDailyNutrition({
+          userId: currentUser.uid,
+          dateApplied: toISO(selectedDate)
+        }),
         getUserData({ userId: currentUser.uid, selectedDate }),
-        getUserMenuByDate({ userId: currentUser.uid, dateApplied: toISO(selectedDate) })
+        getUserMenuByDate({
+          userId: currentUser.uid,
+          dateApplied: toISO(selectedDate)
+        })
       ])
       const dWrap = dailyRes?.data || dailyRes || {}
       const uWrap = userRes?.data || userRes || {}
@@ -226,7 +279,10 @@ const MyDay = () => {
       const userGoals = u?.userGoals || {}
       const assignedMenu = menuRes?.data || menuRes || null
       const waterEntries = Array.isArray(d?.water) ? d.water : []
-      const waterTotalMl = waterEntries.reduce((acc, e) => acc + (Number(e?.quantity) || 0), 0)
+      const waterTotalMl = waterEntries.reduce(
+        (acc, e) => acc + (Number(e?.quantity) || 0),
+        0
+      )
 
       setDaily({
         totalCalories: 0,
@@ -237,36 +293,38 @@ const MyDay = () => {
           calories: userGoals?.totalCalories || 0,
           protein: userGoals?.proteinsInGrams || 0,
           carbs: userGoals?.carbohydratesInGrams || 0,
-          fat: userGoals?.fatInGrams || 0,
+          fat: userGoals?.fatInGrams || 0
         },
         breakfast: d.breakfast || [],
         lunch: d.lunch || [],
         dinner: d.dinner || [],
         snack: d.snack || [],
         exercises: d.exercise || [],
-        exerciseCalories:
-          Array.isArray(d.exercise)
-            ? d.exercise.reduce((acc, e) => acc + (e?.exercise?.caloriesBurnt || 0), 0)
-            : 0,
+        exerciseCalories: Array.isArray(d.exercise)
+          ? d.exercise.reduce(
+              (acc, e) => acc + (e?.exercise?.caloriesBurnt || 0),
+              0
+            )
+          : 0,
         breakfastPhotoUrl: d.breakfastPhotoUrl || null,
         lunchPhotoUrl: d.lunchPhotoUrl || null,
         dinnerPhotoUrl: d.dinnerPhotoUrl || null,
         snackPhotoUrl: d.snackPhotoUrl || null,
         waterTotalMl,
         waterEntries,
-        menuForDay: assignedMenu || null,
+        menuForDay: assignedMenu || null
       })
       const totals = sumTotalsByMealsApplied({
         breakfast: d?.breakfast || [],
         lunch: d?.lunch || [],
         dinner: d?.dinner || [],
-        snack: d?.snack || [],
+        snack: d?.snack || []
       })
       setMacroTotals({
         calories: Math.round(totals.calories),
         proteinsInGrams: Math.round(totals.proteinsInGrams),
         carbohydratesInGrams: Math.round(totals.carbohydratesInGrams),
-        fatInGrams: Math.round(totals.fatInGrams),
+        fatInGrams: Math.round(totals.fatInGrams)
       })
       setSelectedItem(null)
       setIsItemModalOpen(false)
@@ -291,8 +349,12 @@ const MyDay = () => {
           <div className="flex items-start gap-3">
             <SparklesIcon className="w-7 h-7 text-indigo-400" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myDay.title')}</h1>
-              <p className="text-gray-700 mt-1">{t('pages.myDay.mealAndMacros')} {t('common.for')} {dateLabel}.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                {t('pages.myDay.title')}
+              </h1>
+              <p className="text-gray-700 mt-1">
+                {t('pages.myDay.mealAndMacros')} {t('common.for')} {dateLabel}.
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -320,7 +382,9 @@ const MyDay = () => {
               className="p-2 text-indigo-600 hover:text-indigo-900 hover:bg-white/50 rounded transition-colors"
               title={t('pages.myDay.refresh')}
             >
-              <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <ArrowPathIcon
+                className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`}
+              />
             </button>
           </div>
         </div>
@@ -328,28 +392,38 @@ const MyDay = () => {
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className={`${glassSurfaceClass} p-4`}>
             <p className="text-sm text-gray-600">{t('pages.myDay.eaten')}</p>
-            <p className="text-2xl font-semibold text-gray-900">{Math.round(macroTotals.calories || 0)} kcal</p>
+            <p className="text-2xl font-semibold text-gray-900">
+              {Math.round(macroTotals.calories || 0)} kcal
+            </p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}>
             <p className="text-sm text-gray-600">{t('pages.myDay.burned')}</p>
-            <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.exerciseCalories || 0)} kcal</p>
+            <p className="text-2xl font-semibold text-gray-900">
+              {Math.round(daily.exerciseCalories || 0)} kcal
+            </p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}>
             <p className="text-sm text-gray-600">{t('pages.myDay.water')}</p>
-            <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.waterTotalMl || 0)} ml</p>
+            <p className="text-2xl font-semibold text-gray-900">
+              {Math.round(daily.waterTotalMl || 0)} ml
+            </p>
           </div>
           <div className={`${glassSurfaceClass} p-4`}>
             <p className="text-sm text-gray-600">{t('pages.myDay.menu')}</p>
-            <p className="text-sm font-medium text-gray-900 truncate">{daily.menuForDay?.name || t('pages.myDay.none')}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {daily.menuForDay?.name || t('pages.myDay.none')}
+            </p>
           </div>
         </div>
       </div>
 
       {loading && (
-        <div className={`${glassSurfaceClass} p-8 flex items-center justify-center`}>
+        <div
+          className={`${glassSurfaceClass} p-8 flex items-center justify-center`}
+        >
           <div className="text-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto" />
-              <p className="mt-3 text-gray-700">{t('pages.myDay.loading')}</p>
+            <p className="mt-3 text-gray-700">{t('pages.myDay.loading')}</p>
           </div>
         </div>
       )}
@@ -363,21 +437,32 @@ const MyDay = () => {
       {!loading && !error && (
         <>
           {/* Top Carousel */}
-          <div className={`relative rounded-2xl p-4 mx-auto ${glassCardClass}`} style={{
-            paddingLeft: 32,
-            paddingRight: 32
-          }}>
-            <div ref={carouselRef} className="overflow-x-auto snap-x snap-mandatory flex gap-4 no-scrollbar" onScroll={(e) => {
-              const el = e.currentTarget
-              const slide = Math.round(el.scrollLeft / el.clientWidth)
-              if (slide !== activeSlide) setActiveSlide(slide)
-            }}>
+          <div
+            className={`relative rounded-2xl p-4 mx-auto ${glassCardClass}`}
+            style={{
+              paddingLeft: 32,
+              paddingRight: 32
+            }}
+          >
+            <div
+              ref={carouselRef}
+              className="overflow-x-auto snap-x snap-mandatory flex gap-4 no-scrollbar"
+              onScroll={e => {
+                const el = e.currentTarget
+                const slide = Math.round(el.scrollLeft / el.clientWidth)
+                if (slide !== activeSlide) setActiveSlide(slide)
+              }}
+            >
               {/* Slide 1: Calories circle */}
               <div className="min-w-full snap-center flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex-1 text-center">
-                    <p className="text-2xl font-semibold text-gray-900">{macroTotals.calories}</p>
-                    <p className="text-sm text-gray-600">{t('pages.myDay.eaten')}</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {macroTotals.calories}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {t('pages.myDay.eaten')}
+                    </p>
                   </div>
                   <div className="flex justify-center">
                     <CalorieCircle
@@ -388,8 +473,12 @@ const MyDay = () => {
                     />
                   </div>
                   <div className="flex-1 text-center">
-                    <p className="text-2xl font-semibold text-gray-900">{Math.round(daily.exerciseCalories || 0)}</p>
-                    <p className="text-sm text-gray-600">{t('pages.myDay.burned')}</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {Math.round(daily.exerciseCalories || 0)}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {t('pages.myDay.burned')}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -397,17 +486,40 @@ const MyDay = () => {
               {/* Slide 2: Macros summary */}
               <div className="min-w-full snap-center">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <MacroCard label={t('pages.myDay.protein')} value={macroTotals.proteinsInGrams || 0} unit=" g" goal={Math.round(daily.goals.protein || 0)} />
-                  <MacroCard label={t('pages.myDay.carbs')} value={macroTotals.carbohydratesInGrams || 0} unit=" g" goal={Math.round(daily.goals.carbs || 0)} />
-                  <MacroCard label={t('pages.myDay.fat')} value={macroTotals.fatInGrams || 0} unit=" g" goal={Math.round(daily.goals.fat || 0)} />
-                  <MacroCard label={t('pages.myDay.calories')} value={macroTotals.calories || 0} unit=" kcal" goal={Math.round(daily.goals.calories || 0)} />
+                  <MacroCard
+                    label={t('pages.myDay.protein')}
+                    value={macroTotals.proteinsInGrams || 0}
+                    unit=" g"
+                    goal={Math.round(daily.goals.protein || 0)}
+                  />
+                  <MacroCard
+                    label={t('pages.myDay.carbs')}
+                    value={macroTotals.carbohydratesInGrams || 0}
+                    unit=" g"
+                    goal={Math.round(daily.goals.carbs || 0)}
+                  />
+                  <MacroCard
+                    label={t('pages.myDay.fat')}
+                    value={macroTotals.fatInGrams || 0}
+                    unit=" g"
+                    goal={Math.round(daily.goals.fat || 0)}
+                  />
+                  <MacroCard
+                    label={t('pages.myDay.calories')}
+                    value={macroTotals.calories || 0}
+                    unit=" kcal"
+                    goal={Math.round(daily.goals.calories || 0)}
+                  />
                 </div>
               </div>
             </div>
             {/* Dots */}
             <div className="flex justify-center gap-2 mt-3">
-              {[0,1].map(i => (
-                <span key={i} className={`w-2 h-2 rounded-full ${activeSlide===i ? 'bg-blue-600 w-3' : 'bg-gray-300'}`} />
+              {[0, 1].map(i => (
+                <span
+                  key={i}
+                  className={`w-2 h-2 rounded-full ${activeSlide === i ? 'bg-blue-600 w-3' : 'bg-gray-300'}`}
+                />
               ))}
             </div>
             {/* Left/Right scroll buttons */}
@@ -425,7 +537,10 @@ const MyDay = () => {
                   const el = carouselRef.current
                   if (!el) return
                   const nextSlide = Math.max(0, activeSlide - 1)
-                  el.scrollTo({ left: nextSlide * el.clientWidth, behavior: 'smooth' })
+                  el.scrollTo({
+                    left: nextSlide * el.clientWidth,
+                    behavior: 'smooth'
+                  })
                 }}
               >
                 <span className="text-lg text-gray-700">←</span>
@@ -438,19 +553,22 @@ const MyDay = () => {
                 style={{
                   background: 'rgba(255,255,255,0.35)',
                   backdropFilter: 'blur(6px)',
-                WebkitBackdropFilter: 'blur(6px)',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}
-              onClick={() => {
-                const el = carouselRef.current
-                if (!el) return
-                const maxSlides = 2 // number of slides
-                const nextSlide = Math.min(maxSlides - 1, activeSlide + 1)
-                el.scrollTo({ left: nextSlide * el.clientWidth, behavior: 'smooth' })
-              }}
-            >
-              <span className="text-lg text-gray-700">→</span>
-            </button>
+                  WebkitBackdropFilter: 'blur(6px)',
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+                onClick={() => {
+                  const el = carouselRef.current
+                  if (!el) return
+                  const maxSlides = 2 // number of slides
+                  const nextSlide = Math.min(maxSlides - 1, activeSlide + 1)
+                  el.scrollTo({
+                    left: nextSlide * el.clientWidth,
+                    behavior: 'smooth'
+                  })
+                }}
+              >
+                <span className="text-lg text-gray-700">→</span>
+              </button>
             )}
           </div>
 
@@ -460,28 +578,40 @@ const MyDay = () => {
               title={t('pages.myDay.breakfast')}
               items={daily.breakfast}
               photoUrl={daily.breakfastPhotoUrl}
-              onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              onItemClick={it => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
               t={t}
             />
             <MealSection
               title={t('pages.myDay.lunch')}
               items={daily.lunch}
               photoUrl={daily.lunchPhotoUrl}
-              onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              onItemClick={it => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
               t={t}
             />
             <MealSection
               title={t('pages.myDay.dinner')}
               items={daily.dinner}
               photoUrl={daily.dinnerPhotoUrl}
-              onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              onItemClick={it => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
               t={t}
             />
             <MealSection
               title={t('pages.myDay.snack')}
               items={daily.snack}
               photoUrl={daily.snackPhotoUrl}
-              onItemClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }}
+              onItemClick={it => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
               t={t}
             />
           </div>
@@ -489,76 +619,129 @@ const MyDay = () => {
           {/* Exercises */}
           <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myDay.exercise')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {t('pages.myDay.exercise')}
+              </h3>
               {daily.exerciseCalories > 0 ? (
-                <span className="text-sm text-gray-600">{t('pages.myDay.total')}: {Math.round(daily.exerciseCalories)} kcal</span>
+                <span className="text-sm text-gray-600">
+                  {t('pages.myDay.total')}: {Math.round(daily.exerciseCalories)}{' '}
+                  kcal
+                </span>
               ) : null}
             </div>
             {Array.isArray(daily.exercises) && daily.exercises.length > 0 ? (
               <ul className="space-y-2">
                 {daily.exercises.map((ex, idx) => (
-                  <ItemCard key={idx} it={ex} onClick={(it) => { setSelectedItem(it); setIsItemModalOpen(true) }} />
+                  <ItemCard
+                    key={idx}
+                    it={ex}
+                    onClick={it => {
+                      setSelectedItem(it)
+                      setIsItemModalOpen(true)
+                    }}
+                  />
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">{t('pages.myDay.noExercises')}</p>
+              <p className="text-sm text-gray-500">
+                {t('pages.myDay.noExercises')}
+              </p>
             )}
           </div>
 
           {/* Water Intake */}
           <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myDay.waterIntake')}</h3>
-              <span className="text-sm text-gray-600">{t('pages.myDay.total')}: {Math.round(daily.waterTotalMl || 0)} ml</span>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {t('pages.myDay.waterIntake')}
+              </h3>
+              <span className="text-sm text-gray-600">
+                {t('pages.myDay.total')}: {Math.round(daily.waterTotalMl || 0)}{' '}
+                ml
+              </span>
             </div>
-            {Array.isArray(daily.waterEntries) && daily.waterEntries.length > 0 ? (
+            {Array.isArray(daily.waterEntries) &&
+            daily.waterEntries.length > 0 ? (
               <ul className="space-y-2">
                 {daily.waterEntries.map((we, idx) => (
                   <li key={idx} className="flex justify-between text-sm">
-                    <span className="text-gray-800 truncate">{we?.label || t('pages.myDay.water')}</span>
-                    <span className="text-gray-500">{Math.round(we?.quantity || we?.ml || 0)} ml</span>
+                    <span className="text-gray-800 truncate">
+                      {we?.label || t('pages.myDay.water')}
+                    </span>
+                    <span className="text-gray-500">
+                      {Math.round(we?.quantity || we?.ml || 0)} ml
+                    </span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-gray-500">{t('pages.myDay.noWater')}</p>
+              <p className="text-sm text-gray-500">
+                {t('pages.myDay.noWater')}
+              </p>
             )}
           </div>
 
           {/* Assigned Menu */}
           <div className={`${glassCardClass} p-6`}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myDay.assignedMenu')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {t('pages.myDay.assignedMenu')}
+              </h3>
               {daily.menuForDay?.name ? (
-                <span className="text-sm text-gray-600">{daily.menuForDay.name}</span>
+                <span className="text-sm text-gray-600">
+                  {daily.menuForDay.name}
+                </span>
               ) : null}
             </div>
             {daily.menuForDay ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(['breakfastPlan','lunchPlan','dinnerPlan','snackPlan']).map((mealKey) => {
-                    const labelMap = { breakfastPlan: t('pages.myDay.breakfastMenu'), lunchPlan: t('pages.myDay.lunchMenu'), dinnerPlan: t('pages.myDay.dinnerMenu'), snackPlan: t('pages.myDay.snackMenu') }
+                  {[
+                    'breakfastPlan',
+                    'lunchPlan',
+                    'dinnerPlan',
+                    'snackPlan'
+                  ].map(mealKey => {
+                    const labelMap = {
+                      breakfastPlan: t('pages.myDay.breakfastMenu'),
+                      lunchPlan: t('pages.myDay.lunchMenu'),
+                      dinnerPlan: t('pages.myDay.dinnerMenu'),
+                      snackPlan: t('pages.myDay.snackMenu')
+                    }
                     const items = daily.menuForDay?.[mealKey] || []
                     // Compute adjusted per-item display like Menus Selected Items
-                    const renderedItems = items.map((it) => {
+                    const renderedItems = items.map(it => {
                       const isRecipeItem = detectIsRecipe(it)
-                      const servingOptions = Array.isArray(it?.serving) ? it.serving : []
+                      const servingOptions = Array.isArray(it?.serving)
+                        ? it.serving
+                        : []
                       // Determine originalServingAmount similar to Menus
                       let originalServingAmount = it?.originalServingAmount
                       if (!originalServingAmount && servingOptions.length > 0) {
                         if (isRecipeItem) {
-                          const portionServing = servingOptions.find(s => s.profileId === 1)
+                          const portionServing = servingOptions.find(
+                            s => s.profileId === 1
+                          )
                           if (portionServing) {
-                            const numberOfServings = it?.numberOfServings || it?.originalServings || 1
-                            originalServingAmount = portionServing.amount * numberOfServings
+                            const numberOfServings =
+                              it?.numberOfServings || it?.originalServings || 1
+                            originalServingAmount =
+                              portionServing.amount * numberOfServings
                           } else {
-                            const totalWeight = it?.totalNutrients?.totalQuantity || it?.totalNutrients?.weightAfterCooking || null
+                            const totalWeight =
+                              it?.totalNutrients?.totalQuantity ||
+                              it?.totalNutrients?.weightAfterCooking ||
+                              null
                             if (totalWeight) {
                               originalServingAmount = totalWeight
                             } else {
                               const def = findDefaultServing(servingOptions)
-                              const numberOfServings = it?.numberOfServings || it?.originalServings || 1
-                              originalServingAmount = (def?.amount || 100) * numberOfServings
+                              const numberOfServings =
+                                it?.numberOfServings ||
+                                it?.originalServings ||
+                                1
+                              originalServingAmount =
+                                (def?.amount || 100) * numberOfServings
                             }
                           }
                         } else {
@@ -574,54 +757,112 @@ const MyDay = () => {
                         selectedAmount = it.changedServing.value
                       }
 
-                      const calc = calculateDisplayValues(it, selectedAmount, originalServingAmount)
+                      const calc = calculateDisplayValues(
+                        it,
+                        selectedAmount,
+                        originalServingAmount
+                      )
                       const adjCalories = calc.calories
                       const adjNutrients = calc.nutrients
                       return { it, adjCalories, adjNutrients }
                     })
 
-                    const totals = renderedItems.reduce((acc, r) => {
-                      const n = safeNutrients(r.adjNutrients)
-                      return {
-                        calories: acc.calories + (r.adjCalories || 0),
-                        proteinsInGrams: acc.proteinsInGrams + n.proteinsInGrams,
-                        carbohydratesInGrams: acc.carbohydratesInGrams + n.carbohydratesInGrams,
-                        fatInGrams: acc.fatInGrams + n.fatInGrams,
+                    const totals = renderedItems.reduce(
+                      (acc, r) => {
+                        const n = safeNutrients(r.adjNutrients)
+                        return {
+                          calories: acc.calories + (r.adjCalories || 0),
+                          proteinsInGrams:
+                            acc.proteinsInGrams + n.proteinsInGrams,
+                          carbohydratesInGrams:
+                            acc.carbohydratesInGrams + n.carbohydratesInGrams,
+                          fatInGrams: acc.fatInGrams + n.fatInGrams
+                        }
+                      },
+                      {
+                        calories: 0,
+                        proteinsInGrams: 0,
+                        carbohydratesInGrams: 0,
+                        fatInGrams: 0
                       }
-                    }, { calories: 0, proteinsInGrams: 0, carbohydratesInGrams: 0, fatInGrams: 0 })
+                    )
 
                     return (
-                      <div key={mealKey} className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm">
-                        <div className="px-3 py-2 bg-white/10 border-b border-white/15 text-sm font-medium text-gray-700">{labelMap[mealKey]}</div>
+                      <div
+                        key={mealKey}
+                        className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm"
+                      >
+                        <div className="px-3 py-2 bg-white/10 border-b border-white/15 text-sm font-medium text-gray-700">
+                          {labelMap[mealKey]}
+                        </div>
                         <div className="p-3 space-y-2">
-                          {renderedItems.length === 0 && <div className="text-sm text-gray-500">{t('pages.myDay.noItemsMenu')}</div>}
+                          {renderedItems.length === 0 && (
+                            <div className="text-sm text-gray-500">
+                              {t('pages.myDay.noItemsMenu')}
+                            </div>
+                          )}
                           {renderedItems.map((r, i) => (
-                            <div key={i} className="p-2 rounded bg-white/40 backdrop-blur-sm shadow-sm">
+                            <div
+                              key={i}
+                              className="p-2 rounded bg-white/40 backdrop-blur-sm shadow-sm"
+                            >
                               <div className="flex items-start justify-between">
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium text-gray-900 truncate">{r.it?.name || r.it?.title || r.it?.food?.name || t('pages.myDay.unnamed')}</div>
-                                  <div className="text-xs text-gray-500 truncate">{detectIsRecipe(r.it) ? t('pages.myDay.recipe') : t('pages.myDay.food')}</div>
+                                  <div className="text-sm font-medium text-gray-900 truncate">
+                                    {r.it?.name ||
+                                      r.it?.title ||
+                                      r.it?.food?.name ||
+                                      t('pages.myDay.unnamed')}
+                                  </div>
+                                  <div className="text-xs text-gray-500 truncate">
+                                    {detectIsRecipe(r.it)
+                                      ? t('pages.myDay.recipe')
+                                      : t('pages.myDay.food')}
+                                  </div>
                                 </div>
                               </div>
                               <div className="mt-1 text-xs text-gray-600">
-                                <span className="font-medium">Calories:</span> {Math.round(r.adjCalories || 0)}
+                                <span className="font-medium">Calories:</span>{' '}
+                                {Math.round(r.adjCalories || 0)}
                                 <span className="mx-2">|</span>
-                                <span className="font-medium">Proteins:</span> {Math.round(Number(r.adjNutrients?.proteinsInGrams) || 0)} g
-                                <span className="mx-2">|</span>
-                                <span className="font-medium">Carbs:</span> {Math.round(Number(r.adjNutrients?.carbohydratesInGrams) || 0)} g
-                                <span className="mx-2">|</span>
-                                <span className="font-medium">Fat:</span> {Math.round(Number(r.adjNutrients?.fatInGrams) || 0)} g
+                                <span className="font-medium">
+                                  Proteins:
+                                </span>{' '}
+                                {Math.round(
+                                  Number(r.adjNutrients?.proteinsInGrams) || 0
+                                )}{' '}
+                                g<span className="mx-2">|</span>
+                                <span className="font-medium">Carbs:</span>{' '}
+                                {Math.round(
+                                  Number(
+                                    r.adjNutrients?.carbohydratesInGrams
+                                  ) || 0
+                                )}{' '}
+                                g<span className="mx-2">|</span>
+                                <span className="font-medium">Fat:</span>{' '}
+                                {Math.round(
+                                  Number(r.adjNutrients?.fatInGrams) || 0
+                                )}{' '}
+                                g
                               </div>
                             </div>
                           ))}
                           {renderedItems.length > 0 && (
                             <div className="mt-2 p-2 bg-indigo-500/10 border border-indigo-300/30 rounded text-xs text-indigo-900">
-                              <span className="font-medium">{t('pages.myDay.subtotal')}:</span>
-                              <span className="ml-1">{Math.round(totals.calories)} cal</span>
+                              <span className="font-medium">
+                                {t('pages.myDay.subtotal')}:
+                              </span>
+                              <span className="ml-1">
+                                {Math.round(totals.calories)} cal
+                              </span>
                               <span className="mx-2">|</span>
-                              <span>P {Math.round(totals.proteinsInGrams)} g</span>
+                              <span>
+                                P {Math.round(totals.proteinsInGrams)} g
+                              </span>
                               <span className="mx-2">|</span>
-                              <span>C {Math.round(totals.carbohydratesInGrams)} g</span>
+                              <span>
+                                C {Math.round(totals.carbohydratesInGrams)} g
+                              </span>
                               <span className="mx-2">|</span>
                               <span>F {Math.round(totals.fatInGrams)} g</span>
                             </div>
@@ -633,44 +874,78 @@ const MyDay = () => {
                 </div>
                 {/* Subtotals like Menus Selected Items */}
                 {(() => {
-                  const computeTotalsFor = (items) => {
+                  const computeTotalsFor = items => {
                     const arr = items || []
-                    return arr.reduce((acc, it) => {
-                      const isRecipeItem = detectIsRecipe(it)
-                      const servingOptions = Array.isArray(it?.serving) ? it.serving : []
-                      let originalServingAmount = it?.originalServingAmount
-                      if (!originalServingAmount && servingOptions.length > 0) {
-                        if (isRecipeItem) {
-                          const portionServing = servingOptions.find(s => s.profileId === 1)
-                          if (portionServing) {
-                            const numberOfServings = it?.numberOfServings || it?.originalServings || 1
-                            originalServingAmount = portionServing.amount * numberOfServings
-                          } else {
-                            const totalWeight = it?.totalNutrients?.totalQuantity || it?.totalNutrients?.weightAfterCooking || null
-                            if (totalWeight) originalServingAmount = totalWeight
-                            else {
-                              const def = findDefaultServing(servingOptions)
-                              const numberOfServings = it?.numberOfServings || it?.originalServings || 1
-                              originalServingAmount = (def?.amount || 100) * numberOfServings
+                    return arr.reduce(
+                      (acc, it) => {
+                        const isRecipeItem = detectIsRecipe(it)
+                        const servingOptions = Array.isArray(it?.serving)
+                          ? it.serving
+                          : []
+                        let originalServingAmount = it?.originalServingAmount
+                        if (
+                          !originalServingAmount &&
+                          servingOptions.length > 0
+                        ) {
+                          if (isRecipeItem) {
+                            const portionServing = servingOptions.find(
+                              s => s.profileId === 1
+                            )
+                            if (portionServing) {
+                              const numberOfServings =
+                                it?.numberOfServings ||
+                                it?.originalServings ||
+                                1
+                              originalServingAmount =
+                                portionServing.amount * numberOfServings
+                            } else {
+                              const totalWeight =
+                                it?.totalNutrients?.totalQuantity ||
+                                it?.totalNutrients?.weightAfterCooking ||
+                                null
+                              if (totalWeight)
+                                originalServingAmount = totalWeight
+                              else {
+                                const def = findDefaultServing(servingOptions)
+                                const numberOfServings =
+                                  it?.numberOfServings ||
+                                  it?.originalServings ||
+                                  1
+                                originalServingAmount =
+                                  (def?.amount || 100) * numberOfServings
+                              }
                             }
+                          } else {
+                            const def = findDefaultServing(servingOptions)
+                            originalServingAmount = def?.amount || 100
                           }
-                        } else {
-                          const def = findDefaultServing(servingOptions)
-                          originalServingAmount = def?.amount || 100
                         }
+                        originalServingAmount = originalServingAmount || 100
+                        let selectedAmount = originalServingAmount
+                        if (it?.changedServing?.value)
+                          selectedAmount = it.changedServing.value
+                        const calc = calculateDisplayValues(
+                          it,
+                          selectedAmount,
+                          originalServingAmount
+                        )
+                        const n = safeNutrients(calc.nutrients)
+                        return {
+                          calories: acc.calories + (calc.calories || 0),
+                          proteinsInGrams:
+                            acc.proteinsInGrams + n.proteinsInGrams,
+                          carbohydratesInGrams:
+                            acc.carbohydratesInGrams + n.carbohydratesInGrams,
+                          fatInGrams: acc.fatInGrams + n.fatInGrams
+                        }
+                      },
+                      {
+                        calories: 0,
+                        proteinsInGrams: 0,
+                        carbohydratesInGrams: 0,
+                        fatInGrams: 0
                       }
-                      originalServingAmount = originalServingAmount || 100
-                      let selectedAmount = originalServingAmount
-                      if (it?.changedServing?.value) selectedAmount = it.changedServing.value
-                      const calc = calculateDisplayValues(it, selectedAmount, originalServingAmount)
-                      const n = safeNutrients(calc.nutrients)
-                      return {
-                        calories: acc.calories + (calc.calories || 0),
-                        proteinsInGrams: acc.proteinsInGrams + n.proteinsInGrams,
-                        carbohydratesInGrams: acc.carbohydratesInGrams + n.carbohydratesInGrams,
-                        fatInGrams: acc.fatInGrams + n.fatInGrams,
-                      }
-                    }, { calories: 0, proteinsInGrams: 0, carbohydratesInGrams: 0, fatInGrams: 0 })
+                    )
                   }
 
                   const bp = computeTotalsFor(daily.menuForDay?.breakfastPlan)
@@ -678,20 +953,39 @@ const MyDay = () => {
                   const dp = computeTotalsFor(daily.menuForDay?.dinnerPlan)
                   const sp = computeTotalsFor(daily.menuForDay?.snackPlan)
                   const total = {
-                    calories: bp.calories + lp.calories + dp.calories + sp.calories,
-                    proteinsInGrams: bp.proteinsInGrams + lp.proteinsInGrams + dp.proteinsInGrams + sp.proteinsInGrams,
-                    carbohydratesInGrams: bp.carbohydratesInGrams + lp.carbohydratesInGrams + dp.carbohydratesInGrams + sp.carbohydratesInGrams,
-                    fatInGrams: bp.fatInGrams + lp.fatInGrams + dp.fatInGrams + sp.fatInGrams,
+                    calories:
+                      bp.calories + lp.calories + dp.calories + sp.calories,
+                    proteinsInGrams:
+                      bp.proteinsInGrams +
+                      lp.proteinsInGrams +
+                      dp.proteinsInGrams +
+                      sp.proteinsInGrams,
+                    carbohydratesInGrams:
+                      bp.carbohydratesInGrams +
+                      lp.carbohydratesInGrams +
+                      dp.carbohydratesInGrams +
+                      sp.carbohydratesInGrams,
+                    fatInGrams:
+                      bp.fatInGrams +
+                      lp.fatInGrams +
+                      dp.fatInGrams +
+                      sp.fatInGrams
                   }
                   return (
                     <div className="space-y-2">
                       <div className="p-3 bg-emerald-500/10 border border-emerald-300/30 rounded text-sm text-emerald-900">
-                        <span className="font-semibold">{t('pages.myDay.menuTotals')}:</span>
-                        <span className="ml-2">{Math.round(total.calories)} cal</span>
+                        <span className="font-semibold">
+                          {t('pages.myDay.menuTotals')}:
+                        </span>
+                        <span className="ml-2">
+                          {Math.round(total.calories)} cal
+                        </span>
                         <span className="mx-2">|</span>
                         <span>P {Math.round(total.proteinsInGrams)} g</span>
                         <span className="mx-2">|</span>
-                        <span>C {Math.round(total.carbohydratesInGrams)} g</span>
+                        <span>
+                          C {Math.round(total.carbohydratesInGrams)} g
+                        </span>
                         <span className="mx-2">|</span>
                         <span>F {Math.round(total.fatInGrams)} g</span>
                       </div>
@@ -700,7 +994,9 @@ const MyDay = () => {
                 })()}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">{t('pages.myDay.noMenuAssigned')}</p>
+              <p className="text-sm text-gray-500">
+                {t('pages.myDay.noMenuAssigned')}
+              </p>
             )}
           </div>
         </>
@@ -711,11 +1007,11 @@ const MyDay = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className={`${glassCardClass} w-full max-w-md p-6`}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">
+              <h3 className="text-lg font-semibold text-white truncate">
                 {getItemDisplay(selectedItem)}
               </h3>
               <button
-                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                className="text-gray-300 hover:text-white cursor-pointer"
                 onClick={() => setIsItemModalOpen(false)}
               >
                 ✕
@@ -724,26 +1020,43 @@ const MyDay = () => {
 
             <div className="flex items-start gap-4 mb-4">
               <div className="w-16 h-16 rounded bg-white/40 backdrop-blur-sm flex items-center justify-center overflow-hidden">
-                {selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl || selectedItem?.photoUrl || selectedItemFallbackImg ? (
+                {selectedItem?.food?.photoUrl ||
+                selectedItem?.exercise?.photoUrl ||
+                selectedItem?.photoUrl ||
+                selectedItemFallbackImg ? (
                   <img
-                    src={selectedItem?.food?.photoUrl || selectedItem?.exercise?.photoUrl || selectedItem?.photoUrl || selectedItemFallbackImg}
+                    src={
+                      selectedItem?.food?.photoUrl ||
+                      selectedItem?.exercise?.photoUrl ||
+                      selectedItem?.photoUrl ||
+                      selectedItemFallbackImg
+                    }
                     alt="thumb"
                     className="w-16 h-16 object-cover"
                   />
                 ) : (
-                  <span className="text-xs text-gray-400">
-                    {(selectedItem?.food?.category || (selectedItem?.exercise ? 'exercise' : 'food'))}
+                  <span className="text-xs text-gray-300">
+                    {selectedItem?.food?.category ||
+                      (selectedItem?.exercise ? 'exercise' : 'food')}
                   </span>
                 )}
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-1">{t('pages.myDay.calories')}</p>
-                <p className="text-xl font-semibold text-gray-900">{getItemCalories(selectedItem)} kcal</p>
+                <p className="text-sm text-gray-200 mb-1">
+                  {t('pages.myDay.calories')}
+                </p>
+                <p className="text-xl font-semibold text-white">
+                  {getItemCalories(selectedItem)} kcal
+                </p>
                 {selectedItem?.unit && (
-                  <p className="text-xs text-gray-500 mt-1">{t('pages.myDay.unit')}: {selectedItem.unit}</p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    {t('pages.myDay.unit')}: {selectedItem.unit}
+                  </p>
                 )}
                 {selectedItem?.quantity && (
-                  <p className="text-xs text-gray-500">{t('pages.myDay.quantity')}: {selectedItem.quantity}</p>
+                  <p className="text-xs text-gray-300">
+                    {t('pages.myDay.quantity')}: {selectedItem.quantity}
+                  </p>
                 )}
               </div>
             </div>
@@ -752,20 +1065,35 @@ const MyDay = () => {
             {selectedItem?.food?.totalNutrients && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs text-gray-500">{t('pages.myDay.protein')}</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedItem.food.totalNutrients.proteinsInGrams || 0} g</p>
+                  <p className="text-xs text-gray-300">
+                    {t('pages.myDay.protein')}
+                  </p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedItem.food.totalNutrients.proteinsInGrams || 0} g
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">{t('pages.myDay.carbs')}</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedItem.food.totalNutrients.carbohydratesInGrams || 0} g</p>
+                  <p className="text-xs text-gray-300">
+                    {t('pages.myDay.carbs')}
+                  </p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedItem.food.totalNutrients.carbohydratesInGrams || 0}{' '}
+                    g
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">{t('pages.myDay.fat')}</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedItem.food.totalNutrients.fatInGrams || 0} g</p>
+                  <p className="text-xs text-gray-300">
+                    {t('pages.myDay.fat')}
+                  </p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedItem.food.totalNutrients.fatInGrams || 0} g
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Fiber</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedItem.food.totalNutrients.fibreInGrams || 0} g</p>
+                  <p className="text-xs text-gray-300">Fiber</p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedItem.food.totalNutrients.fibreInGrams || 0} g
+                  </p>
                 </div>
               </div>
             )}
@@ -774,12 +1102,23 @@ const MyDay = () => {
             {selectedItem?.exercise && (
               <div className="mt-3 grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs text-gray-500">{t('pages.myDay.duration')}</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedItem.exercise.durationInMinutes || selectedItem.quantity || 0} {t('pages.myDay.min')}</p>
+                  <p className="text-xs text-gray-300">
+                    {t('pages.myDay.duration')}
+                  </p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedItem.exercise.durationInMinutes ||
+                      selectedItem.quantity ||
+                      0}{' '}
+                    {t('pages.myDay.min')}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">{t('pages.myDay.burned')}</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedItem.exercise.caloriesBurnt || 0} kcal</p>
+                  <p className="text-xs text-gray-300">
+                    {t('pages.myDay.burned')}
+                  </p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedItem.exercise.caloriesBurnt || 0} kcal
+                  </p>
                 </div>
               </div>
             )}
@@ -804,7 +1143,13 @@ export default MyDay
 // Local circular progress for calories remaining
 function CalorieCircle({ totalGoal, eaten, burned, t }) {
   const remaining = (totalGoal || 0) - (eaten || 0) + (burned || 0)
-  const percentage = totalGoal > 0 ? Math.max(0, Math.min(100, Math.round(100 - (remaining / totalGoal) * 100))) : 0
+  const percentage =
+    totalGoal > 0
+      ? Math.max(
+          0,
+          Math.min(100, Math.round(100 - (remaining / totalGoal) * 100))
+        )
+      : 0
   const color = (() => {
     if (!totalGoal || percentage === 0) return '#9CA3AF' // gray
     if (percentage <= 25) return '#16A34A' // green
@@ -816,9 +1161,18 @@ function CalorieCircle({ totalGoal, eaten, burned, t }) {
   return (
     <div className="relative w-36 h-36">
       <svg className="w-36 h-36" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" stroke="#e5e7eb" strokeWidth="8" fill="none" />
         <circle
-          cx="50" cy="50" r="45"
+          cx="50"
+          cy="50"
+          r="45"
+          stroke="#e5e7eb"
+          strokeWidth="8"
+          fill="none"
+        />
+        <circle
+          cx="50"
+          cy="50"
+          r="45"
           stroke={color}
           strokeWidth="8"
           fill="none"
@@ -828,8 +1182,12 @@ function CalorieCircle({ totalGoal, eaten, burned, t }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <p className="text-2xl font-semibold" style={{ color }}>{Math.round(remaining || 0)}</p>
-        <p className="text-xs text-gray-600">{t('pages.myDay.kcalRemaining')}</p>
+        <p className="text-2xl font-semibold" style={{ color }}>
+          {Math.round(remaining || 0)}
+        </p>
+        <p className="text-xs text-gray-600">
+          {t('pages.myDay.kcalRemaining')}
+        </p>
       </div>
     </div>
   )

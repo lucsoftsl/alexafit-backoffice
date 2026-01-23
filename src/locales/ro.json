@@ -370,7 +370,13 @@
       "actualIntake": "Aport Real",
       "goalProgress": "Progres Obiectiv",
       "total": "Total",
-      "caloriesBurned": "Calorii Arse"
+      "caloriesBurned": "Calorii Arse",
+      "unit": "Unitate",
+      "quantity": "Cantitate",
+      "duration": "Durată",
+      "min": "min",
+      "burned": "Ars",
+      "close": "Închide"
     },
     "clientMealPlans": {
       "title": "Planuri de mese ale clientului",

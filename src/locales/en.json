@@ -370,7 +370,13 @@
       "actualIntake": "Actual Intake",
       "goalProgress": "Goal Progress",
       "total": "Total",
-      "caloriesBurned": "Calories Burned"
+      "caloriesBurned": "Calories Burned",
+      "unit": "Unit",
+      "quantity": "Quantity",
+      "duration": "Duration",
+      "min": "min",
+      "burned": "Burned",
+      "close": "Close"
     },
     "clientMealPlans": {
       "title": "Client Meal Plans",

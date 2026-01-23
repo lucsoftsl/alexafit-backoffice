@@ -6,7 +6,11 @@ import {
   getUserCaloriesHistory
 } from '../services/loggedinApi'
 import LZString from 'lz-string'
-import { sumTotalsByMealsApplied } from '../util/menuDisplay'
+import {
+  sumTotalsByMealsApplied,
+  detectIsRecipe,
+  findDefaultServing
+} from '../util/menuDisplay'
 import { getCategoryIcon } from '../util/categoryIcons'
 
 // Date helpers that operate in local time to avoid UTC shifts
@@ -79,13 +83,67 @@ const getItemDisplay = it => {
 }
 
 const getItemCalories = it => {
+  // For applied food items, scale calories based on quantity
+  if (it?.food && it?.quantity !== undefined && it?.food?.serving) {
+    const isRecipe = detectIsRecipe(it.food)
+    const baseCalories = Number(it.food.totalCalories || 0)
+    const baseNutrients = it.food.totalNutrients || {}
+    const quantity = Number(it.quantity) || 0
+
+    if (isRecipe) {
+      // For recipes: totalCalories is for ALL numberOfServings servings
+      const numberOfServings = it.food.numberOfServings || 1
+      const totalQuantity =
+        baseNutrients?.totalQuantity ||
+        baseNutrients?.weightAfterCooking ||
+        null
+
+      if (totalQuantity && totalQuantity > 0 && quantity > 0) {
+        // Scale recipe based on actual quantity vs total recipe weight
+        const scaleRatio = quantity / totalQuantity
+        return Math.round(baseCalories * scaleRatio)
+      } else {
+        // Fallback: use portion serving if available
+        const portionServing = (it.food.serving || []).find(
+          s => s.profileId === 1
+        )
+        const defaultServing =
+          portionServing || findDefaultServing(it.food.serving || [])
+        const defaultServingAmount = defaultServing?.amount || 100
+        const perServingWeight =
+          portionServing?.amount || defaultServingAmount / numberOfServings
+
+        if (perServingWeight && perServingWeight > 0 && quantity > 0) {
+          const selectedServings = quantity / perServingWeight
+          const scaleRatio = selectedServings / numberOfServings
+          return Math.round(baseCalories * scaleRatio)
+        } else {
+          const scaleRatio = quantity / defaultServingAmount
+          return Math.round(baseCalories * scaleRatio)
+        }
+      }
+    } else {
+      // For foods: use default serving
+      const servingArray = it.food.serving || []
+      const defaultServing = findDefaultServing(servingArray)
+      const defaultServingAmount = defaultServing?.amount || 100
+
+      if (quantity > 0) {
+        const scaleRatio = quantity / defaultServingAmount
+        return Math.round(baseCalories * scaleRatio)
+      } else {
+        return Math.round(baseCalories)
+      }
+    }
+  }
+  // Fallback for other item types
   if (it?.food?.totalCalories) return Math.round(it.food.totalCalories)
   if (typeof it?.calories === 'number') return Math.round(it.calories)
   if (it?.exercise?.caloriesBurnt) return Math.round(it.exercise.caloriesBurnt)
   return Math.round(it?.totalCalories || 0)
 }
 
-const ItemRow = ({ it, t }) => {
+const ItemRow = ({ it, onClick, t }) => {
   const name = getItemDisplay(it)
   const kcal = getItemCalories(it)
   const category =
@@ -96,7 +154,10 @@ const ItemRow = ({ it, t }) => {
   const img =
     it?.food?.photoUrl || it?.exercise?.photoUrl || it?.photoUrl || fallbackImg
   return (
-    <div className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
+    <button
+      onClick={() => onClick?.(it)}
+      className="w-full text-left flex justify-between items-center p-2 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+    >
       <div className="flex items-center gap-2 overflow-hidden">
         <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
           {img ? (
@@ -112,11 +173,11 @@ const ItemRow = ({ it, t }) => {
       <span className="text-sm text-gray-500 ml-2">
         {kcal} {t('pages.clientJournal.kcal')}
       </span>
-    </div>
+    </button>
   )
 }
 
-const MealSection = ({ title, items = [], photoUrl, t }) => (
+const MealSection = ({ title, items = [], photoUrl, onItemClick, t }) => (
   <div className="border border-gray-200 rounded-lg p-3 bg-white shadow-sm">
     <div className="flex justify-between items-center mb-2">
       <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
@@ -131,7 +192,7 @@ const MealSection = ({ title, items = [], photoUrl, t }) => (
     {items && items.length > 0 ? (
       <div className="space-y-1">
         {items.map((it, idx) => (
-          <ItemRow key={idx} it={it} t={t} />
+          <ItemRow key={idx} it={it} onClick={onItemClick} t={t} />
         ))}
       </div>
     ) : (
@@ -177,8 +238,18 @@ const ClientJournal = ({ client }) => {
     carbohydratesInGrams: 0,
     fatInGrams: 0
   })
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const lastFetchKeyRef = useRef('')
   const caloriesHistoryLoadedRef = useRef(new Set())
+
+  const selectedItemFallbackImg = selectedItem
+    ? getCategoryIcon(
+        selectedItem?.food?.category ||
+          selectedItem?.category ||
+          (selectedItem?.exercise ? 'exerciseGeneral' : '')
+      )
+    : null
 
   const userId = useMemo(
     () => (Array.isArray(client?.userId) ? client.userId[0] : client?.userId),
@@ -340,6 +411,8 @@ const ClientJournal = ({ client }) => {
           carbohydratesInGrams: Math.round(totals.carbohydratesInGrams),
           fatInGrams: Math.round(totals.fatInGrams)
         })
+        setSelectedItem(null)
+        setIsItemModalOpen(false)
       } catch (e) {
         setError(e?.message || 'Failed to load daily nutrition')
       } finally {
@@ -709,24 +782,40 @@ const ClientJournal = ({ client }) => {
               title={t('pages.clientJournal.breakfast')}
               items={daily.breakfast}
               photoUrl={daily.breakfastPhotoUrl}
+              onItemClick={(it) => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
             />
             <MealSection
               t={t}
               title={t('pages.clientJournal.lunch')}
               items={daily.lunch}
               photoUrl={daily.lunchPhotoUrl}
+              onItemClick={(it) => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
             />
             <MealSection
               t={t}
               title={t('pages.clientJournal.dinner')}
               items={daily.dinner}
               photoUrl={daily.dinnerPhotoUrl}
+              onItemClick={(it) => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
             />
             <MealSection
               t={t}
               title={t('pages.clientJournal.snack')}
               items={daily.snack}
               photoUrl={daily.snackPhotoUrl}
+              onItemClick={(it) => {
+                setSelectedItem(it)
+                setIsItemModalOpen(true)
+              }}
             />
           </div>
 
@@ -743,7 +832,15 @@ const ClientJournal = ({ client }) => {
               </div>
               <div className="space-y-1">
                 {daily.exercises.map((ex, idx) => (
-                  <ItemRow key={idx} it={ex} t={t} />
+                  <ItemRow
+                    key={idx}
+                    it={ex}
+                    onClick={(it) => {
+                      setSelectedItem(it)
+                      setIsItemModalOpen(true)
+                    }}
+                    t={t}
+                  />
                 ))}
               </div>
             </div>
@@ -1007,6 +1104,139 @@ const ClientJournal = ({ client }) => {
             )
           })()}
         </>
+      )}
+
+      {/* Item detail modal */}
+      {isItemModalOpen && selectedItem && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white border border-gray-200 rounded-lg w-full max-w-md p-6 shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 truncate">
+                {getItemDisplay(selectedItem)}
+              </h3>
+              <button
+                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                onClick={() => setIsItemModalOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
+                {selectedItem?.food?.photoUrl ||
+                selectedItem?.exercise?.photoUrl ||
+                selectedItem?.photoUrl ||
+                selectedItemFallbackImg ? (
+                  <img
+                    src={
+                      selectedItem?.food?.photoUrl ||
+                      selectedItem?.exercise?.photoUrl ||
+                      selectedItem?.photoUrl ||
+                      selectedItemFallbackImg
+                    }
+                    alt="thumb"
+                    className="w-16 h-16 object-cover"
+                  />
+                ) : (
+                  <span className="text-xs text-gray-400">
+                    {selectedItem?.food?.category ||
+                      (selectedItem?.exercise ? 'exercise' : 'food')}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-600 mb-1">
+                  {t('pages.clientJournal.calories') || 'Calories'}
+                </p>
+                <p className="text-xl font-semibold text-gray-900">
+                  {getItemCalories(selectedItem)} kcal
+                </p>
+                {selectedItem?.unit && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t('pages.clientJournal.unit') || 'Unit'}: {selectedItem.unit}
+                  </p>
+                )}
+                {selectedItem?.quantity && (
+                  <p className="text-xs text-gray-500">
+                    {t('pages.clientJournal.quantity') || 'Quantity'}:{' '}
+                    {selectedItem.quantity}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Nutrients for food */}
+            {selectedItem?.food?.totalNutrients && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500">
+                    {t('pages.clientJournal.protein') || 'Protein'}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedItem.food.totalNutrients.proteinsInGrams || 0} g
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">
+                    {t('pages.clientJournal.carbs') || 'Carbs'}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedItem.food.totalNutrients.carbohydratesInGrams || 0} g
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">
+                    {t('pages.clientJournal.fat') || 'Fat'}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedItem.food.totalNutrients.fatInGrams || 0} g
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Fiber</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedItem.food.totalNutrients.fibreInGrams || 0} g
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Exercise details */}
+            {selectedItem?.exercise && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500">
+                    {t('pages.clientJournal.duration') || 'Duration'}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedItem.exercise.durationInMinutes ||
+                      selectedItem.quantity ||
+                      0}{' '}
+                    {t('pages.clientJournal.min') || 'min'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">
+                    {t('pages.clientJournal.burned') || 'Burned'}
+                  </p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {selectedItem.exercise.caloriesBurnt || 0} kcal
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                className="px-4 py-2 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                onClick={() => setIsItemModalOpen(false)}
+              >
+                {t('pages.clientJournal.close') || 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

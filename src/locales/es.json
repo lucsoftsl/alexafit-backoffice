@@ -368,7 +368,13 @@
       "actualIntake": "Ingesta Real",
       "goalProgress": "Progreso del Objetivo",
       "total": "Total",
-      "caloriesBurned": "Calorías Quemadas"
+      "caloriesBurned": "Calorías Quemadas",
+      "unit": "Unidad",
+      "quantity": "Cantidad",
+      "duration": "Duración",
+      "min": "min",
+      "burned": "Quemado",
+      "close": "Cerrar"
     },
     "clientMealPlans": {
       "title": "Planes de comidas del cliente",
