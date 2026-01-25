@@ -144,13 +144,13 @@ const Sidebar = ({
                     <button
                       key={item.id}
                       onClick={() => handleClientSelect(item.id)}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer ${isActive
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 cursor-pointer text-left ${isActive
                         ? 'bg-purple-50 text-purple-700 border-r-2 border-purple-600'
                         : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                     >
-                      <Icon className="w-5 h-5 mr-3" />
-                      {t(item.labelKey)}
+                      <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                      <span className="text-left break-words">{t(item.labelKey)}</span>
                     </button>
                   )
                 })}

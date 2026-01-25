@@ -22,8 +22,10 @@ function ChatPage({ selectedUserId = null }) {
   const [senderId] = useState(currentUser?.uid || '')
   const [selectedThreadUserId, setSelectedThreadUserId] = useState(selectedUserId || '')
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-  const [showThreadList, setShowThreadList] = useState(true)
+  // Hide thread list by default when opened from client view (selectedUserId provided)
+  const [showThreadList, setShowThreadList] = useState(!selectedUserId)
   const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const pollingTimeoutRef = useRef(null)
   const pollingStartRef = useRef(null)
   const lastThreadSignatureRef = useRef(null)
@@ -42,10 +44,11 @@ function ChatPage({ selectedUserId = null }) {
     }
   }, [senderId])
 
-  // Automatically select first thread if selectedUserId is provided
+  // Automatically select thread if selectedUserId is provided
   useEffect(() => {
     if (selectedUserId) {
       setSelectedThreadUserId(selectedUserId)
+      setShowThreadList(false) // Hide thread list when opened from client view
     }
   }, [selectedUserId])
 
@@ -255,9 +258,13 @@ function ChatPage({ selectedUserId = null }) {
     })
   }
 
+  // Determine if we're in single-client mode (opened from client view)
+  const isSingleClientMode = !!selectedUserId
+
   return (
     <div className="flex h-full bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Threads List Sidebar */}
+      {/* Threads List Sidebar - Hidden in single-client mode */}
+      {!isSingleClientMode && (
       <div className={`${showThreadList ? 'flex' : 'hidden'} md:flex w-full md:w-80 border-r border-white/20 backdrop-blur-xl bg-white/40 flex-col`}>
         {/* Header */}
         <div className="px-4 md:px-6 py-4 border-b border-white/20 shadow-sm bg-white/60 backdrop-blur-lg">
@@ -332,48 +339,62 @@ function ChatPage({ selectedUserId = null }) {
           </button>
         </div>
       </div>
+      )}
 
       {/* Messages Area */}
-      <div className={`${!showThreadList ? 'flex' : 'hidden'} md:flex flex-1 flex-col relative overflow-hidden`}>
+      <div className={`${!showThreadList || isSingleClientMode ? 'flex' : 'hidden'} md:flex flex-1 flex-col relative overflow-hidden`}>
         {selectedThreadUserId ? (
           <>
             {/* Header */}
-            <div className="bg-white/60 backdrop-blur-lg border-b border-white/20 px-4 md:px-6 py-4 shadow-sm flex items-center justify-between flex-shrink-0">
+            <div className="bg-white/95 backdrop-blur-lg border-b border-gray-200/50 px-4 md:px-6 py-4 shadow-sm flex items-center justify-between flex-shrink-0 z-10">
               {currentThreadMessages.length > 0 && (
                 (() => {
                   const firstMsg = currentThreadMessages[0]
                   const otherUserDetails = firstMsg.senderId === senderId ? firstMsg.recipientDetails : firstMsg.senderDetails
                   return (
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setShowThreadList(true)}
-                        className="md:hidden p-2 hover:bg-white/50 rounded-lg transition-colors"
-                      >
-                        <ArrowLeftIcon className="w-5 h-5 text-gray-700" />
-                      </button>
-                      <div>
-                        <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {!isSingleClientMode && (
+                        <button
+                          onClick={() => setShowThreadList(true)}
+                          className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          <ArrowLeftIcon className="w-5 h-5 text-gray-700" />
+                        </button>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">
                           {otherUserDetails?.displayName || selectedThreadUserId}
                         </h1>
                         {otherUserDetails?.email && (
-                          <p className="text-xs md:text-sm text-gray-500 mt-1">{otherUserDetails.email}</p>
+                          <p className="text-xs md:text-sm text-gray-500 mt-0.5 truncate">{otherUserDetails.email}</p>
                         )}
                       </div>
                     </div>
                   )
                 })()
               )}
-              <button
-                onClick={loadAllChatThreads}
-                disabled={isLoadingMessages}
-                className="px-3 py-2 bg-white/60 hover:bg-white/80 disabled:bg-white/40 text-gray-700 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm backdrop-blur-sm"
-              >
-                {isLoadingMessages ? t('common.Loading') + '...' : '↻'}
-              </button>
+              {!isSingleClientMode && (
+                <button
+                  onClick={loadAllChatThreads}
+                  disabled={isLoadingMessages}
+                  className="px-3 py-2 bg-white hover:bg-gray-50 disabled:bg-gray-100 text-gray-700 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm border border-gray-200 flex-shrink-0"
+                  title={t('common.Refresh')}
+                >
+                  {isLoadingMessages ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                  ) : (
+                    '↻'
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Messages Container */}
-            <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4 min-h-0 pb-24">
+            <div 
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4 min-h-0"
+              style={{ paddingBottom: '100px' }}
+            >
               {currentThreadMessages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-gray-500">{t('common.No messages yet')}</p>
@@ -387,18 +408,18 @@ function ChatPage({ selectedUserId = null }) {
                       key={msg.id}
                       className={`flex ${isSentByCurrentUser ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className="space-y-1 max-w-xs md:max-w-md">
+                      <div className="space-y-1 max-w-xs md:max-w-md lg:max-w-lg">
                         {!isSentByCurrentUser && (
                           <p className="text-xs text-gray-600 font-medium px-2">{senderName}</p>
                         )}
                         <div
-                          className={`px-4 py-2 rounded-lg shadow-sm backdrop-blur-sm ${
+                          className={`px-4 py-2.5 rounded-2xl shadow-sm backdrop-blur-sm ${
                             isSentByCurrentUser
                               ? 'bg-blue-500 text-white rounded-br-none'
-                              : 'bg-white/80 text-gray-900 rounded-bl-none border border-white/40'
+                              : 'bg-white/90 text-gray-900 rounded-bl-none border border-gray-200/50'
                           }`}
                         >
-                          <p className="break-words text-sm md:text-base">{msg.message}</p>
+                          <p className="break-words text-sm md:text-base leading-relaxed">{msg.message}</p>
                         </div>
                         <div
                           className={`text-xs text-gray-500 px-2 ${isSentByCurrentUser ? 'text-right' : 'text-left'}`}
@@ -420,31 +441,40 @@ function ChatPage({ selectedUserId = null }) {
               </div>
             )}
 
-            {/* Input Area */}
-            <form
-              onSubmit={handleSendMessage}
-              className="bg-white/60 backdrop-blur-lg border-t border-white/20 px-4 md:px-6 py-4 shadow-lg"
-              style={{ position: 'fixed', bottom: 0, width: 'stretch' }}
-            >
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder={t('common.Type your message') + '...'}
-                  className="flex-1 px-4 py-2 md:py-3 border border-gray-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/80 backdrop-blur-sm text-sm md:text-base"
-                  disabled={loading}
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !inputMessage.trim()}
-                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-3 md:px-4 py-2 md:py-3 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-sm"
-                >
-                  <PaperAirplaneIcon className="w-4 h-4 md:w-5 md:h-5" />
-                  <span className="hidden md:inline">{loading ? t('common.Sending') + '...' : t('common.Send')}</span>
-                </button>
-              </div>
-            </form>
+            {/* Input Area - Fixed at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200/50 shadow-lg z-10">
+              <form
+                onSubmit={handleSendMessage}
+                className="px-4 md:px-6 py-3 md:py-4"
+              >
+                <div className="flex gap-2 md:gap-3 items-end">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder={t('common.Type your message') + '...'}
+                    className="flex-1 px-4 py-2.5 md:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm md:text-base shadow-sm"
+                    disabled={loading}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleSendMessage(e)
+                      }
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !inputMessage.trim()}
+                    className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 md:px-5 py-2.5 md:py-3 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg min-w-[60px] md:min-w-[80px]"
+                  >
+                    <PaperAirplaneIcon className="w-5 h-5 md:w-6 md:h-6" />
+                    <span className="hidden md:inline text-sm font-medium">
+                      {loading ? t('common.Sending') + '...' : t('common.Send')}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </>
         ) : (
           <div className="flex items-center justify-center h-full">

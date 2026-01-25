@@ -978,30 +978,31 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                 )}
 
                 {/* Messaging System */}
-                <div className="card p-6">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="card p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-4 gap-2">
                     <button
                       onClick={() => setMessagesExpanded(!messagesExpanded)}
-                      className="flex items-center justify-between text-left flex-1"
+                      className="flex items-center justify-between text-left flex-1 min-w-0"
                     >
                       <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                        <ChatBubbleLeftRightIcon className="w-5 h-5 mr-2" />
-                        {t('common.Messages')}
+                        <ChatBubbleLeftRightIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span className="truncate">{t('common.Messages')}</span>
                       </h3>
                       {messagesExpanded ? (
-                        <ChevronUpIcon className="w-5 h-5 text-gray-500" />
+                        <ChevronUpIcon className="w-5 h-5 text-gray-500 flex-shrink-0 ml-2" />
                       ) : (
-                        <ChevronDownIcon className="w-5 h-5 text-gray-500" />
+                        <ChevronDownIcon className="w-5 h-5 text-gray-500 flex-shrink-0 ml-2" />
                       )}
                     </button>
                     {messagesExpanded && (
                       <button
                         onClick={refreshMessages}
                         disabled={loadingMessages}
-                        className="btn-secondary text-sm ml-4 flex items-center gap-2"
+                        className="btn-secondary text-sm flex items-center gap-2 flex-shrink-0"
+                        title={t('Refresh')}
                       >
                         <ArrowPathIcon className={`w-4 h-4 ${loadingMessages ? 'animate-spin' : ''}`} />
-                        {loadingMessages ? t('Refreshing...') : t('Refresh')}
+                        <span className="hidden sm:inline">{loadingMessages ? t('Refreshing...') : t('Refresh')}</span>
                       </button>
                     )}
                   </div>
@@ -1009,30 +1010,37 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                   {messagesExpanded && (
                     <div className="mt-4 space-y-4">
                       {/* Send Message Form */}
-                      <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                        <h4 className="text-sm font-medium text-gray-900 mb-2">{t('common.Send New Message')}</h4>
-                        <div className="flex gap-2">
+                      <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 sticky bottom-0 z-10">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">{t('common.Send New Message')}</h4>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                           <textarea
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="Enter your message..."
-                            className="flex-1 p-2 border border-gray-300 rounded-md text-sm resize-none"
-                            rows={2}
+                            className="flex-1 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px] sm:min-h-[60px]"
+                            rows={3}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                e.preventDefault()
+                                handleSendMessage()
+                              }
+                            }}
                           />
                           <button
                             onClick={handleSendMessage}
                             disabled={sendingMessage || !newMessage.trim()}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="bg-blue-600 text-white px-4 py-3 sm:py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm transition-all whitespace-nowrap flex-shrink-0"
                           >
                             {sendingMessage ? (
                               <>
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                {t('common.Sending...')}
+                                <span className="hidden sm:inline">{t('common.Sending...')}</span>
+                                <span className="sm:hidden">{t('common.Sending...')}</span>
                               </>
                             ) : (
                               <>
-                                <PaperAirplaneIcon className="w-4 h-4" />
-                                {t('common.Send')}
+                                <PaperAirplaneIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span>{t('common.Send')}</span>
                               </>
                             )}
                           </button>
@@ -1078,7 +1086,7 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                           ) : (
                             <>
                               {/* Table */}
-                              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                              <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-[400px] sm:max-h-[500px] overflow-y-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                   <thead className="bg-gray-50">
                                     <tr>
