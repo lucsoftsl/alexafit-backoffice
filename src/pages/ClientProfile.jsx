@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import ClientProgress from '../components/ClientProgress'
 import { saveUserDataFromWelcomeScreen, getUserCheckins } from '../services/loggedinApi'
-import { PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PencilIcon, CheckIcon, XMarkIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import FormSelect from '../components/FormSelect'
 
 // Module-scoped guard to persist across StrictMode remounts in dev
@@ -31,6 +31,7 @@ const ClientProfile = ({ client }) => {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [goalData, setGoalData] = useState(null)
+  const [detailsExpanded, setDetailsExpanded] = useState(false)
   const [formData, setFormData] = useState({
     selectedTargetWeight: '',
     selectedTargetWeightMeasurementUnit: 'METRIC',
@@ -164,11 +165,94 @@ const ClientProfile = ({ client }) => {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('pages.clientProfile.details')}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">{t('pages.clientProfile.details')}</h2>
+          <button
+            onClick={() => setDetailsExpanded(!detailsExpanded)}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <span>{detailsExpanded ? t('pages.clientProfile.showLess') : t('pages.clientProfile.showMore')}</span>
+            {detailsExpanded ? (
+              <ChevronUpIcon className="w-5 h-5" />
+            ) : (
+              <ChevronDownIcon className="w-5 h-5" />
+            )}
+          </button>
+        </div>
         <div className="divide-y divide-gray-200">
-          <InfoRow label={t('pages.clientProfile.assignedDate')} value={assignedDate} />
+          {/* Always visible fields */}
           <InfoRow label={t('common.User ID')} value={Array.isArray(client?.userId) ? client.userId[0] : client?.userId || t('common.na')} />
           <InfoRow label={t('common.Email')} value={email} />
+          
+          {/* Collapsible fields */}
+          {detailsExpanded && (
+            <>
+              <InfoRow label={t('pages.clientProfile.assignedDate')} value={assignedDate} />
+              {client?.loginDetails?.phoneNumber && (
+                <InfoRow label={t('pages.clientProfile.phoneNumber')} value={client.loginDetails.phoneNumber} />
+              )}
+              {client?.userData?.selectedGender && (
+                <InfoRow label={t('pages.clientProfile.gender')} value={t(`pages.clientProfile.genders.${client.userData.selectedGender}`)} />
+              )}
+              {client?.userData?.selectedBirthDate && (
+                <InfoRow label={t('pages.clientProfile.birthDate')} value={formatDate(client.userData.selectedBirthDate, t)} />
+              )}
+              {client?.userData?.selectedHeight && (
+                <InfoRow 
+                  label={t('pages.clientProfile.height')} 
+                  value={`${client.userData.selectedHeight} ${client.userData.selectedHeightMeasurementUnit === 'METRIC' ? 'cm' : 'in'}`} 
+                />
+              )}
+              {client?.userData?.selectedWeight && (
+                <InfoRow 
+                  label={t('pages.clientProfile.weight')} 
+                  value={`${client.userData.selectedWeight} ${client.userData.selectedWeightMeasurementUnit === 'METRIC' ? 'kg' : 'lb'}`} 
+                />
+              )}
+              {client?.userData?.selectedActivityType && (
+                <InfoRow label={t('pages.clientProfile.activityType')} value={t(`pages.clientProfile.activityTypes.${client.userData.selectedActivityType}`)} />
+              )}
+              {client?.loginDetails?.country && (
+                <InfoRow label={t('pages.clientProfile.country')} value={client.loginDetails.country} />
+              )}
+              {client?.loginDetails?.city && (
+                <InfoRow label={t('pages.clientProfile.city')} value={client.loginDetails.city} />
+              )}
+              {client?.loginDetails?.contactPreference && (
+                <InfoRow label={t('pages.clientProfile.contactPreference')} value={client.loginDetails.contactPreference} />
+              )}
+              {client?.subscriptionWhitelistDetails?.isPro && (
+                <InfoRow 
+                  label={t('pages.clientProfile.subscription')} 
+                  value={client.subscriptionWhitelistDetails.isPro === 'true' ? t('pages.clientProfile.proSubscription') : t('pages.clientProfile.freeSubscription')} 
+                />
+              )}
+              {client?.subscriptionWhitelistDetails?.activeSince && (
+                <InfoRow label={t('pages.clientProfile.subscriptionActiveSince')} value={formatDate(client.subscriptionWhitelistDetails.activeSince, t)} />
+              )}
+              {client?.foodTables && (
+                <InfoRow label={t('pages.clientProfile.foodTables')} value={client.foodTables} />
+              )}
+              {client?.userType && (
+                <InfoRow label={t('pages.clientProfile.userType')} value={client.userType} />
+              )}
+              {client?.loginDetails?.emailVerified !== undefined && (
+                <InfoRow 
+                  label={t('pages.clientProfile.emailVerified')} 
+                  value={client.loginDetails.emailVerified ? t('common.Yes') : t('common.No')} 
+                />
+              )}
+              {client?.loginDetails?.lastLoggedInDateTime && (
+                <InfoRow label={t('pages.clientProfile.lastLoggedIn')} value={formatDate(client.loginDetails.lastLoggedInDateTime, t)} />
+              )}
+              {client?.dateTimeCreated && (
+                <InfoRow label={t('pages.clientProfile.accountCreated')} value={formatDate(client.dateTimeCreated, t)} />
+              )}
+              {client?.dateTimeUpdated && (
+                <InfoRow label={t('pages.clientProfile.lastUpdated')} value={formatDate(client.dateTimeUpdated, t)} />
+              )}
+            </>
+          )}
         </div>
       </div>
 

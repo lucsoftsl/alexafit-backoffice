@@ -12,6 +12,8 @@
     "Yesterday": "Hier",
     "na": "N/D",
     "unknown": "Inconnu",
+    "Yes": "Oui",
+    "No": "Non",
     "for": "pour",
     "User ID": "ID utilisateur",
     "Name": "Nom",
@@ -402,6 +404,39 @@
         "MAINTAIN_WEIGHT": "Maintenir le poids",
         "GAIN_WEIGHT": "Prendre du poids"
       },
+      "phoneNumber": "Numéro de téléphone",
+      "gender": "Genre",
+      "genders": {
+        "MALE": "Masculin",
+        "FEMALE": "Féminin",
+        "OTHER": "Autre"
+      },
+      "birthDate": "Date de naissance",
+      "height": "Taille",
+      "weight": "Poids",
+      "activityType": "Type d'activité",
+      "activityTypes": {
+        "NOT_ACTIVE": "Inactif",
+        "LIGHTLY_ACTIVE": "Légèrement actif",
+        "MODERATELY_ACTIVE": "Modérément actif",
+        "VERY_ACTIVE": "Très actif",
+        "EXTRA_ACTIVE": "Extra actif"
+      },
+      "country": "Pays",
+      "city": "Ville",
+      "contactPreference": "Préférence de contact",
+      "subscription": "Abonnement",
+      "proSubscription": "Pro",
+      "freeSubscription": "Gratuit",
+      "subscriptionActiveSince": "Abonnement actif depuis",
+      "foodTables": "Tableaux alimentaires",
+      "userType": "Type d'utilisateur",
+      "emailVerified": "Email vérifié",
+      "lastLoggedIn": "Dernière connexion",
+      "accountCreated": "Compte créé",
+      "lastUpdated": "Dernière mise à jour",
+      "showMore": "Afficher plus",
+      "showLess": "Afficher moins",
       "errors": {
         "saveFailed": "Échec de l'enregistrement de l'objectif. Veuillez réessayer."
       }

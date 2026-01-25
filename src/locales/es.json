@@ -12,6 +12,8 @@
     "Yesterday": "Ayer",
     "na": "N/D",
     "unknown": "Desconocido",
+    "Yes": "Sí",
+    "No": "No",
     "for": "para",
     "User ID": "ID de usuario",
     "Name": "Nombre",
@@ -400,6 +402,39 @@
         "MAINTAIN_WEIGHT": "Mantener peso",
         "GAIN_WEIGHT": "Ganar peso"
       },
+      "phoneNumber": "Número de teléfono",
+      "gender": "Género",
+      "genders": {
+        "MALE": "Masculino",
+        "FEMALE": "Femenino",
+        "OTHER": "Otro"
+      },
+      "birthDate": "Fecha de nacimiento",
+      "height": "Altura",
+      "weight": "Peso",
+      "activityType": "Tipo de actividad",
+      "activityTypes": {
+        "NOT_ACTIVE": "Inactivo",
+        "LIGHTLY_ACTIVE": "Ligeramente activo",
+        "MODERATELY_ACTIVE": "Moderadamente activo",
+        "VERY_ACTIVE": "Muy activo",
+        "EXTRA_ACTIVE": "Extra activo"
+      },
+      "country": "País",
+      "city": "Ciudad",
+      "contactPreference": "Preferencia de contacto",
+      "subscription": "Suscripción",
+      "proSubscription": "Pro",
+      "freeSubscription": "Gratis",
+      "subscriptionActiveSince": "Suscripción activa desde",
+      "foodTables": "Tablas de alimentos",
+      "userType": "Tipo de usuario",
+      "emailVerified": "Email verificado",
+      "lastLoggedIn": "Último inicio de sesión",
+      "accountCreated": "Cuenta creada",
+      "lastUpdated": "Última actualización",
+      "showMore": "Mostrar más",
+      "showLess": "Mostrar menos",
       "errors": {
         "saveFailed": "Error al guardar la meta. Inténtalo de nuevo."
       }

@@ -12,6 +12,8 @@
     "Yesterday": "Yesterday",
     "na": "N/A",
     "unknown": "Unknown",
+    "Yes": "Yes",
+    "No": "No",
     "for": "for",
     "User ID": "User ID",
     "Name": "Name",
@@ -402,6 +404,39 @@
         "MAINTAIN_WEIGHT": "Maintain Weight",
         "GAIN_WEIGHT": "Gain Weight"
       },
+      "phoneNumber": "Phone Number",
+      "gender": "Gender",
+      "genders": {
+        "MALE": "Male",
+        "FEMALE": "Female",
+        "OTHER": "Other"
+      },
+      "birthDate": "Birth Date",
+      "height": "Height",
+      "weight": "Weight",
+      "activityType": "Activity Type",
+      "activityTypes": {
+        "NOT_ACTIVE": "Not Active",
+        "LIGHTLY_ACTIVE": "Lightly Active",
+        "MODERATELY_ACTIVE": "Moderately Active",
+        "VERY_ACTIVE": "Very Active",
+        "EXTRA_ACTIVE": "Extra Active"
+      },
+      "country": "Country",
+      "city": "City",
+      "contactPreference": "Contact Preference",
+      "subscription": "Subscription",
+      "proSubscription": "Pro",
+      "freeSubscription": "Free",
+      "subscriptionActiveSince": "Subscription Active Since",
+      "foodTables": "Food Tables",
+      "userType": "User Type",
+      "emailVerified": "Email Verified",
+      "lastLoggedIn": "Last Logged In",
+      "accountCreated": "Account Created",
+      "lastUpdated": "Last Updated",
+      "showMore": "Show More",
+      "showLess": "Show Less",
       "errors": {
         "saveFailed": "Failed to save goal. Please try again."
       }

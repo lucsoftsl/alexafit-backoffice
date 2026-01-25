@@ -12,6 +12,8 @@
     "Yesterday": "Ieri",
     "na": "N/A",
     "unknown": "Necunoscut",
+    "Yes": "Da",
+    "No": "Nu",
     "for": "pentru",
     "User ID": "ID utilizator",
     "Name": "Nume",
@@ -402,6 +404,39 @@
         "MAINTAIN_WEIGHT": "Menținere greutate",
         "GAIN_WEIGHT": "Creștere în greutate"
       },
+      "phoneNumber": "Număr de telefon",
+      "gender": "Gen",
+      "genders": {
+        "MALE": "Masculin",
+        "FEMALE": "Feminin",
+        "OTHER": "Altul"
+      },
+      "birthDate": "Data nașterii",
+      "height": "Înălțime",
+      "weight": "Greutate",
+      "activityType": "Tip activitate",
+      "activityTypes": {
+        "NOT_ACTIVE": "Inactiv",
+        "LIGHTLY_ACTIVE": "Puțin activ",
+        "MODERATELY_ACTIVE": "Moderat activ",
+        "VERY_ACTIVE": "Foarte activ",
+        "EXTRA_ACTIVE": "Extra activ"
+      },
+      "country": "Țară",
+      "city": "Oraș",
+      "contactPreference": "Preferință contact",
+      "subscription": "Abonament",
+      "proSubscription": "Pro",
+      "freeSubscription": "Gratuit",
+      "subscriptionActiveSince": "Abonament activ din",
+      "foodTables": "Tabele alimentare",
+      "userType": "Tip utilizator",
+      "emailVerified": "Email verificat",
+      "lastLoggedIn": "Ultima autentificare",
+      "accountCreated": "Cont creat",
+      "lastUpdated": "Ultima actualizare",
+      "showMore": "Afișează mai mult",
+      "showLess": "Afișează mai puțin",
       "errors": {
         "saveFailed": "Eroare la salvarea obiectivului. Încercați din nou."
       }
