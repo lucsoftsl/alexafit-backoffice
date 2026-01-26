@@ -496,6 +496,40 @@ export const removeMenuFromUser = async ({
   }
 }
 
+export const copyMenuTemplateToCountry = async ({
+  menuTemplate,
+  countryCode,
+  userId,
+  createdByUserId = null
+}) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/foodsync/copyMenuTemplateBO`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          menuTemplate,
+          countryCode,
+          userId,
+          createdByUserId
+        })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error copying menu template to country:', error)
+    throw error
+  }
+}
+
 export const getUserMenus = async ({ userId }) => {
   try {
     const headers = await getHeaders()

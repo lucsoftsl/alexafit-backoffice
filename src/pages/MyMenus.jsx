@@ -9,11 +9,13 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   XMarkIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
 import {
   searchFoodItems,
-  getItemsByIds
+  getItemsByIds,
+  copyMenuTemplateToCountry
 } from '../services/api'
 import {
   getAllMenuTemplatesByUser,
@@ -75,6 +77,11 @@ const MyMenus = () => {
   const [expandedClientMenus, setExpandedClientMenus] = useState({})
   const [clientMenusData, setClientMenusData] = useState({})
   const [loadingClientMenus, setLoadingClientMenus] = useState({})
+  // Copy template modal state
+  const [isCopyModalOpen, setIsCopyModalOpen] = useState(false)
+  const [selectedTemplateForCopy, setSelectedTemplateForCopy] = useState(null)
+  const [copyCountryCode, setCopyCountryCode] = useState('RO')
+  const [copyingTemplate, setCopyingTemplate] = useState(false)
   const userData = useSelector(selectUserData)
   const { currentUser } = useAuth()
 
@@ -493,6 +500,49 @@ const MyMenus = () => {
     }
   }
 
+  const handleOpenCopyModal = (template) => {
+    setSelectedTemplateForCopy(template)
+    setCopyCountryCode('RO')
+    setIsCopyModalOpen(true)
+  }
+
+  const handleCopyTemplate = async () => {
+    if (!selectedTemplateForCopy) {
+      alert(t('pages.menus.copyTemplate.selectTemplate') || 'Please select a template')
+      return
+    }
+
+    if (!copyCountryCode) {
+      alert(t('pages.menus.copyTemplate.selectCountry') || 'Please select a country')
+      return
+    }
+
+    try {
+      setCopyingTemplate(true)
+      const result = await copyMenuTemplateToCountry({
+        menuTemplate: selectedTemplateForCopy,
+        countryCode: copyCountryCode,
+        userId: currentUser?.uid,
+        createdByUserId: currentUser?.uid || null
+      })
+
+      if (result?.ok && result?.data) {
+        alert(t('pages.menus.copyTemplate.success') || 'Menu template copied successfully!')
+        setIsCopyModalOpen(false)
+        setSelectedTemplateForCopy(null)
+        // Refresh templates list
+        await loadTemplates()
+      } else {
+        throw new Error(result?.error || 'Failed to copy template')
+      }
+    } catch (e) {
+      console.error('Failed to copy template', e)
+      alert(t('pages.menus.copyTemplate.error') || `Failed to copy template: ${e.message}`)
+    } finally {
+      setCopyingTemplate(false)
+    }
+  }
+
   const handleDeleteItem = async (templateId, itemType, itemId) => {
     if (!window.confirm(t('pages.myMenus.confirmDeleteItem'))) return
 
@@ -801,12 +851,21 @@ const MyMenus = () => {
                                     handleLoadTemplateForEditing(template)
                                   }}
                                   className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-blue-700 transition hover:bg-blue-100"
+                                  title={t('pages.myMenus.edit') || 'Edit'}
                                 >
                                   <PencilIcon className="w-4 h-4" />
                                 </button>
                                 <button
+                                  onClick={() => handleOpenCopyModal(template)}
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+                                  title={t('pages.menus.copyToCountry') || 'Copy to Country'}
+                                >
+                                  <DocumentDuplicateIcon className="w-4 h-4" />
+                                </button>
+                                <button
                                   onClick={() => handleDeleteTemplate(template.id)}
                                   className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
+                                  title={t('pages.myMenus.delete') || 'Delete'}
                                 >
                                   <TrashIcon className="w-4 h-4" />
                                 </button>
@@ -1312,6 +1371,90 @@ const MyMenus = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Copy Template Modal */}
+      {isCopyModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${glassCardClass} max-w-md w-full p-6`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">
+                {t('pages.menus.copyTemplate.title') || 'Copy Menu Template'}
+              </h3>
+              <button
+                onClick={() => {
+                  setIsCopyModalOpen(false)
+                  setSelectedTemplateForCopy(null)
+                  setCopyCountryCode('RO')
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('pages.menus.copyTemplate.templateName') ||
+                    'Template Name'}
+                </label>
+                <div className="p-3 bg-white/40 border border-white/30 rounded-md text-gray-900">
+                  {selectedTemplateForCopy?.name || 'Untitled'}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('pages.menus.copyTemplate.selectCountry') ||
+                    'Select Country'}
+                </label>
+                <select
+                  value={copyCountryCode}
+                  onChange={e => setCopyCountryCode(e.target.value)}
+                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="RO">Romania (RO)</option>
+                  <option value="US">United States (US)</option>
+                  <option value="IT">Italy (IT)</option>
+                  <option value="ES">Spain (ES)</option>
+                  <option value="UK">United Kingdom (UK)</option>
+                  <option value="DE">Germany (DE)</option>
+                  <option value="FR">France (FR)</option>
+                  <option value="HU">Hungary (HU)</option>
+                </select>
+              </div>
+
+              <div className="p-3 bg-blue-50/50 border border-blue-200/30 rounded-md text-sm text-blue-900">
+                {t('pages.menus.copyTemplate.description') ||
+                  'This will create a new menu template translated and adapted for the selected country.'}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setIsCopyModalOpen(false)
+                  setSelectedTemplateForCopy(null)
+                  setCopyCountryCode('RO')
+                }}
+                className="flex-1 px-4 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-gray-800 hover:bg-white/60"
+                disabled={copyingTemplate}
+              >
+                {t('common.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={handleCopyTemplate}
+                disabled={copyingTemplate || !copyCountryCode}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {copyingTemplate
+                  ? t('pages.menus.copyTemplate.copying') || 'Copying...'
+                  : t('pages.menus.copyTemplate.copy') || 'Copy Template'}
+              </button>
             </div>
           </div>
         </div>
