@@ -9,9 +9,18 @@ import {
   PencilIcon,
   TrashIcon,
   ChevronUpIcon,
-  ChevronDownIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline'
-import { getRecipesByCountryCode, searchFoodItems, getItemsByIds, addItem, updateItem, deleteItem, addPhotoToItem, saveImageToImgb } from '../services/api'
+import {
+  getRecipesByCountryCode,
+  searchFoodItems,
+  getItemsByIds,
+  addItem,
+  updateItem,
+  deleteItem,
+  addPhotoToItem,
+  saveImageToImgb
+} from '../services/api'
 import { selectIsAdmin } from '../store/userSlice'
 import LZString from 'lz-string'
 
@@ -22,7 +31,7 @@ const AVAILABLE_COUNTRY_CODES = {
   IT: 'IT',
   RO: 'RO',
   UK: 'UK',
-  US: 'US',
+  US: 'US'
 }
 
 const Recipes = () => {
@@ -82,7 +91,9 @@ const Recipes = () => {
 
         // Check if data exists in localStorage first (cached by country code)
         const cacheKey = `recipes_${filterCountryCode}`
-        const cachedData = LZString.decompressFromUTF16(localStorage.getItem(cacheKey)) || localStorage.getItem(cacheKey)
+        const cachedData =
+          LZString.decompressFromUTF16(localStorage.getItem(cacheKey)) ||
+          localStorage.getItem(cacheKey)
 
         if (cachedData) {
           const data = JSON.parse(cachedData)
@@ -119,7 +130,9 @@ const Recipes = () => {
     try {
       console.log('Fetching from API...')
 
-      const data = await getRecipesByCountryCode({ countryCode: filterCountryCode })
+      const data = await getRecipesByCountryCode({
+        countryCode: filterCountryCode
+      })
       const items = data || []
 
       // Cache the data by country code
@@ -138,10 +151,10 @@ const Recipes = () => {
   }
 
   // Handle sorting
-  const handleSort = (column) => {
+  const handleSort = column => {
     if (sortColumn === column) {
       // Toggle direction if same column
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
     } else {
       // Set new column and default to ascending
       setSortColumn(column)
@@ -154,10 +167,11 @@ const Recipes = () => {
   const filteredRecipes = useMemo(() => {
     let filtered = recipeItems
     if (searchTerm.trim()) {
-      filtered = recipeItems.filter(item =>
-        item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.category?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = recipeItems.filter(
+        item =>
+          item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.category?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -177,12 +191,12 @@ const Recipes = () => {
             bValue = parseFloat(b.totalCalories) || 0
             return (aValue - bValue) * factor
           case 'isPublic':
-            aValue = a.isPublic === true ? 1 : (a.isPublic === false ? 0 : -1)
-            bValue = b.isPublic === true ? 1 : (b.isPublic === false ? 0 : -1)
+            aValue = a.isPublic === true ? 1 : a.isPublic === false ? 0 : -1
+            bValue = b.isPublic === true ? 1 : b.isPublic === false ? 0 : -1
             return (aValue - bValue) * factor
           case 'isVerified':
-            aValue = a.isVerified === true ? 1 : (a.isVerified === false ? 0 : -1)
-            bValue = b.isVerified === true ? 1 : (b.isVerified === false ? 0 : -1)
+            aValue = a.isVerified === true ? 1 : a.isVerified === false ? 0 : -1
+            bValue = b.isVerified === true ? 1 : b.isVerified === false ? 0 : -1
             return (aValue - bValue) * factor
           default:
             return 0
@@ -205,12 +219,12 @@ const Recipes = () => {
     return Math.ceil(filteredRecipes.length / itemsPerPage)
   }
 
-  const handleShowImage = (imageUrl) => {
+  const handleShowImage = imageUrl => {
     setSelectedImage(imageUrl)
     setIsImageModalOpen(true)
   }
 
-  const handleShowIngredients = (ingredients) => {
+  const handleShowIngredients = ingredients => {
     setSelectedIngredientsView(ingredients)
     setIsIngredientsModalOpen(true)
   }
@@ -229,8 +243,12 @@ const Recipes = () => {
       })
       // Filter out type = 'recipes', keep only type = 'food'
       const foodItems = results.filter(item => {
-        const itemType = (item?.itemType || item?.type || '').toString().toLowerCase()
-        return itemType === 'food' && itemType !== 'recipe' && itemType !== 'recipes'
+        const itemType = (item?.itemType || item?.type || '')
+          .toString()
+          .toLowerCase()
+        return (
+          itemType === 'food' && itemType !== 'recipe' && itemType !== 'recipes'
+        )
       })
       setSearchResults(foodItems)
     } catch (e) {
@@ -241,7 +259,7 @@ const Recipes = () => {
     }
   }
 
-  const addIngredientToRecipe = (item) => {
+  const addIngredientToRecipe = item => {
     // Add ingredient with default quantity of 100g
     const ingredient = {
       id: item.id || item.itemId || item._id,
@@ -263,7 +281,7 @@ const Recipes = () => {
     setSearchResults([])
   }
 
-  const removeIngredient = (index) => {
+  const removeIngredient = index => {
     setSelectedIngredients(selectedIngredients.filter((_, i) => i !== index))
   }
 
@@ -336,9 +354,12 @@ const Recipes = () => {
     const newWeight = convertFromGrams(weightInGrams, unit)
 
     // Format the new weight (round to reasonable precision)
-    const formattedWeight = newWeight > 0
-      ? (newWeight % 1 === 0 ? newWeight.toString() : newWeight.toFixed(2))
-      : '0'
+    const formattedWeight =
+      newWeight > 0
+        ? newWeight % 1 === 0
+          ? newWeight.toString()
+          : newWeight.toFixed(2)
+        : '0'
 
     // Update all fields
     ingredient.unit = unit
@@ -355,40 +376,59 @@ const Recipes = () => {
     const totalNutrs = ingredients.reduce(
       (acc, ingredient) => {
         // Convert weight to grams for consistent calculation
-        const amountInGrams = convertToGrams(ingredient.weight || 0, ingredient.unit || 'g')
-        const totalCalories = acc.totalCalories + ((ingredient?.totalCalories || 0) * amountInGrams) / 100
+        const amountInGrams = convertToGrams(
+          ingredient.weight || 0,
+          ingredient.unit || 'g'
+        )
+        const totalCalories =
+          acc.totalCalories +
+          ((ingredient?.totalCalories || 0) * amountInGrams) / 100
         const totalQuantity = acc.totalQuantity + parseInt(amountInGrams, 10)
 
         const totalProtein =
           acc.totalProtein +
-          (amountInGrams * (ingredient?.totalNutrients?.proteinsInGrams || 0)) / 100
+          (amountInGrams * (ingredient?.totalNutrients?.proteinsInGrams || 0)) /
+            100
         const totalCarbs =
           acc.totalCarbs +
-          (amountInGrams * (ingredient?.totalNutrients?.carbohydratesInGrams || 0)) / 100
+          (amountInGrams *
+            (ingredient?.totalNutrients?.carbohydratesInGrams || 0)) /
+            100
         const totalFat =
-          acc.totalFat + (amountInGrams * (ingredient?.totalNutrients?.fatInGrams || 0)) / 100
+          acc.totalFat +
+          (amountInGrams * (ingredient?.totalNutrients?.fatInGrams || 0)) / 100
         const totalFiber =
           acc.totalFiber +
-          (amountInGrams * (ingredient?.totalNutrients?.fibreInGrams || 0)) / 100
+          (amountInGrams * (ingredient?.totalNutrients?.fibreInGrams || 0)) /
+            100
         const totalSaturatedFat =
           acc.totalSaturatedFat +
-          (amountInGrams * (ingredient?.totalNutrients?.fattyAcidsTotalSaturatedInGrams || 0)) / 100
+          (amountInGrams *
+            (ingredient?.totalNutrients?.fattyAcidsTotalSaturatedInGrams ||
+              0)) /
+            100
         const totalUnSaturatedFat =
           acc.totalUnSaturatedFat +
-          (amountInGrams * (ingredient?.totalNutrients?.fattyAcidsTotalUnSaturatedInGrams || 0)) / 100
+          (amountInGrams *
+            (ingredient?.totalNutrients?.fattyAcidsTotalUnSaturatedInGrams ||
+              0)) /
+            100
         const totalSugar =
           acc.totalSugar +
-          (amountInGrams * (ingredient?.totalNutrients?.sugarsInGrams || 0)) / 100
+          (amountInGrams * (ingredient?.totalNutrients?.sugarsInGrams || 0)) /
+            100
 
         const totalSalt =
           acc.totalSalt +
           (amountInGrams * (ingredient?.totalNutrients?.saltInGrams || 0)) / 100
 
         const totalCholesterol =
-          acc.totalCholesterol + (amountInGrams * (ingredient.cholesterol || 0)) / 100
+          acc.totalCholesterol +
+          (amountInGrams * (ingredient.cholesterol || 0)) / 100
 
         const totalPotassium =
-          acc.totalPotassium + (amountInGrams * (ingredient.potassium || 0)) / 100
+          acc.totalPotassium +
+          (amountInGrams * (ingredient.potassium || 0)) / 100
 
         return {
           totalCalories,
@@ -402,7 +442,7 @@ const Recipes = () => {
           totalSugar,
           totalSalt,
           totalCholesterol,
-          totalPotassium,
+          totalPotassium
         }
       },
       {
@@ -417,8 +457,8 @@ const Recipes = () => {
         totalSugar: 0,
         totalSalt: 0,
         totalCholesterol: 0,
-        totalPotassium: 0,
-      },
+        totalPotassium: 0
+      }
     )
     return totalNutrs
   }
@@ -465,7 +505,7 @@ const Recipes = () => {
     return servingOptions
   }
 
-  const handlePhotoSelect = (e) => {
+  const handlePhotoSelect = e => {
     const file = e.target.files[0]
     if (file) {
       setSelectedPhoto(file)
@@ -494,7 +534,7 @@ const Recipes = () => {
     setError(null)
   }
 
-  const handleEditRecipe = async (recipe) => {
+  const handleEditRecipe = async recipe => {
     try {
       setLoadingEdit(true)
 
@@ -519,7 +559,9 @@ const Recipes = () => {
       setEditingUserId(fullRecipe.createdByUserId || 'BACKOFFICE_ADMIN')
       setRecipeName(fullRecipe.name || '')
       setSelectedCountryCode(fullRecipe.countryCode || 'RO')
-      setRecipeInstructions(fullRecipe.recipeSteps?.instructions?.join('\n') || '')
+      setRecipeInstructions(
+        fullRecipe.recipeSteps?.instructions?.join('\n') || ''
+      )
       setTotalTimeInMinutes(fullRecipe.totalTimeInMinutes?.toString() || '')
       setNumberOfServings(fullRecipe.numberOfServings || 2)
       setExistingPhotoUrl(fullRecipe.photoUrl || null)
@@ -534,7 +576,8 @@ const Recipes = () => {
             // wait 1.5 seconds
             await new Promise(resolve => setTimeout(resolve, 1500))
             const ingredientResp = await getItemsByIds({ ids: ingredientIds })
-            const detailedItems = ingredientResp?.data || ingredientResp?.items || []
+            const detailedItems =
+              ingredientResp?.data || ingredientResp?.items || []
 
             // Create a map of detailed items by id
             const detailedMap = {}
@@ -574,7 +617,10 @@ const Recipes = () => {
             setSelectedIngredients(ingredients)
           }
         } catch (e) {
-          console.warn('Failed to fetch ingredient details, using recipe ingredients as-is', e)
+          console.warn(
+            'Failed to fetch ingredient details, using recipe ingredients as-is',
+            e
+          )
           // Fallback to original ingredients
           setSelectedIngredients(ingredients)
         }
@@ -591,8 +637,10 @@ const Recipes = () => {
     }
   }
 
-  const handleDeleteRecipe = async (recipe) => {
-    const confirmed = confirm(`Are you sure you want to delete "${recipe.name}"?`)
+  const handleDeleteRecipe = async recipe => {
+    const confirmed = confirm(
+      `Are you sure you want to delete "${recipe.name}"?`
+    )
     if (!confirmed) return
 
     try {
@@ -613,11 +661,11 @@ const Recipes = () => {
     }
   }
 
-  const handleAddPhotoToRecipe = async (recipe) => {
+  const handleAddPhotoToRecipe = async recipe => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
-    input.onchange = async (e) => {
+    input.onchange = async e => {
       const file = e.target.files[0]
       if (!file) return
 
@@ -693,7 +741,10 @@ const Recipes = () => {
         .filter(line => line.length > 0)
 
       // Generate serving options based on calculated total weight and number of servings
-      const serving = generateDefaultServings(calculatedNutrients.totalQuantity, parseInt(numberOfServings) || 2)
+      const serving = generateDefaultServings(
+        calculatedNutrients.totalQuantity,
+        parseInt(numberOfServings) || 2
+      )
 
       // Prepare ingredients for API (without full item data)
       const ingredientsForAPI = selectedIngredients.map(ing => ({
@@ -726,8 +777,10 @@ const Recipes = () => {
           vitaminAInGrams: 0,
           proteinsInGrams: calculatedNutrients.totalProtein,
           fatInGrams: calculatedNutrients.totalFat,
-          fattyAcidsTotalSaturatedInGrams: calculatedNutrients.totalSaturatedFat,
-          fattyAcidsTotalUnSaturatedInGrams: calculatedNutrients.totalUnSaturatedFat,
+          fattyAcidsTotalSaturatedInGrams:
+            calculatedNutrients.totalSaturatedFat,
+          fattyAcidsTotalUnSaturatedInGrams:
+            calculatedNutrients.totalUnSaturatedFat,
           carbohydratesInGrams: calculatedNutrients.totalCarbs,
           saltInGrams: calculatedNutrients.totalSalt,
           fibreInGrams: calculatedNutrients.totalFiber,
@@ -749,7 +802,7 @@ const Recipes = () => {
       } else {
         // Create new recipe
         await addItem({
-          userId: 'BACKOFFICE_ADMIN',
+          userId: currentUser?.uid || 'BACKOFFICE_ADMIN',
           itemType: 'FOOD',
           data: recipeData,
           countryCode: selectedCountryCode
@@ -766,7 +819,9 @@ const Recipes = () => {
       refreshData()
     } catch (e) {
       console.error('Failed to save recipe', e)
-      alert(`Failed to ${editingRecipeId ? 'update' : 'create'} recipe. Please try again.`)
+      alert(
+        `Failed to ${editingRecipeId ? 'update' : 'create'} recipe. Please try again.`
+      )
     } finally {
       setSubmitting(false)
       setUploadingPhoto(false)
@@ -811,16 +866,20 @@ const Recipes = () => {
         </div>
         <div className="flex flex-col gap-2 items-center justify-center sm:justify-end">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-700 whitespace-nowrap">Country:</label>
+            <label className="text-sm text-gray-700 whitespace-nowrap">
+              Country:
+            </label>
             <select
               value={filterCountryCode}
-              onChange={(e) => {
+              onChange={e => {
                 setFilterCountryCode(e.target.value)
               }}
               className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {Object.entries(AVAILABLE_COUNTRY_CODES).map(([key, value]) => (
-                <option key={key} value={value}>{value.toUpperCase()}</option>
+                <option key={key} value={value}>
+                  {value.toUpperCase()}
+                </option>
               ))}
             </select>
           </div>
@@ -829,10 +888,20 @@ const Recipes = () => {
               onClick={refreshData}
               className="btn-secondary flex items-center"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
-                {t('pages.dashboard.refresh')} Data
+              {t('pages.dashboard.refresh')} Data
             </button>
             <button
               onClick={() => {
@@ -853,13 +922,25 @@ const Recipes = () => {
         <div className="card p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <svg className="h-8 w-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              <svg
+                className="h-8 w-8 text-orange-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                />
               </svg>
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Total Recipes</p>
-              <p className="text-2xl font-semibold text-gray-900">{recipeItems.length}</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {recipeItems.length}
+              </p>
             </div>
           </div>
         </div>
@@ -873,12 +954,11 @@ const Recipes = () => {
             type="text"
             placeholder="Search recipes by name..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="input pl-10"
           />
         </div>
       </div>
-
 
       {/* Recipes List & Table */}
       <div className="card overflow-hidden">
@@ -886,24 +966,43 @@ const Recipes = () => {
         <div className="md:hidden">
           <div className="space-y-4">
             {getCurrentItems().length === 0 && (
-              <div className="text-center text-sm text-gray-600 py-6">No recipes found.</div>
+              <div className="text-center text-sm text-gray-600 py-6">
+                No recipes found.
+              </div>
             )}
-            {getCurrentItems().map((item) => (
-              <div key={item.id} className="border border-gray-200 rounded-lg p-4 shadow-sm">
+            {getCurrentItems().map(item => (
+              <div
+                key={item.id}
+                className="border border-gray-200 rounded-lg p-4 shadow-sm"
+              >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900 break-words">{item.name || 'N/A'}</h3>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        <h3 className="text-lg font-semibold text-gray-900 break-words">
+                          {item.name || 'N/A'}
+                        </h3>
+                        <span
+                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                        >
                           {item.isVerified ? 'Verified' : 'Unverified'}
                         </span>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
-                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{item.type || 'N/A'}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">{item.countryCode || 'N/A'}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}>
-                          {item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'Public' : 'Private') : 'N/A'}
+                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                          {item.type || 'N/A'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
+                          {item.countryCode || 'N/A'}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}
+                        >
+                          {item.isPublic !== null && item.isPublic !== undefined
+                            ? item.isPublic
+                              ? 'Public'
+                              : 'Private'
+                            : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -946,7 +1045,11 @@ const Recipes = () => {
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-medium">Created:</span>
-                      <span>{item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : 'N/A'}</span>
+                      <span>
+                        {item.dateTimeCreated
+                          ? new Date(item.dateTimeCreated).toLocaleDateString()
+                          : 'N/A'}
+                      </span>
                     </div>
                   </div>
 
@@ -974,7 +1077,7 @@ const Recipes = () => {
                 <label className="text-sm text-gray-700">Per page</label>
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => {
+                  onChange={e => {
                     setItemsPerPage(Number(e.target.value))
                     setCurrentPage(1)
                   }}
@@ -985,7 +1088,9 @@ const Recipes = () => {
                   <option value="50">50</option>
                 </select>
               </div>
-              <span className="text-xs text-gray-600">Page {currentPage} / {getTotalPages() || 1}</span>
+              <span className="text-xs text-gray-600">
+                Page {currentPage} / {getTotalPages() || 1}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <button
@@ -996,7 +1101,9 @@ const Recipes = () => {
                 Previous
               </button>
               <button
-                onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                onClick={() =>
+                  setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))
+                }
                 disabled={currentPage >= getTotalPages()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1004,7 +1111,9 @@ const Recipes = () => {
               </button>
             </div>
             <div className="text-xs text-gray-600 text-center">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of {filteredRecipes.length}
+              Showing {(currentPage - 1) * itemsPerPage + 1} -{' '}
+              {Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of{' '}
+              {filteredRecipes.length}
             </div>
           </div>
         </div>
@@ -1015,42 +1124,61 @@ const Recipes = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                   <th
                     onClick={() => handleSort('name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
                       Name
-                      {sortColumn === 'name' && (
-                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                      )}
+                      {sortColumn === 'name' &&
+                        (sortDirection === 'asc' ? (
+                          <ChevronUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ChevronDownIcon className="w-4 h-4" />
+                        ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Country
+                  </th>
                   <th
                     onClick={() => handleSort('calories')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
                       Calories
-                      {sortColumn === 'calories' && (
-                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                      )}
+                      {sortColumn === 'calories' &&
+                        (sortDirection === 'asc' ? (
+                          <ChevronUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ChevronDownIcon className="w-4 h-4" />
+                        ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servings</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Servings
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Photo
+                  </th>
                   <th
                     onClick={() => handleSort('isPublic')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
                       Public
-                      {sortColumn === 'isPublic' && (
-                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                      )}
+                      {sortColumn === 'isPublic' &&
+                        (sortDirection === 'asc' ? (
+                          <ChevronUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ChevronDownIcon className="w-4 h-4" />
+                        ))}
                     </div>
                   </th>
                   <th
@@ -1059,16 +1187,21 @@ const Recipes = () => {
                   >
                     <div className="flex items-center gap-1">
                       Verified
-                      {sortColumn === 'isVerified' && (
-                        sortDirection === 'asc' ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />
-                      )}
+                      {sortColumn === 'isVerified' &&
+                        (sortDirection === 'asc' ? (
+                          <ChevronUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ChevronDownIcon className="w-4 h-4" />
+                        ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {getCurrentItems().map((item) => (
+                {getCurrentItems().map(item => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
@@ -1099,7 +1232,10 @@ const Recipes = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 max-w-xs truncate" title={item.name}>
+                      <div
+                        className="text-sm font-medium text-gray-900 max-w-xs truncate"
+                        title={item.name}
+                      >
                         {item.name || 'N/A'}
                       </div>
                     </td>
@@ -1108,9 +1244,15 @@ const Recipes = () => {
                         {item.type || 'N/A'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.countryCode || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.totalCalories || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.numberOfServings || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.countryCode || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.totalCalories || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.numberOfServings || 'N/A'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {item.photoUrl ? (
                         <button
@@ -1124,17 +1266,27 @@ const Recipes = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}>
-                        {item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'Yes' : 'No') : 'N/A'}
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}
+                      >
+                        {item.isPublic !== null && item.isPublic !== undefined
+                          ? item.isPublic
+                            ? 'Yes'
+                            : 'No'
+                          : 'N/A'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                      >
                         {item.isVerified ? 'Yes' : 'No'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : 'N/A'}
+                      {item.dateTimeCreated
+                        ? new Date(item.dateTimeCreated).toLocaleDateString()
+                        : 'N/A'}
                     </td>
                   </tr>
                 ))}
@@ -1148,7 +1300,7 @@ const Recipes = () => {
               <label className="text-sm text-gray-700">Items per page:</label>
               <select
                 value={itemsPerPage}
-                onChange={(e) => {
+                onChange={e => {
                   setItemsPerPage(Number(e.target.value))
                   setCurrentPage(1)
                 }}
@@ -1162,11 +1314,13 @@ const Recipes = () => {
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
-              <span className="font-medium">Page {currentPage} of {getTotalPages() || 1}</span>
+              <span className="font-medium">
+                Page {currentPage} of {getTotalPages() || 1}
+              </span>
               <span className="text-gray-600">
                 {filteredRecipes.length === 0
                   ? 'Showing 0 of 0 results'
-                  : `Showing ${((currentPage - 1) * itemsPerPage) + 1} to ${Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of ${filteredRecipes.length} results`}
+                  : `Showing ${(currentPage - 1) * itemsPerPage + 1} to ${Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of ${filteredRecipes.length} results`}
               </span>
             </div>
 
@@ -1180,7 +1334,9 @@ const Recipes = () => {
               </button>
 
               <button
-                onClick={() => setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))}
+                onClick={() =>
+                  setCurrentPage(prev => Math.min(getTotalPages(), prev + 1))
+                }
                 disabled={currentPage >= getTotalPages()}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1213,11 +1369,13 @@ const Recipes = () => {
             <div className="space-y-4">
               {/* Recipe Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recipe Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Recipe Name
+                </label>
                 <input
                   type="text"
                   value={recipeName}
-                  onChange={(e) => setRecipeName(e.target.value)}
+                  onChange={e => setRecipeName(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   placeholder="Enter recipe name"
                 />
@@ -1225,41 +1383,53 @@ const Recipes = () => {
 
               {/* Country Code */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Country Code</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Country Code
+                </label>
                 <select
                   value={selectedCountryCode}
-                  onChange={(e) => setSelectedCountryCode(e.target.value)}
+                  onChange={e => setSelectedCountryCode(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 >
-                  {Object.entries(AVAILABLE_COUNTRY_CODES).map(([key, value]) => (
-                    <option key={key} value={value}>{value.toUpperCase()}</option>
-                  ))}
+                  {Object.entries(AVAILABLE_COUNTRY_CODES).map(
+                    ([key, value]) => (
+                      <option key={key} value={value}>
+                        {value.toUpperCase()}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
               {/* Number of Servings */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Servings</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Number of Servings
+                </label>
                 <input
                   value={numberOfServings}
-                  onChange={(e) => setNumberOfServings(e.target.value)}
+                  onChange={e => setNumberOfServings(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
 
               {/* Total Time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Total Time (minutes)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Total Time (minutes)
+                </label>
                 <input
                   value={totalTimeInMinutes}
-                  onChange={(e) => setTotalTimeInMinutes(e.target.value)}
+                  onChange={e => setTotalTimeInMinutes(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
 
               {/* Photo Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recipe Photo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Recipe Photo
+                </label>
                 <div className="flex items-center gap-4">
                   <input
                     type="file"
@@ -1276,21 +1446,31 @@ const Recipes = () => {
                     {selectedPhoto ? 'Change Photo' : 'Upload Photo'}
                   </label>
                   {photoPreview && (
-                    <img src={photoPreview} alt="Preview" className="w-24 h-24 object-cover rounded" />
+                    <img
+                      src={photoPreview}
+                      alt="Preview"
+                      className="w-24 h-24 object-cover rounded"
+                    />
                   )}
-                  {uploadingPhoto && <span className="text-sm text-gray-500">Uploading...</span>}
+                  {uploadingPhoto && (
+                    <span className="text-sm text-gray-500">Uploading...</span>
+                  )}
                 </div>
               </div>
 
               {/* Search Ingredients */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Search Ingredients</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Search Ingredients
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSearch() }}
+                    onChange={e => setSearchText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSearch()
+                    }}
                     className="flex-1 border border-gray-300 rounded-md px-3 py-2"
                     placeholder="Search for food items..."
                   />
@@ -1305,11 +1485,18 @@ const Recipes = () => {
                 {searchResults.length > 0 && (
                   <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md divide-y">
                     {searchResults.map((item, idx) => (
-                      <div key={idx} className="p-2 flex items-center justify-between hover:bg-gray-50">
+                      <div
+                        key={idx}
+                        className="p-2 flex items-center justify-between hover:bg-gray-50"
+                      >
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{item?.name || item?.title || 'Unnamed'}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {item?.name || item?.title || 'Unnamed'}
+                          </div>
                           <div className="text-xs text-gray-600">
-                            {item?.totalCalories ? `${item.totalCalories} cal/100g` : ''}
+                            {item?.totalCalories
+                              ? `${item.totalCalories} cal/100g`
+                              : ''}
                           </div>
                         </div>
                         <button
@@ -1326,17 +1513,23 @@ const Recipes = () => {
 
               {/* Selected Ingredients */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Selected Ingredients</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Selected Ingredients
+                </label>
                 <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3">
                   {selectedIngredients.length === 0 ? (
-                    <div className="text-sm text-gray-500">No ingredients added yet</div>
+                    <div className="text-sm text-gray-500">
+                      No ingredients added yet
+                    </div>
                   ) : (
                     selectedIngredients.map((ing, index) => {
                       const calculatedNutrients = calculateNutrients([ing])
                       return (
                         <div key={index} className="p-3 bg-gray-50 rounded-md">
                           <div className="flex items-center justify-between mb-2">
-                            <div className="font-medium text-gray-900">{ing.name}</div>
+                            <div className="font-medium text-gray-900">
+                              {ing.name}
+                            </div>
                             <button
                               onClick={() => removeIngredient(index)}
                               className="text-red-600 hover:text-red-800"
@@ -1350,13 +1543,17 @@ const Recipes = () => {
                               step="any"
                               min="0"
                               value={ing.weight}
-                              onChange={(e) => updateIngredientWeight(index, e.target.value)}
+                              onChange={e =>
+                                updateIngredientWeight(index, e.target.value)
+                              }
                               className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm"
                               placeholder="Quantity"
                             />
                             <select
                               value={ing.unit}
-                              onChange={(e) => updateIngredientUnit(index, e.target.value)}
+                              onChange={e =>
+                                updateIngredientUnit(index, e.target.value)
+                              }
                               className="border border-gray-300 rounded-md px-2 py-1 text-sm"
                             >
                               <option value="g">g</option>
@@ -1366,7 +1563,8 @@ const Recipes = () => {
                               <option value="oz">oz</option>
                             </select>
                             <div className="text-xs text-gray-600">
-                              {Math.round(calculatedNutrients.totalCalories)} cal
+                              {Math.round(calculatedNutrients.totalCalories)}{' '}
+                              cal
                             </div>
                           </div>
                         </div>
@@ -1376,15 +1574,17 @@ const Recipes = () => {
                 </div>
                 {selectedIngredients.length > 0 && (
                   <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                    <div className="font-medium text-gray-900">Total Nutrients:</div>
+                    <div className="font-medium text-gray-900">
+                      Total Nutrients:
+                    </div>
                     {(() => {
                       const totals = calculateNutrients(selectedIngredients)
                       return (
                         <div className="text-gray-700">
                           Calories: {Math.round(totals.totalCalories)} |
-                          Protein: {Math.round(totals.totalProtein)}g |
-                          Carbs: {Math.round(totals.totalCarbs)}g |
-                          Fat: {Math.round(totals.totalFat)}g
+                          Protein: {Math.round(totals.totalProtein)}g | Carbs:{' '}
+                          {Math.round(totals.totalCarbs)}g | Fat:{' '}
+                          {Math.round(totals.totalFat)}g
                         </div>
                       )
                     })()}
@@ -1394,10 +1594,12 @@ const Recipes = () => {
 
               {/* Recipe Instructions */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Recipe Instructions (one per line)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Recipe Instructions (one per line)
+                </label>
                 <textarea
                   value={recipeInstructions}
-                  onChange={(e) => setRecipeInstructions(e.target.value)}
+                  onChange={e => setRecipeInstructions(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   rows="4"
                   placeholder="Enter recipe instructions, one per line..."
@@ -1406,7 +1608,9 @@ const Recipes = () => {
 
               {/* Error Message */}
               {error && (
-                <div className="p-3 rounded border border-red-200 bg-red-50 text-red-800 text-sm">{error}</div>
+                <div className="p-3 rounded border border-red-200 bg-red-50 text-red-800 text-sm">
+                  {error}
+                </div>
               )}
 
               {/* Action Buttons */}
@@ -1422,13 +1626,20 @@ const Recipes = () => {
                 </button>
                 <button
                   onClick={handleCreateRecipe}
-                  disabled={submitting || !recipeName.trim() || selectedIngredients.length === 0}
+                  disabled={
+                    submitting ||
+                    !recipeName.trim() ||
+                    selectedIngredients.length === 0
+                  }
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {submitting
-                    ? (editingRecipeId ? 'Updating...' : 'Creating...')
-                    : (editingRecipeId ? 'Update Recipe' : 'Create Recipe')
-                  }
+                    ? editingRecipeId
+                      ? 'Updating...'
+                      : 'Creating...'
+                    : editingRecipeId
+                      ? 'Update Recipe'
+                      : 'Create Recipe'}
                 </button>
               </div>
             </div>
@@ -1459,7 +1670,7 @@ const Recipes = () => {
               src={selectedImage}
               alt="Preview"
               className="max-w-full max-h-[90vh] rounded-lg"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             />
           </div>
         </div>
@@ -1485,21 +1696,41 @@ const Recipes = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Unit
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Weight
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {selectedIngredientsView.map((ing, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.name || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.quantity || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ing.unit || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ing.category || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.weight || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {ing.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {ing.quantity || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {ing.unit || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {ing.category || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {ing.weight || 'N/A'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1524,4 +1755,3 @@ const Recipes = () => {
 }
 
 export default Recipes
-
