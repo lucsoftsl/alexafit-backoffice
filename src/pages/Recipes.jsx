@@ -537,7 +537,6 @@ const Recipes = () => {
   const handleEditRecipe = async recipe => {
     try {
       setLoadingEdit(true)
-
       // Fetch full recipe data by ID
       const recipeId = recipe.id || recipe.itemId || recipe._id
       if (!recipeId) {
