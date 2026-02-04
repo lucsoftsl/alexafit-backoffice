@@ -9,6 +9,7 @@ import {
   ChevronUpIcon,
   PencilIcon,
   DocumentDuplicateIcon,
+  GlobeAltIcon,
   SparklesIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
@@ -1340,7 +1341,8 @@ const Menus = () => {
                 : 'Create Menu Template'}
             </h2>
             <p className="text-gray-500 text-sm">
-              {t('pages.menus.buildMealPlans') || 'Build meal plans by searching foods or recipes'}
+              {t('pages.menus.buildMealPlans') ||
+                'Build meal plans by searching foods or recipes'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -1442,7 +1444,10 @@ const Menus = () => {
                     if (e.key === 'Enter') handleSearch()
                   }}
                   className="flex-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder={t('pages.menus.searchFoodsOrRecipes') || 'Search foods or recipes...'}
+                  placeholder={
+                    t('pages.menus.searchFoodsOrRecipes') ||
+                    'Search foods or recipes...'
+                  }
                 />
                 <button
                   onClick={handleSearch}
@@ -1450,7 +1455,9 @@ const Menus = () => {
                   className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                 >
                   <MagnifyingGlassIcon className="w-4 h-4 mr-1" />
-                  {searching ? t('pages.menus.searching') || 'Searching...' : t('pages.menus.search') || 'Search'}
+                  {searching
+                    ? t('pages.menus.searching') || 'Searching...'
+                    : t('pages.menus.search') || 'Search'}
                 </button>
               </div>
               {searchResults.length > 0 && (
@@ -1875,7 +1882,10 @@ const Menus = () => {
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder={t('pages.menus.searchTemplatesByName') || 'Search templates by name...'}
+                  placeholder={
+                    t('pages.menus.searchTemplatesByName') ||
+                    'Search templates by name...'
+                  }
                   value={templateSearchTerm}
                   onChange={e => setTemplateSearchTerm(e.target.value)}
                   className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -1968,7 +1978,10 @@ const Menus = () => {
                         onClick={() => handleOpenCopyModal(temp)}
                         className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm text-emerald-600 hover:bg-white/40 rounded-md"
                       >
-                        <DocumentDuplicateIcon className="w-4 h-4" />
+                        <span className="inline-flex items-center gap-0.5">
+                          <GlobeAltIcon className="w-4 h-4" />
+                          <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                        </span>
                         {t('pages.menus.copyToCountry') || 'Copy to Country'}
                       </button>
                       <button
@@ -1985,10 +1998,15 @@ const Menus = () => {
               {getCurrentTemplates().length === 0 && (
                 <div className="text-center py-8 text-sm text-gray-500">
                   {loadingTemplates
-                    ? t('pages.menus.loadingTemplates') || 'Loading templates...'
+                    ? t('pages.menus.loadingTemplates') ||
+                      'Loading templates...'
                     : templateSearchTerm
-                      ? t('pages.menus.noTemplatesFoundMatching', { term: templateSearchTerm }) || `No templates found matching "${templateSearchTerm}"`
-                      : t('pages.menus.noTemplatesFound') || 'No templates found'}
+                      ? t('pages.menus.noTemplatesFoundMatching', {
+                          term: templateSearchTerm
+                        }) ||
+                        `No templates found matching "${templateSearchTerm}"`
+                      : t('pages.menus.noTemplatesFound') ||
+                        'No templates found'}
                 </div>
               )}
             </div>
@@ -2087,13 +2105,14 @@ const Menus = () => {
                           </button>
                           <button
                             onClick={() => handleOpenCopyModal(temp)}
-                            className="text-emerald-600 hover:text-emerald-800 cursor-pointer"
+                            className="text-emerald-600 hover:text-emerald-800 cursor-pointer inline-flex items-center"
                             title={
                               t('pages.menus.copyToCountry') ||
                               'Copy menu to country'
                             }
                           >
-                            <DocumentDuplicateIcon className="w-4 h-4" />
+                            <GlobeAltIcon className="w-4 h-4" />
+                            <DocumentDuplicateIcon className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteTemplate(id)}
@@ -2113,10 +2132,15 @@ const Menus = () => {
                         colSpan="7"
                       >
                         {loadingTemplates
-                          ? t('pages.menus.loadingTemplates') || 'Loading templates...'
+                          ? t('pages.menus.loadingTemplates') ||
+                            'Loading templates...'
                           : templateSearchTerm
-                            ? t('pages.menus.noTemplatesFoundMatching', { term: templateSearchTerm }) || `No templates found matching "${templateSearchTerm}"`
-                            : t('pages.menus.noTemplatesFound') || 'No templates found'}
+                            ? t('pages.menus.noTemplatesFoundMatching', {
+                                term: templateSearchTerm
+                              }) ||
+                              `No templates found matching "${templateSearchTerm}"`
+                            : t('pages.menus.noTemplatesFound') ||
+                              'No templates found'}
                       </td>
                     </tr>
                   )}
@@ -2269,7 +2293,10 @@ const Menus = () => {
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder={t('pages.menus.searchByNameEmailOrUserId') || 'Search by name, email, or user ID...'}
+                  placeholder={
+                    t('pages.menus.searchByNameEmailOrUserId') ||
+                    'Search by name, email, or user ID...'
+                  }
                   value={userSearchTerm}
                   onChange={e => setUserSearchTerm(e.target.value)}
                   className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -2467,7 +2494,9 @@ const Menus = () => {
                         className="px-6 py-4 text-sm text-gray-500 text-center"
                         colSpan="6"
                       >
-                        {loadingUsers ? t('pages.menus.loadingUsers') || 'Loading users...' : t('pages.menus.noUsersFound') || 'No users found'}
+                        {loadingUsers
+                          ? t('pages.menus.loadingUsers') || 'Loading users...'
+                          : t('pages.menus.noUsersFound') || 'No users found'}
                       </td>
                     </tr>
                   )}
@@ -2478,8 +2507,11 @@ const Menus = () => {
                         colSpan="6"
                       >
                         {userSearchTerm
-                          ? t('pages.menus.noUsersFoundMatching', { term: userSearchTerm }) || `No users found matching "${userSearchTerm}"`
-                          : t('pages.menus.noUsersToDisplay') || 'No users to display'}
+                          ? t('pages.menus.noUsersFoundMatching', {
+                              term: userSearchTerm
+                            }) || `No users found matching "${userSearchTerm}"`
+                          : t('pages.menus.noUsersToDisplay') ||
+                            'No users to display'}
                       </td>
                     </tr>
                   )}

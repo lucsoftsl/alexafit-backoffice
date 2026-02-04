@@ -198,6 +198,10 @@ const Recipes = () => {
             aValue = a.isVerified === true ? 1 : a.isVerified === false ? 0 : -1
             bValue = b.isVerified === true ? 1 : b.isVerified === false ? 0 : -1
             return (aValue - bValue) * factor
+          case 'dateTimeUpdated':
+            aValue = a.dateTimeUpdated ? new Date(a.dateTimeUpdated).getTime() : 0
+            bValue = b.dateTimeUpdated ? new Date(b.dateTimeUpdated).getTime() : 0
+            return (aValue - bValue) * factor
           default:
             return 0
         }
@@ -1050,6 +1054,14 @@ const Recipes = () => {
                           : 'N/A'}
                       </span>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Updated:</span>
+                      <span>
+                        {item.dateTimeUpdated
+                          ? new Date(item.dateTimeUpdated).toLocaleDateString()
+                          : 'N/A'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -1197,6 +1209,20 @@ const Recipes = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
                   </th>
+                  <th
+                    onClick={() => handleSort('dateTimeUpdated')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  >
+                    <div className="flex items-center gap-1">
+                      Updated
+                      {sortColumn === 'dateTimeUpdated' &&
+                        (sortDirection === 'asc' ? (
+                          <ChevronUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ChevronDownIcon className="w-4 h-4" />
+                        ))}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -1285,6 +1311,11 @@ const Recipes = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.dateTimeCreated
                         ? new Date(item.dateTimeCreated).toLocaleDateString()
+                        : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {item.dateTimeUpdated
+                        ? new Date(item.dateTimeUpdated).toLocaleDateString()
                         : 'N/A'}
                     </td>
                   </tr>
