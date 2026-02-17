@@ -7,7 +7,7 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
+import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, deleteItem, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
 
@@ -15,6 +15,7 @@ import LZString from 'lz-string'
 
 const UnapprovedItems = () => {
   const { t } = useTranslation()
+  const ADMIN_USER_ID = 'BACKOFFICE_ADMIN'
   const [foodItems, setFoodItems] = useState([])
   const [exerciseItems, setExerciseItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,6 +35,10 @@ const UnapprovedItems = () => {
   // For ingredient detail modal
   const [selectedIngredients, setSelectedIngredients] = useState(null)
   const [isIngredientsModalOpen, setIsIngredientsModalOpen] = useState(false)
+  const [selectedServings, setSelectedServings] = useState(null)
+  const [isServingsModalOpen, setIsServingsModalOpen] = useState(false)
+  const [selectedNutritionData, setSelectedNutritionData] = useState(null)
+  const [isNutritionModalOpen, setIsNutritionModalOpen] = useState(false)
 
   // For image modal
   const [selectedImage, setSelectedImage] = useState(null)
@@ -142,40 +147,51 @@ const UnapprovedItems = () => {
     }
   }
 
-  const handleShowServings = (servings) => {
-    if (!servings || !Array.isArray(servings) || servings.length === 0) {
+  const normalizeServingOptions = servings => {
+    if (!servings) return []
+    if (Array.isArray(servings)) return servings
+    if (typeof servings === 'string') {
+      try {
+        const parsed = JSON.parse(servings)
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
+  const handleShowServings = servings => {
+    const normalized = normalizeServingOptions(servings)
+    if (!normalized.length) {
       alert('No serving information available')
       return
     }
-    const servingsText = servings.map((s, idx) => {
-      return `${idx + 1}. ${s.name || s.innerName || 'Serving'}: ${s.amount} ${s.unit || 'unit'}${s.defaultWeight ? ` (default: ${s.defaultWeight})` : ''}`
-    }).join('\n')
-    alert(`Serving Options:\n\n${servingsText}`)
+    setSelectedServings(normalized)
+    setIsServingsModalOpen(true)
   }
 
-  const handleShowNutrients = (nutrients) => {
-    if (!nutrients) {
+  const handleShowNutrientsAndCalories = item => {
+    const nutrients = item?.totalNutrients || item?.nutrientsPer100 || null
+    const calories = item?.totalCalories ?? item?.caloriesPer100 ?? null
+
+    if (!nutrients && (calories === null || calories === undefined)) {
       alert('No nutrient information available')
       return
     }
-    const nutrientsText = `
-    Proteins: ${nutrients.proteinsInGrams || 0}g
-    Fats: ${nutrients.fatInGrams || 0}g
-    Carbohydrates: ${nutrients.carbohydratesInGrams || 0}g
-    Fiber: ${nutrients.fibreInGrams || 0}g
-    Sugar: ${nutrients.sugarsInGrams || 0}g
-    Saturated Fat: ${nutrients.fattyAcidsTotalSaturatedInGrams || 0}g
-    Unsaturated Fat: ${nutrients.fattyAcidsTotalUnSaturatedInGrams || 0}g
-    Salt: ${nutrients.saltInGrams || 0}g
-    Total Quantity: ${nutrients.totalQuantity || 0}
-    Weight After Cooking: ${nutrients.weightAfterCooking || 0}
-    `
-    alert(`Nutrient Information:\n${nutrientsText}`)
+
+    setSelectedNutritionData({
+      calories,
+      nutrients,
+      isPer100: typeof item?.caloriesPer100 === 'number'
+    })
+    setIsNutritionModalOpen(true)
   }
 
-  const formatServings = (servings) => {
-    if (!servings || !Array.isArray(servings) || servings.length === 0) return 'None'
-    return `${servings.length} option(s)`
+  const formatServings = servings => {
+    const normalized = normalizeServingOptions(servings)
+    if (!normalized.length) return 'None'
+    return `${normalized.length} option(s)`
   }
 
   const refreshData = async () => {
@@ -233,6 +249,26 @@ const UnapprovedItems = () => {
         console.error('Error approving item:', err)
         alert('Failed to approve item. Please try again.')
       }
+    }
+  }
+
+  const handleDeleteUnapprovedItem = async (itemId, itemType, userId) => {
+    const confirmed = confirm('Are you sure you want to delete this item?')
+    if (!confirmed) return
+
+    try {
+      await deleteItem({
+        itemId,
+        itemType,
+        userId: userId || ADMIN_USER_ID
+      })
+
+      localStorage.removeItem('unapprovedItems')
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      refreshData()
+    } catch (err) {
+      console.error('Error deleting item:', err)
+      alert('Failed to delete item. Please try again.')
     }
   }
 
@@ -555,6 +591,18 @@ const UnapprovedItems = () => {
                     >
                       <CheckIcon className="w-5 h-5" />
                     </button>
+                    <button
+                      onClick={() =>
+                        handleDeleteUnapprovedItem(
+                          item.id,
+                          'FOOD',
+                          item.createdByUserId
+                        )
+                      }
+                      className="text-red-600 hover:text-red-900 p-2"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-sm">
@@ -626,20 +674,20 @@ const UnapprovedItems = () => {
                         Recipe Steps
                       </button>
                     )}
-                    {item.totalNutrients && (
+                    {(item.totalNutrients || item.nutrientsPer100 || typeof item.caloriesPer100 === 'number') && (
                       <button
-                        onClick={() => handleShowNutrients(item.totalNutrients)}
+                        onClick={() => handleShowNutrientsAndCalories(item)}
                         className="text-blue-600 hover:text-blue-900 underline"
                       >
-                        Nutrients
+                        Nutrients & Calories
                       </button>
                     )}
-                    {item.serving && (
+                    {(item.servingOptions || item.serving) && (
                       <button
-                        onClick={() => handleShowServings(item.serving)}
+                        onClick={() => handleShowServings(item.servingOptions || item.serving)}
                         className="text-blue-600 hover:text-blue-900 underline"
                       >
-                        {formatServings(item.serving)}
+                        {formatServings(item.servingOptions || item.serving)}
                       </button>
                     )}
                     {item.photoUrl && (
@@ -708,6 +756,18 @@ const UnapprovedItems = () => {
                       <div className="flex justify-center space-x-2">
                         <button className="text-blue-600 hover:text-blue-900 cursor-pointer" onClick={() => handleApproveItem(item.id, 'FOOD')}>
                           <CheckIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="text-red-600 hover:text-red-900 cursor-pointer"
+                          onClick={() =>
+                            handleDeleteUnapprovedItem(
+                              item.id,
+                              'FOOD',
+                              item.createdByUserId
+                            )
+                          }
+                        >
+                          <XMarkIcon className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -783,9 +843,9 @@ const UnapprovedItems = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.totalCalories || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.nutriscore || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.totalNutrients ? (
+                      {(item.totalNutrients || item.nutrientsPer100 || typeof item.caloriesPer100 === 'number') ? (
                         <button
-                          onClick={() => handleShowNutrients(item.totalNutrients)}
+                          onClick={() => handleShowNutrientsAndCalories(item)}
                           className="text-blue-600 hover:text-blue-900 underline"
                         >
                           View
@@ -795,12 +855,12 @@ const UnapprovedItems = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.serving ? (
+                      {(item.servingOptions || item.serving) ? (
                         <button
-                          onClick={() => handleShowServings(item.serving)}
+                          onClick={() => handleShowServings(item.servingOptions || item.serving)}
                           className="text-blue-600 hover:text-blue-900 underline"
                         >
-                          {formatServings(item.serving)}
+                          {formatServings(item.servingOptions || item.serving)}
                         </button>
                       ) : (
                         'N/A'
@@ -860,6 +920,18 @@ const UnapprovedItems = () => {
                       className="text-blue-600 hover:text-blue-900 p-2"
                     >
                       <CheckIcon className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDeleteUnapprovedItem(
+                          item.id,
+                          'EXERCISE',
+                          item.createdByUserId
+                        )
+                      }
+                      className="text-red-600 hover:text-red-900 p-2"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
                     </button>
                   </div>
 
@@ -939,6 +1011,18 @@ const UnapprovedItems = () => {
                       <div className="flex justify-center space-x-2">
                         <button className="text-blue-600 hover:text-blue-900 cursor-pointer" onClick={() => handleApproveItem(item.id, 'EXERCISE')}>
                           <CheckIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          className="text-red-600 hover:text-red-900 cursor-pointer"
+                          onClick={() =>
+                            handleDeleteUnapprovedItem(
+                              item.id,
+                              'EXERCISE',
+                              item.createdByUserId
+                            )
+                          }
+                        >
+                          <XMarkIcon className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -1134,11 +1218,9 @@ const UnapprovedItems = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serving Amount</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
                   </tr>
                 </thead>
@@ -1146,12 +1228,10 @@ const UnapprovedItems = () => {
                   {selectedIngredients.map((ing, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.name || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ing.brand || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.quantity || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.quantity ?? ing.servingAmount ?? 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ing.unit || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ing.category || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.servingAmount || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.weight || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.weight ?? ing.quantity ?? 'N/A'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1162,6 +1242,117 @@ const UnapprovedItems = () => {
                 onClick={() => {
                   setIsIngredientsModalOpen(false)
                   setSelectedIngredients(null)
+                }}
+                className="btn-primary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Servings Modal */}
+      {isServingsModalOpen && selectedServings && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Serving Options</h3>
+              <button
+                onClick={() => {
+                  setIsServingsModalOpen(false)
+                  setSelectedServings(null)
+                }}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {selectedServings.map((serving, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {serving?.unitName || serving?.unit || serving?.name || serving?.innerName || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {serving?.value ?? serving?.amount ?? 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setIsServingsModalOpen(false)
+                  setSelectedServings(null)
+                }}
+                className="btn-primary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Nutrition Modal */}
+      {isNutritionModalOpen && selectedNutritionData && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Nutrition</h3>
+              <button
+                onClick={() => {
+                  setIsNutritionModalOpen(false)
+                  setSelectedNutritionData(null)
+                }}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-blue-50 rounded text-sm text-gray-800">
+              Calories{selectedNutritionData.isPer100 ? ' (per 100g)' : ''}: {' '}
+              {selectedNutritionData.calories ?? 'N/A'}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nutrient</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {Object.entries(selectedNutritionData.nutrients || {}).map(([key, value]) => (
+                    <tr key={key}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{key}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {value ?? 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setIsNutritionModalOpen(false)
+                  setSelectedNutritionData(null)
                 }}
                 className="btn-primary"
               >
@@ -1187,4 +1378,3 @@ const UnapprovedItems = () => {
 }
 
 export default UnapprovedItems
-

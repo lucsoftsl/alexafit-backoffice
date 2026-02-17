@@ -72,6 +72,47 @@ const parseServingOptions = servingOptions => {
   }
   return []
 }
+const isTruthyFlag = value =>
+  value === true || value === 1 || value === '1' || value === 'true'
+const isFalsyFlag = value =>
+  value === false || value === 0 || value === '0' || value === 'false'
+const shouldHideLowQualitySearchItem = item =>
+  isTruthyFlag(item?.isAIGenerated) && isFalsyFlag(item?.isVerified)
+const normalizeUnitName = unit =>
+  (unit || '')
+    .toString()
+    .trim()
+    .toLowerCase()
+
+const getIngredientUnitOptions = ingredient => {
+  const isLiquid = ingredient?.isLiquid === true || ingredient?.isLiquid === '1'
+  const customOptions = parseServingOptions(ingredient?.servingOptions)
+  const defaults = DEFAULT_SERVING_OPTIONS.filter(option =>
+    isLiquid
+      ? option.unitName === 'ml' || option.unitName === 'fl oz'
+      : option.unitName === 'g' || option.unitName === 'oz'
+  )
+  const baseOptions = [...customOptions, ...defaults]
+  const options = []
+  const seen = new Set()
+
+  baseOptions.forEach(option => {
+    const unitName = (option?.unitName || '').toString().trim()
+    if (!unitName) return
+    const key = normalizeUnitName(unitName)
+    if (seen.has(key)) return
+    seen.add(key)
+    options.push(unitName)
+  })
+
+  const selectedUnit = (ingredient?.unit || '').toString().trim()
+  if (selectedUnit) {
+    const key = normalizeUnitName(selectedUnit)
+    if (!seen.has(key)) options.unshift(selectedUnit)
+  }
+
+  return options
+}
 
 const Recipes = () => {
   const { t } = useTranslation()
@@ -115,6 +156,8 @@ const Recipes = () => {
   // For ingredient detail modal
   const [selectedIngredientsView, setSelectedIngredientsView] = useState(null)
   const [isIngredientsModalOpen, setIsIngredientsModalOpen] = useState(false)
+  const [selectedServingsView, setSelectedServingsView] = useState([])
+  const [isServingsModalOpen, setIsServingsModalOpen] = useState(false)
 
   useEffect(() => {
     const loadRecipes = async () => {
@@ -144,7 +187,7 @@ const Recipes = () => {
         }
       } catch (err) {
         console.error('Error loading recipes:', err)
-        setError('Failed to load recipes. Please try again.')
+        setError(t('pages.recipes.loadRecipesTryAgain'))
         setLoading(false)
       }
     }
@@ -184,7 +227,7 @@ const Recipes = () => {
       console.log('Loaded from API and cached')
     } catch (err) {
       console.error('Error refreshing data:', err)
-      setError('Failed to refresh data')
+      setError(t('pages.recipes.failedRefreshData'))
       setLoading(false)
     }
   }
@@ -272,6 +315,11 @@ const Recipes = () => {
     setIsIngredientsModalOpen(true)
   }
 
+  const handleShowServings = servingOptions => {
+    setSelectedServingsView(parseServingOptions(servingOptions))
+    setIsServingsModalOpen(true)
+  }
+
   const handleSearch = async () => {
     if (!searchText.trim()) return
     try {
@@ -290,13 +338,16 @@ const Recipes = () => {
           .toString()
           .toLowerCase()
         return (
-          itemType === 'food' && itemType !== 'recipe' && itemType !== 'recipes'
+          itemType === 'food' &&
+          itemType !== 'recipe' &&
+          itemType !== 'recipes' &&
+          !shouldHideLowQualitySearchItem(item)
         )
       })
       setSearchResults(foodItems)
     } catch (e) {
       console.error('Search failed', e)
-      setError('Failed to search items')
+      setError(t('pages.recipes.failedSearchItems'))
     } finally {
       setSearching(false)
     }
@@ -305,12 +356,15 @@ const Recipes = () => {
   const addIngredientToRecipe = item => {
     const servingOptions = parseServingOptions(item.servingOptions)
     const isLiquid = item?.isLiquid === true || item?.isLiquid === '1'
+    const defaultUnit =
+      servingOptions.find(option => option?.unitName)?.unitName ||
+      (isLiquid ? 'ml' : 'g')
     const ingredient = {
       id: item.id || item.itemId || item._id,
       name: item.name || item.title || 'Unnamed',
       quantity: 100,
       weight: 100,
-      unit: 'g',
+      unit: defaultUnit,
       category: item.category || null,
       caloriesPer100: parseNumber(item.caloriesPer100),
       nutrientsPer100: parseNutrients(item.nutrientsPer100),
@@ -451,6 +505,26 @@ const Recipes = () => {
     )
     return totalNutrs
   }
+
+  const selectedIngredientsTotals = useMemo(
+    () => calculateNutrients(selectedIngredients),
+    [selectedIngredients]
+  )
+
+  const ingredientCalories = useMemo(
+    () =>
+      selectedIngredients.map(ingredient => {
+        const amountInBaseUnit = getAmountInBaseUnit(
+          ingredient,
+          ingredient.quantity ?? ingredient.weight,
+          ingredient.unit || 'g'
+        )
+        return Math.round(
+          (parseNumber(ingredient?.caloriesPer100) * amountInBaseUnit) / 100
+        )
+      }),
+    [selectedIngredients]
+  )
 
   const generateDefaultServings = (totalWeightInGrams, numServings) => {
     const totalWeight = parseNumber(totalWeightInGrams) || 1
@@ -800,13 +874,21 @@ const Recipes = () => {
     }
   }
 
+  const naText = t('pages.recipes.na')
+  const yesText = t('pages.recipes.yes')
+  const noText = t('pages.recipes.no')
+
   if (loading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Recipes</h1>
-            <p className="text-gray-600 mt-2">Manage recipes</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {t('pages.recipes.title')}
+            </h1>
+            <p className="text-gray-600 mt-2">
+              {t('pages.recipes.manageRecipes')}
+            </p>
           </div>
         </div>
         <div className="flex items-center justify-center h-64">
@@ -826,20 +908,24 @@ const Recipes = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="text-gray-700 font-medium">Loading recipe data...</p>
+            <p className="text-gray-700 font-medium">
+              {t('pages.recipes.loadingRecipeData')}
+            </p>
           </div>
         </div>
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">Recipes</h1>
-          <p className="text-gray-600 mt-2">Manage recipes</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {t('pages.recipes.title')}
+          </h1>
+          <p className="text-gray-600 mt-2">{t('pages.recipes.manageRecipes')}</p>
         </div>
         <div className="flex flex-col gap-2 items-center justify-center sm:justify-end">
           <div className="flex items-center gap-2">
             <label className="text-sm text-gray-700 whitespace-nowrap">
-              Country:
+              {t('pages.recipes.country')}:
             </label>
             <select
               value={filterCountryCode}
@@ -873,7 +959,7 @@ const Recipes = () => {
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              {t('pages.dashboard.refresh')} Data
+              {t('pages.recipes.refreshData')}
             </button>
             <button
               onClick={() => {
@@ -883,7 +969,7 @@ const Recipes = () => {
               className="btn-primary flex items-center"
             >
               <PlusIcon className="w-4 h-4 mr-2" />
-              Create Recipe
+              {t('pages.recipes.create')}
             </button>
           </div>
         </div>
@@ -909,7 +995,9 @@ const Recipes = () => {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Recipes</p>
+              <p className="text-sm font-medium text-gray-500">
+                {t('pages.recipes.totalRecipes')}
+              </p>
               <p className="text-2xl font-semibold text-gray-900">
                 {recipeItems.length}
               </p>
@@ -924,7 +1012,7 @@ const Recipes = () => {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search recipes by name..."
+            placeholder={t('pages.recipes.searchByName')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="input pl-10"
@@ -939,7 +1027,7 @@ const Recipes = () => {
           <div className="space-y-4">
             {getCurrentItems().length === 0 && (
               <div className="text-center text-sm text-gray-600 py-6">
-                No recipes found.
+                {t('pages.recipes.noRecipesFound')}
               </div>
             )}
             {getCurrentItems().map(item => (
@@ -952,29 +1040,31 @@ const Recipes = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold text-gray-900 break-words">
-                          {item.name || 'N/A'}
+                          {item.name || naText}
                         </h3>
                         <span
                           className={`px-2 py-0.5 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                         >
-                          {item.isVerified ? 'Verified' : 'Unverified'}
+                          {item.isVerified
+                            ? t('pages.recipes.verified')
+                            : t('pages.recipes.unverified')}
                         </span>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
                         <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                          {item.type || 'N/A'}
+                          {item.type || naText}
                         </span>
                         <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800">
-                          {item.countryCode || 'N/A'}
+                          {item.countryCode || naText}
                         </span>
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-medium ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}
                         >
                           {item.isPublic !== null && item.isPublic !== undefined
                             ? item.isPublic
-                              ? 'Public'
-                              : 'Private'
-                            : 'N/A'}
+                              ? t('pages.recipes.public')
+                              : t('pages.recipes.private')
+                            : naText}
                         </span>
                       </div>
                     </div>
@@ -983,7 +1073,7 @@ const Recipes = () => {
                         onClick={() => handleEditRecipe(item)}
                         disabled={loadingEdit}
                         className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                        title="Edit recipe"
+                        title={t('pages.recipes.editRecipe')}
                       >
                         <PencilIcon className="w-5 h-5" />
                       </button>
@@ -991,7 +1081,7 @@ const Recipes = () => {
                         onClick={() => handleDeleteRecipe(item)}
                         disabled={deleting}
                         className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                        title="Delete recipe"
+                        title={t('pages.recipes.deleteRecipe')}
                       >
                         <TrashIcon className="w-5 h-5" />
                       </button>
@@ -999,7 +1089,7 @@ const Recipes = () => {
                         onClick={() => handleAddPhotoToRecipe(item)}
                         disabled={uploadingPhoto}
                         className="text-green-600 hover:text-green-800 disabled:opacity-50"
-                        title="Add photo"
+                        title={t('pages.recipes.addPhoto')}
                       >
                         <PhotoIcon className="w-5 h-5" />
                       </button>
@@ -1008,27 +1098,33 @@ const Recipes = () => {
 
                   <div className="flex flex-wrap gap-3 text-sm text-gray-700">
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">Calories/100:</span>
-                      <span>{item.caloriesPer100 || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium">Servings:</span>
-                      <span>{item.numberOfRecipeServings || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium">Created:</span>
+                      <span className="font-medium">
+                        {t('pages.recipes.caloriesPer100g')}:
+                      </span>
                       <span>
-                        {item.dateTimeCreated
-                          ? new Date(item.dateTimeCreated).toLocaleDateString()
-                          : 'N/A'}
+                        {item.caloriesPer100 || item.caloriesPer100 === 0
+                          ? item.caloriesPer100
+                          : naText}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">Updated:</span>
+                      <span className="font-medium">{t('pages.recipes.servings')}:</span>
+                      <span>{item.numberOfRecipeServings || naText}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">{t('pages.recipes.created')}:</span>
+                      <span>
+                        {item.dateTimeCreated
+                          ? new Date(item.dateTimeCreated).toLocaleDateString()
+                          : naText}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">{t('pages.recipes.updated')}:</span>
                       <span>
                         {item.dateTimeUpdated
                           ? new Date(item.dateTimeUpdated).toLocaleDateString()
-                          : 'N/A'}
+                          : naText}
                       </span>
                     </div>
                   </div>
@@ -1039,11 +1135,19 @@ const Recipes = () => {
                         onClick={() => handleShowImage(item.photoUrl)}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
                       >
-                        View photo
+                        {t('pages.recipes.viewPhoto')}
                       </button>
                     ) : (
-                      <span className="text-sm text-gray-500">No photo</span>
+                      <span className="text-sm text-gray-500">
+                        {t('pages.recipes.noPhoto')}
+                      </span>
                     )}
+                    <button
+                      onClick={() => handleShowServings(item?.servingOptions)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
+                    >
+                      {t('pages.recipes.viewServings')}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1054,7 +1158,9 @@ const Recipes = () => {
           <div className="mt-4 bg-white border-t border-gray-200 px-4 py-3 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-700">Per page</label>
+                <label className="text-sm text-gray-700">
+                  {t('pages.recipes.perPage')}
+                </label>
                 <select
                   value={itemsPerPage}
                   onChange={e => {
@@ -1069,7 +1175,10 @@ const Recipes = () => {
                 </select>
               </div>
               <span className="text-xs text-gray-600">
-                Page {currentPage} / {getTotalPages() || 1}
+                {t('pages.recipes.pageOf', {
+                  current: currentPage,
+                  total: getTotalPages() || 1
+                })}
               </span>
             </div>
             <div className="flex items-center justify-between gap-2">
@@ -1078,7 +1187,7 @@ const Recipes = () => {
                 disabled={currentPage === 1}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pages.recipes.previous')}
               </button>
               <button
                 onClick={() =>
@@ -1087,13 +1196,15 @@ const Recipes = () => {
                 disabled={currentPage >= getTotalPages()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pages.recipes.next')}
               </button>
             </div>
             <div className="text-xs text-gray-600 text-center">
-              Showing {(currentPage - 1) * itemsPerPage + 1} -{' '}
-              {Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of{' '}
-              {filteredRecipes.length}
+              {t('pages.recipes.showingRangeOfTotal', {
+                start: (currentPage - 1) * itemsPerPage + 1,
+                end: Math.min(currentPage * itemsPerPage, filteredRecipes.length),
+                total: filteredRecipes.length
+              })}
             </div>
           </div>
         </div>
@@ -1105,14 +1216,14 @@ const Recipes = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t('pages.recipes.actions')}
                   </th>
                   <th
                     onClick={() => handleSort('name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
-                      Name
+                      {t('pages.recipes.name')}
                       {sortColumn === 'name' &&
                         (sortDirection === 'asc' ? (
                           <ChevronUpIcon className="w-4 h-4" />
@@ -1122,17 +1233,17 @@ const Recipes = () => {
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
+                    {t('pages.recipes.type')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Country
+                    {t('pages.recipes.country')}
                   </th>
                   <th
                     onClick={() => handleSort('calories')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
-                      Calories
+                      {t('pages.recipes.caloriesHeader')}
                       {sortColumn === 'calories' &&
                         (sortDirection === 'asc' ? (
                           <ChevronUpIcon className="w-4 h-4" />
@@ -1142,17 +1253,17 @@ const Recipes = () => {
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Servings
+                    {t('pages.recipes.servings')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Photo
+                    {t('pages.recipes.photo')}
                   </th>
                   <th
                     onClick={() => handleSort('isPublic')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
-                      Public
+                      {t('pages.recipes.publicLabel')}
                       {sortColumn === 'isPublic' &&
                         (sortDirection === 'asc' ? (
                           <ChevronUpIcon className="w-4 h-4" />
@@ -1166,7 +1277,7 @@ const Recipes = () => {
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
-                      Verified
+                      {t('pages.recipes.verifiedLabel')}
                       {sortColumn === 'isVerified' &&
                         (sortDirection === 'asc' ? (
                           <ChevronUpIcon className="w-4 h-4" />
@@ -1176,14 +1287,14 @@ const Recipes = () => {
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                    {t('pages.recipes.created')}
                   </th>
                   <th
                     onClick={() => handleSort('dateTimeUpdated')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center gap-1">
-                      Updated
+                      {t('pages.recipes.updated')}
                       {sortColumn === 'dateTimeUpdated' &&
                         (sortDirection === 'asc' ? (
                           <ChevronUpIcon className="w-4 h-4" />
@@ -1201,26 +1312,26 @@ const Recipes = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEditRecipe(item)}
-                          disabled={loadingEdit}
-                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                          title="Edit recipe"
-                        >
+                        disabled={loadingEdit}
+                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        title={t('pages.recipes.editRecipe')}
+                      >
                           <PencilIcon className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteRecipe(item)}
-                          disabled={deleting}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50 cursor-pointer"
-                          title="Delete recipe"
-                        >
+                        disabled={deleting}
+                        className="text-red-600 hover:text-red-900 disabled:opacity-50 cursor-pointer"
+                        title={t('pages.recipes.deleteRecipe')}
+                      >
                           <TrashIcon className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleAddPhotoToRecipe(item)}
-                          disabled={uploadingPhoto}
-                          className="text-green-600 hover:text-green-900 disabled:opacity-50 cursor-pointer"
-                          title="Add photo"
-                        >
+                        disabled={uploadingPhoto}
+                        className="text-green-600 hover:text-green-900 disabled:opacity-50 cursor-pointer"
+                        title={t('pages.recipes.addPhoto')}
+                      >
                           <PhotoIcon className="w-4 h-4" />
                         </button>
                       </div>
@@ -1230,34 +1341,46 @@ const Recipes = () => {
                         className="text-sm font-medium text-gray-900 max-w-xs truncate"
                         title={item.name}
                       >
-                        {item.name || 'N/A'}
+                        {item.name || naText}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                        {item.type || 'N/A'}
+                        {item.type || naText}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.countryCode || 'N/A'}
+                      {item.countryCode || naText}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.caloriesPer100 || 'N/A'}
+                      {item.caloriesPer100 || item.caloriesPer100 === 0
+                        ? `${item.caloriesPer100} cal/100g`
+                        : naText}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.numberOfRecipeServings || 'N/A'}
+                      <div className="flex items-center gap-3">
+                        <span>{item.numberOfRecipeServings || naText}</span>
+                        <button
+                          onClick={() => handleShowServings(item?.servingOptions)}
+                          className="text-blue-600 hover:text-blue-900 underline cursor-pointer text-sm"
+                        >
+                          {t('pages.recipes.servings')}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {item.photoUrl ? (
-                        <button
-                          onClick={() => handleShowImage(item.photoUrl)}
-                          className="text-blue-600 hover:text-blue-900 underline cursor-pointer"
-                        >
-                          View
-                        </button>
-                      ) : (
-                        'N/A'
-                      )}
+                      <div className="flex items-center gap-3">
+                        {item.photoUrl ? (
+                          <button
+                            onClick={() => handleShowImage(item.photoUrl)}
+                            className="text-blue-600 hover:text-blue-900 underline cursor-pointer"
+                          >
+                            {t('pages.recipes.view')}
+                          </button>
+                        ) : (
+                          <span className="text-sm text-gray-500">{naText}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span
@@ -1265,27 +1388,27 @@ const Recipes = () => {
                       >
                         {item.isPublic !== null && item.isPublic !== undefined
                           ? item.isPublic
-                            ? 'Yes'
-                            : 'No'
-                          : 'N/A'}
+                            ? yesText
+                            : noText
+                          : naText}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                       >
-                        {item.isVerified ? 'Yes' : 'No'}
+                        {item.isVerified ? yesText : noText}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.dateTimeCreated
                         ? new Date(item.dateTimeCreated).toLocaleDateString()
-                        : 'N/A'}
+                        : naText}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.dateTimeUpdated
                         ? new Date(item.dateTimeUpdated).toLocaleDateString()
-                        : 'N/A'}
+                        : naText}
                     </td>
                   </tr>
                 ))}
@@ -1296,7 +1419,9 @@ const Recipes = () => {
           {/* Pagination Controls */}
           <div className="bg-white px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-gray-200">
             <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-700">Items per page:</label>
+              <label className="text-sm text-gray-700">
+                {t('pages.recipes.itemsPerPage')}:
+              </label>
               <select
                 value={itemsPerPage}
                 onChange={e => {
@@ -1314,12 +1439,19 @@ const Recipes = () => {
 
             <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
               <span className="font-medium">
-                Page {currentPage} of {getTotalPages() || 1}
+                {t('pages.recipes.pageOfWord', {
+                  current: currentPage,
+                  total: getTotalPages() || 1
+                })}
               </span>
               <span className="text-gray-600">
                 {filteredRecipes.length === 0
-                  ? 'Showing 0 of 0 results'
-                  : `Showing ${(currentPage - 1) * itemsPerPage + 1} to ${Math.min(currentPage * itemsPerPage, filteredRecipes.length)} of ${filteredRecipes.length} results`}
+                  ? t('pages.recipes.showingZero')
+                  : t('pages.recipes.showingToOfResults', {
+                      start: (currentPage - 1) * itemsPerPage + 1,
+                      end: Math.min(currentPage * itemsPerPage, filteredRecipes.length),
+                      total: filteredRecipes.length
+                    })}
               </span>
             </div>
 
@@ -1329,7 +1461,7 @@ const Recipes = () => {
                 disabled={currentPage === 1}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('pages.recipes.previous')}
               </button>
 
               <button
@@ -1339,7 +1471,7 @@ const Recipes = () => {
                 disabled={currentPage >= getTotalPages()}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next
+                {t('pages.recipes.next')}
               </button>
             </div>
           </div>
@@ -1352,7 +1484,9 @@ const Recipes = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-900">
-                {editingRecipeId ? 'Edit Recipe' : 'Create Recipe'}
+                {editingRecipeId
+                  ? t('pages.recipes.editRecipe')
+                  : t('pages.recipes.create')}
               </h2>
               <button
                 onClick={() => {
@@ -1369,21 +1503,21 @@ const Recipes = () => {
               {/* Recipe Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Recipe Name
+                  {t('pages.recipes.recipeName')}
                 </label>
                 <input
                   type="text"
                   value={recipeName}
                   onChange={e => setRecipeName(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  placeholder="Enter recipe name"
+                  placeholder={t('pages.recipes.enterRecipeName')}
                 />
               </div>
 
               {/* Country Code */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Country Code
+                  {t('pages.recipes.countryCode')}
                 </label>
                 <select
                   value={selectedCountryCode}
@@ -1403,7 +1537,7 @@ const Recipes = () => {
               {/* Number of Servings */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Number of Servings
+                  {t('pages.recipes.numberOfServings')}
                 </label>
                 <input
                   type="number"
@@ -1417,7 +1551,7 @@ const Recipes = () => {
               {/* Total Time */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Total Time (minutes)
+                  {t('pages.recipes.totalTimeMinutes')}
                 </label>
                 <input
                   value={totalTimeInMinutes}
@@ -1429,7 +1563,7 @@ const Recipes = () => {
               {/* Photo Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Recipe Photo
+                  {t('pages.recipes.recipePhoto')}
                 </label>
                 <div className="flex items-center gap-4">
                   <input
@@ -1444,17 +1578,21 @@ const Recipes = () => {
                     className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md flex items-center gap-2"
                   >
                     <PhotoIcon className="w-5 h-5" />
-                    {selectedPhoto ? 'Change Photo' : 'Upload Photo'}
+                    {selectedPhoto
+                      ? t('pages.recipes.changePhoto')
+                      : t('pages.recipes.uploadPhoto')}
                   </label>
                   {photoPreview && (
                     <img
                       src={photoPreview}
-                      alt="Preview"
+                      alt={t('pages.recipes.preview')}
                       className="w-24 h-24 object-cover rounded"
                     />
                   )}
                   {uploadingPhoto && (
-                    <span className="text-sm text-gray-500">Uploading...</span>
+                    <span className="text-sm text-gray-500">
+                      {t('pages.recipes.uploading')}
+                    </span>
                   )}
                 </div>
               </div>
@@ -1462,7 +1600,7 @@ const Recipes = () => {
               {/* Search Ingredients */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Search Ingredients
+                  {t('pages.recipes.searchIngredients')}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -1473,14 +1611,16 @@ const Recipes = () => {
                       if (e.key === 'Enter') handleSearch()
                     }}
                     className="flex-1 border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="Search for food items..."
+                    placeholder={t('pages.recipes.searchFoodItems')}
                   />
                   <button
                     onClick={handleSearch}
                     disabled={searching || !searchText.trim()}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    {searching ? 'Searching...' : 'Search'}
+                    {searching
+                      ? t('pages.recipes.searching')
+                      : t('pages.recipes.search')}
                   </button>
                 </div>
                 {searchResults.length > 0 && (
@@ -1492,11 +1632,11 @@ const Recipes = () => {
                       >
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {item?.name || item?.title || 'Unnamed'}
+                            {item?.name || item?.title || t('pages.recipes.unnamed')}
                           </div>
                           <div className="text-xs text-gray-600">
                             {item?.caloriesPer100
-                              ? `${item.caloriesPer100} cal/100`
+                              ? `${item.caloriesPer100} cal/100g`
                               : ''}
                           </div>
                         </div>
@@ -1504,7 +1644,7 @@ const Recipes = () => {
                           onClick={() => addIngredientToRecipe(item)}
                           className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 text-sm"
                         >
-                          Add
+                          {t('pages.recipes.add')}
                         </button>
                       </div>
                     ))}
@@ -1515,16 +1655,16 @@ const Recipes = () => {
               {/* Selected Ingredients */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Selected Ingredients
+                  {t('pages.recipes.selectedIngredients')}
                 </label>
                 <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3">
                   {selectedIngredients.length === 0 ? (
                     <div className="text-sm text-gray-500">
-                      No ingredients added yet
+                      {t('pages.recipes.noIngredientsYet')}
                     </div>
                   ) : (
                     selectedIngredients.map((ing, index) => {
-                      const calculatedNutrients = calculateNutrients([ing])
+                      const unitOptions = getIngredientUnitOptions(ing)
                       return (
                         <div key={index} className="p-3 bg-gray-50 rounded-md">
                           <div className="flex items-center justify-between mb-2">
@@ -1548,7 +1688,7 @@ const Recipes = () => {
                                 updateIngredientWeight(index, e.target.value)
                               }
                               className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm"
-                              placeholder="Quantity"
+                              placeholder={t('pages.recipes.quantity')}
                             />
                             <select
                               value={ing.unit}
@@ -1557,14 +1697,20 @@ const Recipes = () => {
                               }
                               className="border border-gray-300 rounded-md px-2 py-1 text-sm"
                             >
-                              <option value="g">g</option>
-                              <option value="oz">oz</option>
-                              <option value="ml">ml</option>
-                              <option value="fl oz">fl oz</option>
+                              {unitOptions.length === 0 ? (
+                                <option value={ing.unit || 'g'}>
+                                  {ing.unit || 'g'}
+                                </option>
+                              ) : (
+                                unitOptions.map(unit => (
+                                  <option key={unit} value={unit}>
+                                    {unit}
+                                  </option>
+                                ))
+                              )}
                             </select>
                             <div className="text-xs text-gray-600">
-                              {Math.round(calculatedNutrients.totalCalories)}{' '}
-                              cal
+                              {ingredientCalories[index] || 0} cal
                             </div>
                           </div>
                         </div>
@@ -1575,19 +1721,14 @@ const Recipes = () => {
                 {selectedIngredients.length > 0 && (
                   <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
                     <div className="font-medium text-gray-900">
-                      Total Nutrients:
+                      {t('pages.recipes.totalNutrients')}:
                     </div>
-                    {(() => {
-                      const totals = calculateNutrients(selectedIngredients)
-                      return (
-                        <div className="text-gray-700">
-                          Calories: {Math.round(totals.totalCalories)} |
-                          Protein: {Math.round(totals.totalProtein)}g | Carbs:{' '}
-                          {Math.round(totals.totalCarbs)}g | Fat:{' '}
-                          {Math.round(totals.totalFat)}g
-                        </div>
-                      )
-                    })()}
+                    <div className="text-gray-700">
+                      {t('pages.recipes.calories')}: {Math.round(selectedIngredientsTotals.totalCalories)} |
+                      {' '}{t('pages.recipes.protein')}: {Math.round(selectedIngredientsTotals.totalProtein)}g
+                      {' '}| {t('pages.recipes.carbs')}: {Math.round(selectedIngredientsTotals.totalCarbs)}
+                      g | {t('pages.recipes.fat')}: {Math.round(selectedIngredientsTotals.totalFat)}g
+                    </div>
                   </div>
                 )}
               </div>
@@ -1595,14 +1736,14 @@ const Recipes = () => {
               {/* Recipe Instructions */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Recipe Instructions (one per line)
+                  {t('pages.recipes.recipeInstructionsOnePerLine')}
                 </label>
                 <textarea
                   value={recipeInstructions}
                   onChange={e => setRecipeInstructions(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                   rows="4"
-                  placeholder="Enter recipe instructions, one per line..."
+                  placeholder={t('pages.recipes.enterRecipeInstructions')}
                 />
               </div>
 
@@ -1622,7 +1763,7 @@ const Recipes = () => {
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 >
-                  Cancel
+                  {t('pages.recipes.cancel')}
                 </button>
                 <button
                   onClick={handleCreateRecipe}
@@ -1635,11 +1776,11 @@ const Recipes = () => {
                 >
                   {submitting
                     ? editingRecipeId
-                      ? 'Updating...'
-                      : 'Creating...'
+                      ? t('pages.recipes.updating')
+                      : t('pages.recipes.creating')
                     : editingRecipeId
-                      ? 'Update Recipe'
-                      : 'Create Recipe'}
+                      ? t('pages.recipes.updateRecipe')
+                      : t('pages.recipes.create')}
                 </button>
               </div>
             </div>
@@ -1668,7 +1809,7 @@ const Recipes = () => {
             </button>
             <img
               src={selectedImage}
-              alt="Preview"
+              alt={t('pages.recipes.preview')}
               className="max-w-full max-h-[90vh] rounded-lg"
               onClick={e => e.stopPropagation()}
             />
@@ -1681,7 +1822,9 @@ const Recipes = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 shadow-lg rounded-md bg-white">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Ingredients</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                {t('pages.recipes.ingredients')}
+              </h3>
               <button
                 onClick={() => {
                   setIsIngredientsModalOpen(false)
@@ -1697,19 +1840,19 @@ const Recipes = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
+                      {t('pages.recipes.name')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Quantity
+                      {t('pages.recipes.quantity')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Unit
+                      {t('pages.recipes.unit')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
+                      {t('pages.recipes.category')}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Weight
+                      {t('pages.recipes.weight')}
                     </th>
                   </tr>
                 </thead>
@@ -1717,19 +1860,19 @@ const Recipes = () => {
                   {selectedIngredientsView.map((ing, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {ing.name || 'N/A'}
+                        {ing.name || naText}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {ing.quantity || 'N/A'}
+                        {ing.quantity || naText}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {ing.unit || 'N/A'}
+                        {ing.unit || naText}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {ing.category || 'N/A'}
+                        {ing.category || naText}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {ing.weight || 'N/A'}
+                        {ing.weight || naText}
                       </td>
                     </tr>
                   ))}
@@ -1744,7 +1887,74 @@ const Recipes = () => {
                 }}
                 className="btn-primary"
               >
-                Close
+                {t('pages.recipes.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Servings Modal */}
+      {isServingsModalOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                {t('pages.recipes.servingOptions')}
+              </h3>
+              <button
+                onClick={() => {
+                  setIsServingsModalOpen(false)
+                  setSelectedServingsView([])
+                }}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+            {selectedServingsView.length === 0 ? (
+              <div className="text-sm text-gray-600">
+                {t('pages.recipes.noServingOptions')}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t('pages.recipes.unit')}
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {t('pages.recipes.value')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedServingsView.map((serving, index) => (
+                      <tr key={`${serving?.unitName || 'unit'}-${index}`}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {serving?.unitName || naText}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {serving?.value || serving?.value === 0
+                            ? serving.value
+                            : naText}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setIsServingsModalOpen(false)
+                  setSelectedServingsView([])
+                }}
+                className="btn-primary"
+              >
+                {t('pages.recipes.close')}
               </button>
             </div>
           </div>

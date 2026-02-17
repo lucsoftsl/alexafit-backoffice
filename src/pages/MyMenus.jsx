@@ -105,6 +105,45 @@ const normalizeMenuItemShape = item => {
 }
 const getServingAmount = serving =>
   parseNumber(serving?.value ?? serving?.amount ?? 0)
+const STANDARD_INPUT_UNITS = new Set([
+  'g',
+  'gram',
+  'grams',
+  'ml',
+  'milliliter',
+  'milliliters',
+  'millilitre',
+  'oz',
+  'ounce',
+  'ounces',
+  'fl oz',
+  'fluid ounce',
+  'fluid ounces',
+  'floz'
+])
+const getDefaultAmountForSelectedServing = serving => {
+  const rawUnit = (
+    serving?.unitName ||
+    serving?.unit ||
+    serving?.name ||
+    serving?.innerName ||
+    ''
+  )
+    .toString()
+    .trim()
+    .toLowerCase()
+  if (STANDARD_INPUT_UNITS.has(rawUnit)) {
+    return getServingAmount(serving) || 100
+  }
+  // Custom units (e.g. "serving", "cup", "slice") should default to 1 unit.
+  return 1
+}
+const isTruthyFlag = value =>
+  value === true || value === 1 || value === '1' || value === 'true'
+const isFalsyFlag = value =>
+  value === false || value === 0 || value === '0' || value === 'false'
+const shouldHideLowQualitySearchItem = item =>
+  isTruthyFlag(item?.isAIGenerated) && isFalsyFlag(item?.isVerified)
 const findPortionServing = servingArray =>
   (servingArray || []).find(s => {
     const name = (s?.unitName || s?.name || s?.innerName || '').toLowerCase()
@@ -153,6 +192,8 @@ const MyMenus = () => {
   const userData = useSelector(selectUserData)
   const { currentUser } = useAuth()
   const isImperial = isImperialFromUserData(userData?.userData || userData)
+  // Template builder should always expose both metric and imperial options.
+  const includeImperialServingOptions = true
   const roundServingAmountByUnitSystem = value => {
     const n = parseNumber(value)
     const decimals = isImperial ? 2 : 1
@@ -272,7 +313,10 @@ const MyMenus = () => {
         onlyRecipes,
         countryCode
       })
-      setSearchResults(Array.isArray(data) ? data : [])
+      const normalizedResults = Array.isArray(data) ? data : []
+      setSearchResults(
+        normalizedResults.filter(item => !shouldHideLowQualitySearchItem(item))
+      )
     } catch (e) {
       console.error('Search failed', e)
       setError(t('pages.myMenus.failedSearchFood'))
@@ -422,21 +466,32 @@ const MyMenus = () => {
       const itemKey = `${activeMealType}-${newIndex}`
 
       // Initialize display values
-      // For recipes, default to 1 serving (Portion) if available, otherwise use original
+      // For custom units (e.g. "serving"), default amount should be 1.
       let initialServingId = originalServingId
       let initialServingAmount = originalServingAmount
 
       if (
-        detectIsRecipe(enriched) &&
         enriched?.servingOptions &&
-        Array.isArray(enriched.servingOptions)
+        Array.isArray(enriched.servingOptions) &&
+        enriched.servingOptions.length > 0
       ) {
-        const portionServing = findPortionServing(enriched.servingOptions)
-        if (portionServing) {
-          // Default to 1 serving (Portion) for recipes
-          initialServingId = getServingIdentifier(portionServing)
-          initialServingAmount = getServingAmount(portionServing)
+        let initialServing =
+          findServingByIdentifier(enriched.servingOptions, initialServingId) ||
+          null
+
+        if (detectIsRecipe(enriched)) {
+          const portionServing = findPortionServing(enriched.servingOptions)
+          if (portionServing) initialServing = portionServing
         }
+
+        if (!initialServing) {
+          initialServing =
+            findDefaultServing(enriched.servingOptions) ||
+            enriched.servingOptions[0]
+        }
+
+        initialServingId = getServingIdentifier(initialServing) || initialServingId
+        initialServingAmount = getDefaultAmountForSelectedServing(initialServing)
       }
 
       setDisplayValues(prev => ({
@@ -513,7 +568,7 @@ const MyMenus = () => {
             // Find the serving object using the identifier
             const servingOptions = buildServingOptionsForMenuItem(
               item,
-              isImperial
+              includeImperialServingOptions
             )
             const selectedServing = findServingByIdentifier(
               servingOptions,
@@ -800,9 +855,24 @@ const MyMenus = () => {
             originalServingId = null
           }
 
+          const servingOptions = buildServingOptionsForMenuItem(
+            item,
+            includeImperialServingOptions
+          )
+          const selectedServing =
+            findServingByIdentifier(servingOptions, originalServingId) ||
+            findDefaultServing(servingOptions) ||
+            servingOptions[0] ||
+            null
+          const selectedServingId =
+            getServingIdentifier(selectedServing) || originalServingId || null
+          const selectedServingAmount = selectedServing
+            ? getDefaultAmountForSelectedServing(selectedServing)
+            : originalServingAmount
+
           initialDisplayValues[itemKey] = {
-            selectedServingId: originalServingId,
-            servingAmount: originalServingAmount
+            selectedServingId,
+            servingAmount: selectedServingAmount
           }
         }
       })
@@ -1457,10 +1527,16 @@ const MyMenus = () => {
                       <div className="max-h-64 overflow-y-auto rounded-2xl border border-white/70 bg-white/80 backdrop-blur divide-y divide-white/70">
                         {searchResults.map((item, idx) => {
                           const isRecipeItem = detectIsRecipe(item)
-                          const selectedServing = findDefaultServing(
-                            item?.servingOptions
+                          const servingOptions = buildServingOptionsForMenuItem(
+                            item,
+                            includeImperialServingOptions
                           )
-                          const servingAmount = getServingAmount(selectedServing)
+                          const selectedServing = findDefaultServing(servingOptions)
+                          const servingAmount = getServingAmount(selectedServing) || 100
+                          const servingUnit =
+                            selectedServing?.unitName ||
+                            selectedServing?.unit ||
+                            (item?.isLiquid ? 'ml' : 'g')
                           const numberOfRecipeServings = isRecipeItem
                             ? item?.numberOfRecipeServings ||
                               item?.originalServings ||
@@ -1484,7 +1560,7 @@ const MyMenus = () => {
                                 <div className="text-xs text-gray-600">
                                   {detectIsRecipe(item) ? 'Recipe' : 'Food'}
                                   {typeof item?.caloriesPer100 === 'number'
-                                    ? ` • ${item.caloriesPer100} cal/${roundedAmount}g`
+                                    ? ` • ${item.caloriesPer100} cal/${roundedAmount}${servingUnit}`
                                     : ''}
                                 </div>
                               </div>
@@ -1525,20 +1601,32 @@ const MyMenus = () => {
 
                           const servingOptions = buildServingOptionsForMenuItem(
                             item,
-                            isImperial
+                            includeImperialServingOptions
                           )
                           const hasServings = servingOptions.length > 0
 
-                          const currentServingAmount =
-                            displayValue?.servingAmount !== undefined
-                              ? displayValue.servingAmount
-                              : item?.originalServingAmount || 100
                           const defaultServingIdentifier =
                             getServingIdentifier(servingOptions[0]) || null
                           const currentServingId =
                             displayValue?.selectedServingId ||
                             item?.originalServingId ||
                             defaultServingIdentifier
+                          const selectedServingForCurrent =
+                            findServingByIdentifier(
+                              servingOptions,
+                              currentServingId
+                            ) ||
+                            servingOptions[0] ||
+                            null
+                          const fallbackServingAmount = selectedServingForCurrent
+                            ? getDefaultAmountForSelectedServing(
+                                selectedServingForCurrent
+                              )
+                            : item?.originalServingAmount || 100
+                          const currentServingAmount =
+                            displayValue?.servingAmount !== undefined
+                              ? displayValue.servingAmount
+                              : fallbackServingAmount
 
                           let originalServingAmount =
                             item?.originalServingAmount
@@ -1646,7 +1734,9 @@ const MyMenus = () => {
                                             selectedIdentifier
                                           )
                                         const servingAmount =
-                                          getServingAmount(selectedServing)
+                                          getDefaultAmountForSelectedServing(
+                                            selectedServing
+                                          )
 
                                         setDisplayValues(prev => ({
                                           ...prev,
@@ -1705,15 +1795,22 @@ const MyMenus = () => {
                                         onBlur={e => {
                                           const inputValue = e.target.value
                                           if (inputValue === '') {
-                                            const originalServingAmountValue =
-                                              item?.originalServingAmount || 100
+                                            const selectedServingOnBlur =
+                                              findServingByIdentifier(
+                                                servingOptions,
+                                                currentServingId
+                                              )
+                                            const fallbackAmount =
+                                              getDefaultAmountForSelectedServing(
+                                                selectedServingOnBlur
+                                              )
                                             setDisplayValues(prev => ({
                                               ...prev,
                                               [itemKey]: {
                                                 selectedServingId:
                                                   currentServingId,
                                                 servingAmount:
-                                                  originalServingAmountValue
+                                                  fallbackAmount
                                               }
                                             }))
                                           }

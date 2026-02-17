@@ -96,6 +96,45 @@ const normalizeMenuItemShape = item => {
 }
 const getServingAmount = serving =>
   parseNumber(serving?.value ?? serving?.amount ?? 0)
+const STANDARD_INPUT_UNITS = new Set([
+  'g',
+  'gram',
+  'grams',
+  'ml',
+  'milliliter',
+  'milliliters',
+  'millilitre',
+  'oz',
+  'ounce',
+  'ounces',
+  'fl oz',
+  'fluid ounce',
+  'fluid ounces',
+  'floz'
+])
+const getDefaultAmountForSelectedServing = serving => {
+  const rawUnit = (
+    serving?.unitName ||
+    serving?.unit ||
+    serving?.name ||
+    serving?.innerName ||
+    ''
+  )
+    .toString()
+    .trim()
+    .toLowerCase()
+  if (STANDARD_INPUT_UNITS.has(rawUnit)) {
+    return getServingAmount(serving) || 100
+  }
+  // Custom units (e.g. "serving", "cup", "slice") should default to 1 unit.
+  return 1
+}
+const isTruthyFlag = value =>
+  value === true || value === 1 || value === '1' || value === 'true'
+const isFalsyFlag = value =>
+  value === false || value === 0 || value === '0' || value === 'false'
+const shouldHideLowQualitySearchItem = item =>
+  isTruthyFlag(item?.isAIGenerated) && isFalsyFlag(item?.isVerified)
 const findPortionServing = servingArray =>
   (servingArray || []).find(s => {
     const name = (s?.unitName || s?.name || s?.innerName || '').toLowerCase()
@@ -173,6 +212,8 @@ const Menus = () => {
       selectedUserForUnits?.user?.userData ||
       selectedUserForUnits
   )
+  // Template builder should always expose both metric and imperial options.
+  const includeImperialServingOptions = true
   const roundServingAmountByUnitSystem = value => {
     const n = parseNumber(value)
     const decimals = isImperial ? 2 : 1
@@ -347,7 +388,10 @@ const Menus = () => {
         onlyRecipes,
         countryCode
       })
-      setSearchResults(Array.isArray(results) ? results : [])
+      const normalizedResults = Array.isArray(results) ? results : []
+      setSearchResults(
+        normalizedResults.filter(item => !shouldHideLowQualitySearchItem(item))
+      )
     } catch (e) {
       console.error('Search failed', e)
       setError('Failed to search items')
@@ -497,21 +541,32 @@ const Menus = () => {
       const itemKey = `${activeMealType}-${newIndex}`
 
       // Initialize display values
-      // For recipes, default to 1 serving (Portion) if available, otherwise use original
+      // For custom units (e.g. "serving"), default amount should be 1.
       let initialServingId = originalServingId
       let initialServingAmount = originalServingAmount
 
       if (
-        detectIsRecipe(enriched) &&
         enriched?.servingOptions &&
-        Array.isArray(enriched.servingOptions)
+        Array.isArray(enriched.servingOptions) &&
+        enriched.servingOptions.length > 0
       ) {
-        const portionServing = findPortionServing(enriched.servingOptions)
-        if (portionServing) {
-          // Default to 1 serving (Portion) for recipes
-          initialServingId = getServingIdentifier(portionServing)
-          initialServingAmount = getServingAmount(portionServing)
+        let initialServing =
+          findServingByIdentifier(enriched.servingOptions, initialServingId) ||
+          null
+
+        if (detectIsRecipe(enriched)) {
+          const portionServing = findPortionServing(enriched.servingOptions)
+          if (portionServing) initialServing = portionServing
         }
+
+        if (!initialServing) {
+          initialServing =
+            findDefaultServing(enriched.servingOptions) ||
+            enriched.servingOptions[0]
+        }
+
+        initialServingId = getServingIdentifier(initialServing) || initialServingId
+        initialServingAmount = getDefaultAmountForSelectedServing(initialServing)
       }
 
       setDisplayValues(prev => ({
@@ -596,7 +651,7 @@ const Menus = () => {
             // Find the serving object using the identifier
             const servingOptions = buildServingOptionsForMenuItem(
               item,
-              isImperial
+              includeImperialServingOptions
             )
             const selectedServing = findServingByIdentifier(
               servingOptions,
@@ -789,9 +844,24 @@ const Menus = () => {
             originalServingId = null
           }
 
+          const servingOptions = buildServingOptionsForMenuItem(
+            item,
+            includeImperialServingOptions
+          )
+          const selectedServing =
+            findServingByIdentifier(servingOptions, originalServingId) ||
+            findDefaultServing(servingOptions) ||
+            servingOptions[0] ||
+            null
+          const selectedServingId =
+            getServingIdentifier(selectedServing) || originalServingId || null
+          const selectedServingAmount = selectedServing
+            ? getDefaultAmountForSelectedServing(selectedServing)
+            : originalServingAmount
+
           initialDisplayValues[itemKey] = {
-            selectedServingId: originalServingId,
-            servingAmount: originalServingAmount
+            selectedServingId,
+            servingAmount: selectedServingAmount
           }
         }
       })
@@ -989,7 +1059,10 @@ const Menus = () => {
           displayValue.servingAmount !== ''
         ) {
           const originalServingAmount = item?.originalServingAmount || 100
-          const servingOptions = buildServingOptionsForMenuItem(item, isImperial)
+          const servingOptions = buildServingOptionsForMenuItem(
+            item,
+            includeImperialServingOptions
+          )
           const selectedServing = findServingByIdentifier(
             servingOptions,
             displayValue.selectedServingId
@@ -1286,67 +1359,70 @@ const Menus = () => {
 
         {expanded && (
           <div className="mt-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
-                <div className="flex items-center gap-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Is Assignable by User
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="md:col-span-2 space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                    Template Name
                   </label>
                   <input
-                    type="checkbox"
-                    checked={isAssignableByUser}
-                    className="w-5 h-5 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    onChange={e => setIsAssignableByUser(e.target.checked)}
+                    type="text"
+                    value={menuName}
+                    onChange={e => setMenuName(e.target.value)}
+                    className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder="e.g., High Protein - Weekday"
                   />
                 </div>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Template Name
-                </label>
-                <input
-                  type="text"
-                  value={menuName}
-                  onChange={e => setMenuName(e.target.value)}
-                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="e.g., High Protein - Weekday"
-                />
-              </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Country Code
-                </label>
-                <select
-                  value={countryCode}
-                  onChange={e => setCountryCode(e.target.value)}
-                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="RO">RO</option>
-                  <option value="US">US</option>
-                  <option value="IT">IT</option>
-                  <option value="ES">ES</option>
-                  <option value="UK">UK</option>
-                  <option value="DE">DE</option>
-                  <option value="FR">FR</option>
-                  <option value="HU">HU</option>
-                </select>
+                <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur-md">
+                  <div className="flex-1 min-w-[160px]">
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1">
+                      Country Code
+                    </label>
+                    <select
+                      value={countryCode}
+                      onChange={e => setCountryCode(e.target.value)}
+                      className="w-full rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-sm font-medium text-gray-800 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    >
+                      <option value="RO">RO</option>
+                      <option value="US">US</option>
+                      <option value="IT">IT</option>
+                      <option value="ES">ES</option>
+                      <option value="UK">UK</option>
+                      <option value="DE">DE</option>
+                      <option value="FR">FR</option>
+                      <option value="HU">HU</option>
+                    </select>
+                  </div>
+                  <label className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm">
+                    <input
+                      type="checkbox"
+                      checked={isAssignableByUser}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                      onChange={e => setIsAssignableByUser(e.target.checked)}
+                    />
+                    Is Assignable by User
+                  </label>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Meal Type
-                </label>
-                <select
-                  value={activeMealType}
-                  onChange={e => setActiveMealType(e.target.value)}
-                  className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  {mealTypeOptions.map(opt => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-3 rounded-2xl border border-white/60 bg-gradient-to-br from-blue-50/80 via-purple-50/70 to-white/70 p-4 shadow-inner backdrop-blur">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                  Quick Tips
+                </p>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                    Search foods or recipes and add them by meal.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-purple-500" />
+                    Adjust serving options for each item before saving.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    Review meal and menu totals before creating the template.
+                  </li>
+                </ul>
               </div>
             </div>
 
@@ -1354,37 +1430,71 @@ const Menus = () => {
               <h3 className="text-base font-semibold text-gray-900 mb-3">
                 {t('pages.menus.searchItems') || 'Search Items'}
               </h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchText}
-                  onChange={e => setSearchText(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleSearch()
-                  }}
-                  className="flex-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder={
-                    t('pages.menus.searchFoodsOrRecipes') ||
-                    'Search foods or recipes...'
-                  }
-                />
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative flex-1">
+                  <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={searchText}
+                    onChange={e => setSearchText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSearch()
+                    }}
+                    className="w-full rounded-2xl border border-white/70 bg-white/90 py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    placeholder={
+                      t('pages.menus.searchFoodsOrRecipes') ||
+                      'Search foods or recipes...'
+                    }
+                  />
+                </div>
+                <label className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm">
+                  <input
+                    type="checkbox"
+                    checked={onlyRecipes}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                    onChange={e => setOnlyRecipes(e.target.checked)}
+                  />
+                  Only Recipes
+                </label>
                 <button
                   onClick={handleSearch}
                   disabled={searching || !searchText.trim()}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:opacity-60"
                 >
-                  <MagnifyingGlassIcon className="w-4 h-4 mr-1" />
                   {searching
                     ? t('pages.menus.searching') || 'Searching...'
                     : t('pages.menus.search') || 'Search'}
                 </button>
               </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-white/70 bg-white/70 p-2 backdrop-blur">
+                {mealTypeOptions.map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setActiveMealType(opt.id)}
+                    className={`group rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                      activeMealType === opt.id
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                        : 'text-gray-700 hover:bg-white hover:shadow'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
               {searchResults.length > 0 && (
-                <div className="mt-3 max-h-56 overflow-y-auto border border-white/20 bg-white/10 backdrop-blur-sm rounded-md divide-y divide-white/10">
+                <div className="mt-3 max-h-56 overflow-y-auto rounded-2xl border border-white/70 bg-white/80 backdrop-blur divide-y divide-white/70">
                   {searchResults.map((item, idx) => {
                     const isRecipeItem = detectIsRecipe(item)
-                    const selectedServing = findDefaultServing(item?.servingOptions)
-                    const servingAmount = getServingAmount(selectedServing)
+                    const servingOptions = buildServingOptionsForMenuItem(
+                      item,
+                      includeImperialServingOptions
+                    )
+                    const selectedServing = findDefaultServing(servingOptions)
+                    const servingAmount = getServingAmount(selectedServing) || 100
+                    const servingUnit =
+                      selectedServing?.unitName ||
+                      selectedServing?.unit ||
+                      (item?.isLiquid ? 'ml' : 'g')
                     const numberOfRecipeServings = isRecipeItem
                       ? item?.numberOfRecipeServings || item?.originalServings || 1
                       : 1
@@ -1397,7 +1507,7 @@ const Menus = () => {
                     return (
                       <div
                         key={idx}
-                        className="p-3 flex items-center justify-between hover:bg-white/40"
+                        className="flex items-center justify-between px-4 py-3 transition hover:bg-white"
                       >
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">
@@ -1406,35 +1516,21 @@ const Menus = () => {
                           <div className="text-xs text-gray-600">
                             {detectIsRecipe(item) ? 'Recipe' : 'Food'}
                             {typeof item?.caloriesPer100 === 'number'
-                              ? ` • ${item.caloriesPer100} cal/${roundedAmount}g`
+                              ? ` • ${item.caloriesPer100} cal/${roundedAmount}${servingUnit}`
                               : ''}
                           </div>
                         </div>
                         <button
                           onClick={() => addItemToPlan(item)}
-                          className="bg-emerald-600 text-white px-3 py-1 rounded-md hover:bg-emerald-700 flex items-center"
+                          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:shadow-lg"
                         >
-                          <PlusIcon className="w-4 h-4 mr-1" /> Add
+                          <PlusIcon className="h-4 w-4" /> Add
                         </button>
                       </div>
                     )
                   })}
                 </div>
               )}
-            </div>
-
-            <div className="flex gap-8 mb-8">
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Only Recipes
-                </label>
-                <input
-                  type="checkbox"
-                  checked={onlyRecipes}
-                  className="w-5 h-5 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  onChange={e => setOnlyRecipes(e.target.checked)}
-                />
-              </div>
             </div>
 
             <div>
@@ -1445,12 +1541,12 @@ const Menus = () => {
                 {mealTypeOptions.map(opt => (
                   <div
                     key={opt.id}
-                    className="rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm"
+                    className="rounded-2xl border border-white/70 bg-white/80 p-4 backdrop-blur"
                   >
-                    <div className="px-3 py-2 bg-white/10 border-b border-white/15 text-sm font-medium text-gray-700">
+                    <div className="text-sm font-semibold text-gray-800 mb-3">
                       {opt.label}
                     </div>
-                    <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
                       {plans[opt.id].length === 0 && (
                         <div className="text-sm text-gray-500">No items</div>
                       )}
@@ -1462,21 +1558,32 @@ const Menus = () => {
                         // Build serving options like RN: base unit + custom + imperial (if applicable)
                         const servingOptions = buildServingOptionsForMenuItem(
                           it,
-                          isImperial
+                          includeImperialServingOptions
                         )
                         const hasServings = servingOptions.length > 0
 
-                        // Get current serving amount and id
-                        const currentServingAmount =
-                          displayValue?.servingAmount !== undefined
-                            ? displayValue.servingAmount
-                            : it?.originalServingAmount || 100
                         const defaultServingIdentifier =
                           getServingIdentifier(servingOptions[0]) || null
                         const currentServingId =
                           displayValue?.selectedServingId ||
                           it?.originalServingId ||
                           defaultServingIdentifier
+                        const selectedServingForCurrent =
+                          findServingByIdentifier(
+                            servingOptions,
+                            currentServingId
+                          ) ||
+                          servingOptions[0] ||
+                          null
+                        const fallbackServingAmount = selectedServingForCurrent
+                          ? getDefaultAmountForSelectedServing(
+                              selectedServingForCurrent
+                            )
+                          : it?.originalServingAmount || 100
+                        const currentServingAmount =
+                          displayValue?.servingAmount !== undefined
+                            ? displayValue.servingAmount
+                            : fallbackServingAmount
 
                         // Calculate display values based on selected serving
                         // Ensure we use the correct default serving for per-100 calculations
@@ -1550,11 +1657,11 @@ const Menus = () => {
                         return (
                           <div
                             key={i}
-                            className="p-2 rounded bg-white/40 backdrop-blur-sm shadow-sm"
+                            className="relative rounded-2xl border border-white/60 bg-white/90 p-4 shadow-sm"
                           >
                             <div className="flex items-start justify-between">
                               <div className="min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">
+                                <div className="text-sm font-semibold text-gray-900 truncate">
                                   {it?.name || it?.title || 'Unnamed'}
                                 </div>
                                 <div className="text-xs text-gray-500 truncate">
@@ -1563,18 +1670,19 @@ const Menus = () => {
                               </div>
                               <button
                                 onClick={() => removeItemFromPlan(opt.id, i)}
-                                className="text-red-600 hover:text-red-800"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
                               >
-                                <TrashIcon className="w-4 h-4" />
+                                <TrashIcon className="h-4 w-4" />
                               </button>
                             </div>
 
                             {/* Serving dropdown and textinput for both foods and recipes */}
                             {hasServings && (
-                              <div className="mt-2 mb-2 flex items-center gap-2">
-                                <label className="text-xs text-gray-600 font-medium whitespace-nowrap">
+                              <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
+                                <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
                                   Serving:
                                 </label>
+                                <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
                                 <select
                                   value={currentServingId || ''}
                                   onChange={e => {
@@ -1586,7 +1694,9 @@ const Menus = () => {
                                         selectedIdentifier
                                       )
                                     const servingAmount =
-                                      getServingAmount(selectedServing)
+                                      getDefaultAmountForSelectedServing(
+                                        selectedServing
+                                      )
 
                                     setDisplayValues(prev => ({
                                       ...prev,
@@ -1599,7 +1709,7 @@ const Menus = () => {
                                       }
                                     }))
                                   }}
-                                  className="flex-1 px-2 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded text-xs"
+                                  className="w-full rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-medium text-gray-800 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 md:w-48"
                                 >
                                   {servingOptions.map((serving, idx) => {
                                     const servingId =
@@ -1639,18 +1749,25 @@ const Menus = () => {
                                     // If empty on blur, restore to current value or original
                                     const inputValue = e.target.value
                                     if (inputValue === '') {
-                                      const originalServingAmount =
-                                        it?.originalServingAmount || 100
+                                      const selectedServingOnBlur =
+                                        findServingByIdentifier(
+                                          servingOptions,
+                                          currentServingId
+                                        )
+                                      const fallbackAmount =
+                                        getDefaultAmountForSelectedServing(
+                                          selectedServingOnBlur
+                                        )
                                       setDisplayValues(prev => ({
                                         ...prev,
                                         [itemKey]: {
                                           selectedServingId: currentServingId,
-                                          servingAmount: originalServingAmount
+                                          servingAmount: fallbackAmount
                                         }
                                       }))
                                     }
                                   }}
-                                  className="w-24 px-2 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded text-xs"
+                                  className="w-24 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                                   placeholder="Amount"
                                 />
                                 <span className="text-xs text-gray-500 whitespace-nowrap">
@@ -1664,6 +1781,7 @@ const Menus = () => {
                                     )?.unit ||
                                     (it?.isLiquid ? 'ml' : 'g')}
                                 </span>
+                                </div>
                               </div>
                             )}
 
@@ -1678,29 +1796,19 @@ const Menus = () => {
                               </div>
                             )}
 
-                            <div className="mt-1 text-xs text-gray-600">
-                              <span className="font-medium">Calories:</span>{' '}
-                              {adjustedCalories}
-                              <span className="mx-2">|</span>
-                              <span className="font-medium">
-                                Proteins:
-                              </span>{' '}
-                              {Math.round(
-                                Number(adjustedNutrients?.proteinsInGrams) || 0
-                              )}{' '}
-                              g<span className="mx-2">|</span>
-                              <span className="font-medium">Carbs:</span>{' '}
-                              {Math.round(
-                                Number(
-                                  adjustedNutrients?.carbohydratesInGrams
-                                ) || 0
-                              )}{' '}
-                              g<span className="mx-2">|</span>
-                              <span className="font-medium">Fat:</span>{' '}
-                              {Math.round(
-                                Number(adjustedNutrients?.fatInGrams) || 0
-                              )}{' '}
-                              g
+                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-4">
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>
+                                Calories: {adjustedCalories}
+                              </div>
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>
+                                Proteins: {Math.round(Number(adjustedNutrients?.proteinsInGrams) || 0)} g
+                              </div>
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>
+                                Carbs: {Math.round(Number(adjustedNutrients?.carbohydratesInGrams) || 0)} g
+                              </div>
+                              <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>
+                                Fat: {Math.round(Number(adjustedNutrients?.fatInGrams) || 0)} g
+                              </div>
                             </div>
                           </div>
                         )
@@ -1747,8 +1855,8 @@ const Menus = () => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <div className="p-3 bg-emerald-500/10 border border-emerald-300/30 rounded text-sm text-emerald-900">
+            <div className="space-y-3">
+              <div className="p-3 bg-emerald-500/10 border border-emerald-300/30 rounded-2xl text-sm text-emerald-900">
                 <span className="font-semibold">Menu totals:</span>
                 <span className="ml-2">
                   {Math.round(menuTotals.calories)} cal
@@ -1760,7 +1868,7 @@ const Menus = () => {
                 <span className="mx-2">|</span>
                 <span>F {Math.round(menuTotals.fatInGrams)} g</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-gray-600">
                   {t('pages.menus.totalItems') || 'Total items'}:{' '}
                   <span className="font-medium text-gray-900">
@@ -1770,7 +1878,7 @@ const Menus = () => {
                 <button
                   onClick={handleCreateTemplate}
                   disabled={submitting || !menuName.trim()}
-                  className="bg-indigo-600 text-white px-5 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-60 sm:w-auto"
                 >
                   {submitting
                     ? editingTemplateId
