@@ -33,9 +33,13 @@ import { selectUserData } from '../store/userSlice'
 import { useAuth } from '../contexts/AuthContext'
 import {
   calculateDisplayValues,
+  buildServingOptionsForMenuItem,
+  detectIsRecipe,
+  findDefaultServing,
   findServingByIdentifier,
   getServingIdentifier
 } from '../util/menuDisplay'
+import { isImperialFromUserData } from '../util/units'
 
 const defaultPlans = {
   breakfastPlan: [],
@@ -57,6 +61,55 @@ const glassSurfaceClass =
   'rounded-2xl border border-white/50 bg-white/60 backdrop-blur-lg shadow-[0_10px_40px_rgba(15,23,42,0.08)]'
 const softBadgeClass =
   'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/80 text-gray-800 shadow-inner'
+const parseNumber = value => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+const parseNutrients = nutrients => {
+  if (!nutrients) return {}
+  if (typeof nutrients === 'object') return nutrients
+  if (typeof nutrients === 'string') {
+    try {
+      const parsed = JSON.parse(nutrients)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+const parseServingOptions = servingOptions => {
+  if (!servingOptions) return []
+  if (Array.isArray(servingOptions)) return servingOptions
+  if (typeof servingOptions === 'string') {
+    try {
+      const parsed = JSON.parse(servingOptions)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+const normalizeMenuItemShape = item => {
+  const servingOptions = parseServingOptions(item?.servingOptions)
+  const caloriesPer100 = parseNumber(item?.caloriesPer100)
+  const nutrientsPer100 = parseNutrients(item?.nutrientsPer100)
+  return {
+    ...item,
+    servingOptions,
+    caloriesPer100,
+    nutrientsPer100,
+    numberOfRecipeServings: item?.numberOfRecipeServings || 1
+  }
+}
+const getServingAmount = serving =>
+  parseNumber(serving?.value ?? serving?.amount ?? 0)
+const findPortionServing = servingArray =>
+  (servingArray || []).find(s => {
+    const name = (s?.unitName || s?.name || s?.innerName || '').toLowerCase()
+    return name.includes('portion') || name.includes('serving') || name.includes('portie')
+  }) || null
 
 const MyMenus = () => {
   const { t } = useTranslation()
@@ -99,6 +152,13 @@ const MyMenus = () => {
   const [copyingTemplate, setCopyingTemplate] = useState(false)
   const userData = useSelector(selectUserData)
   const { currentUser } = useAuth()
+  const isImperial = isImperialFromUserData(userData?.userData || userData)
+  const roundServingAmountByUnitSystem = value => {
+    const n = parseNumber(value)
+    const decimals = isImperial ? 2 : 1
+    const factor = 10 ** decimals
+    return Math.round(n * factor) / factor
+  }
 
   const nutritionistId = currentUser?.uid || userData?.userId
 
@@ -201,45 +261,6 @@ const MyMenus = () => {
     }
   }, [nutritionistId])
 
-  const detectIsRecipe = item => {
-    const type = (item?.itemType || item?.type || '').toString().toUpperCase()
-    return type === 'RECIPE' || type === 'RECIPES'
-  }
-
-  // Find the appropriate serving item based on priority:
-  // NOTE: totalCalories are calculated for profileId = 0 or name matching 'grame' etc.
-  // 1. profileId = 0
-  // 2. name.toLowerCase() = 'g', 'gram', 'grame', 'gramm', or 'ml'
-  // 3. first item
-  const findDefaultServing = servingArray => {
-    if (
-      !servingArray ||
-      !Array.isArray(servingArray) ||
-      servingArray.length === 0
-    ) {
-      return null
-    }
-
-    // First, try to find item with profileId = 0
-    let selectedServing = servingArray.find(s => s.profileId === 0)
-
-    // If not found, try to find by name (exact match)
-    if (!selectedServing) {
-      const namePatterns = ['g', 'gram', 'grame', 'gramm', 'ml']
-      selectedServing = servingArray.find(s => {
-        const nameLower = (s.name || '').toLowerCase()
-        return namePatterns.some(pattern => nameLower === pattern)
-      })
-    }
-
-    // Fall back to first item
-    if (!selectedServing) {
-      selectedServing = servingArray[0]
-    }
-
-    return selectedServing
-  }
-
   const handleSearch = async e => {
     e.preventDefault()
     if (!searchText.trim()) return
@@ -262,19 +283,15 @@ const MyMenus = () => {
 
   const addItemToPlan = async item => {
     try {
-      let enriched = item
+      let enriched = normalizeMenuItemShape(item)
       // Store original serving info - try to get from serving array or default
       let originalServingAmount = 100 // Default to 100g if no serving info
       let originalServingId = null
 
-      if (
-        item?.serving &&
-        Array.isArray(item.serving) &&
-        item.serving.length > 0
-      ) {
-        // Use findDefaultServing to get the serving that matches totalCalories calculation
-        const defaultServing = findDefaultServing(item.serving)
-        originalServingAmount = defaultServing?.amount || 100
+      if (Array.isArray(enriched?.servingOptions) && enriched.servingOptions.length > 0) {
+        // Use findDefaultServing to get the default serving for per-100 calculations
+        const defaultServing = findDefaultServing(enriched.servingOptions)
+        originalServingAmount = getServingAmount(defaultServing) || 100
         originalServingId = getServingIdentifier(defaultServing)
       }
 
@@ -285,42 +302,40 @@ const MyMenus = () => {
           const resp = await getItemsByIds({ ids: [id] })
           const detailed = resp?.data?.[0] || resp?.items?.[0]
           if (detailed) {
+            const normalizedDetailed = normalizeMenuItemShape(detailed)
             if (detectIsRecipe(item)) {
               // Store original values for scaling
-              const originalServings = detailed?.numberOfServings || 1
+              const originalServings = normalizedDetailed?.numberOfRecipeServings || 1
               // Get original serving info from detailed item if available
-              // For recipes, totalCalories is for all servings (numberOfServings)
+              // For recipes, caloriesPer100 is scaled by selected serving
               // We need to find the total weight for all servings
               if (
-                detailed?.serving &&
-                Array.isArray(detailed.serving) &&
-                detailed.serving.length > 0
+                normalizedDetailed?.servingOptions &&
+                Array.isArray(normalizedDetailed.servingOptions) &&
+                normalizedDetailed.servingOptions.length > 0
               ) {
-                // First, try to find "Portion" (profileId=1) which represents 1 serving
-                const portionServing = detailed.serving.find(
-                  s => s.profileId === 1
-                )
+                const portionServing = findPortionServing(normalizedDetailed.servingOptions)
                 if (portionServing) {
-                  // Portion amount is per 1 serving, so multiply by numberOfServings for total
+                  // Portion amount is per 1 serving, so multiply by numberOfRecipeServings for total
                   originalServingAmount =
-                    portionServing.amount * originalServings
+                    getServingAmount(portionServing) * originalServings
                   originalServingId = getServingIdentifier(portionServing)
                 } else {
                   // Fall back to totalQuantity or weightAfterCooking if available
                   const totalWeight =
-                    detailed?.totalNutrients?.totalQuantity ||
-                    detailed?.totalNutrients?.weightAfterCooking ||
+                    detailed?.weightAfterCooking ||
+                    normalizedDetailed?.weightAfterCooking ||
                     null
                   if (totalWeight) {
                     originalServingAmount = totalWeight
                     // Use default serving for ID
-                    const defaultServing = findDefaultServing(detailed.serving)
+                    const defaultServing = findDefaultServing(normalizedDetailed.servingOptions)
                     originalServingId = getServingIdentifier(defaultServing)
                   } else {
-                    // Last resort: use default serving and multiply by numberOfServings
-                    const defaultServing = findDefaultServing(detailed.serving)
+                    // Last resort: use default serving and multiply by numberOfRecipeServings
+                    const defaultServing = findDefaultServing(normalizedDetailed.servingOptions)
                     originalServingAmount =
-                      (defaultServing?.amount || 100) * originalServings
+                      (getServingAmount(defaultServing) || 100) * originalServings
                     originalServingId = getServingIdentifier(defaultServing)
                   }
                 }
@@ -328,21 +343,21 @@ const MyMenus = () => {
 
               const enrichedData = {
                 ...item,
-                ...detailed,
+                ...normalizedDetailed,
                 originalServings,
-                originalCalories: detailed?.totalCalories,
-                originalNutrients: detailed?.totalNutrients,
-                numberOfServings: originalServings,
+                originalCalories: normalizedDetailed?.caloriesPer100,
+                originalNutrients: normalizedDetailed?.nutrientsPer100,
+                numberOfRecipeServings: originalServings,
                 originalServingAmount,
                 originalServingId
               }
 
               // Scale ingredients to match serving count
               if (
-                detailed?.ingredients &&
-                Array.isArray(detailed.ingredients)
+                normalizedDetailed?.ingredients &&
+                Array.isArray(normalizedDetailed.ingredients)
               ) {
-                enrichedData.ingredients = detailed.ingredients.map(
+                enrichedData.ingredients = normalizedDetailed.ingredients.map(
                   ingredient => ({
                     ...ingredient,
                     originalCalorieAmount: ingredient?.calorieAmount,
@@ -365,23 +380,23 @@ const MyMenus = () => {
             } else {
               // For food items, get serving info from detailed item
               if (
-                detailed?.serving &&
-                Array.isArray(detailed.serving) &&
-                detailed.serving.length > 0
+                normalizedDetailed?.servingOptions &&
+                Array.isArray(normalizedDetailed.servingOptions) &&
+                normalizedDetailed.servingOptions.length > 0
               ) {
-                // Use findDefaultServing to get the serving that matches totalCalories calculation
-                const defaultServing = findDefaultServing(detailed.serving)
-                originalServingAmount = defaultServing?.amount || 100
+                // Use findDefaultServing to get the default serving for per-100 calculations
+                const defaultServing = findDefaultServing(normalizedDetailed.servingOptions)
+                originalServingAmount = getServingAmount(defaultServing) || 100
                 originalServingId = getServingIdentifier(defaultServing)
               }
 
               enriched = {
                 ...item,
-                ...detailed,
+                ...normalizedDetailed,
                 originalCalories:
-                  detailed?.totalCalories || item?.totalCalories,
+                  normalizedDetailed?.caloriesPer100 || item?.caloriesPer100,
                 originalNutrients:
-                  detailed?.totalNutrients || item?.totalNutrients,
+                  normalizedDetailed?.nutrientsPer100 || item?.nutrientsPer100,
                 originalServingAmount,
                 originalServingId
               }
@@ -394,8 +409,8 @@ const MyMenus = () => {
         if (!detectIsRecipe(item)) {
           enriched = {
             ...item,
-            originalCalories: item?.totalCalories,
-            originalNutrients: item?.totalNutrients,
+            originalCalories: item?.caloriesPer100,
+            originalNutrients: item?.nutrientsPer100,
             originalServingAmount,
             originalServingId
           }
@@ -413,14 +428,14 @@ const MyMenus = () => {
 
       if (
         detectIsRecipe(enriched) &&
-        enriched?.serving &&
-        Array.isArray(enriched.serving)
+        enriched?.servingOptions &&
+        Array.isArray(enriched.servingOptions)
       ) {
-        const portionServing = enriched.serving.find(s => s.profileId === 1)
+        const portionServing = findPortionServing(enriched.servingOptions)
         if (portionServing) {
           // Default to 1 serving (Portion) for recipes
           initialServingId = getServingIdentifier(portionServing)
-          initialServingAmount = portionServing.amount
+          initialServingAmount = getServingAmount(portionServing)
         }
       }
 
@@ -496,18 +511,32 @@ const MyMenus = () => {
             displayValue.selectedServingId !== undefined
           ) {
             // Find the serving object using the identifier
-            const servingOptions =
-              item?.serving && Array.isArray(item.serving) ? item.serving : []
+            const servingOptions = buildServingOptionsForMenuItem(
+              item,
+              isImperial
+            )
             const selectedServing = findServingByIdentifier(
               servingOptions,
               displayValue.selectedServingId
             )
 
             if (selectedServing) {
-              // Store the entire serving object instead of just the ID
+              const servingOption = {
+                unitName:
+                  selectedServing?.unitName ||
+                  selectedServing?.name ||
+                  selectedServing?.innerName ||
+                  selectedServing?.unit ||
+                  'g',
+                value: parseNumber(
+                  selectedServing?.value ?? selectedServing?.amount ?? 100
+                )
+              }
               itemCopy.changedServing = {
-                value: displayValue.servingAmount,
-                serving: selectedServing
+                value: String(displayValue.servingAmount),
+                quantity: parseNumber(displayValue.servingAmount),
+                unit: servingOption.unitName,
+                servingOption
               }
             }
           }
@@ -709,39 +738,16 @@ const MyMenus = () => {
         const itemKey = `${opt.id}-${index}`
         // If item has changedServing, use that; otherwise use original serving
         if (item?.changedServing) {
-          // If changedServing has the serving object, use it directly
           let servingIdentifier = null
-          if (item.changedServing.serving) {
-            servingIdentifier = getServingIdentifier(
-              item.changedServing.serving
-            )
-          } else {
-            // Legacy support: if it has servingId instead of serving object, try to find it
-            const servingOptions =
-              item?.serving && Array.isArray(item.serving) ? item.serving : []
-            if (servingOptions.length > 0) {
-              const foundServing = servingOptions.find(s => {
-                if (typeof item.changedServing.servingId === 'number') {
-                  return s.profileId === item.changedServing.servingId
-                } else {
-                  return (
-                    getServingIdentifier(s) === item.changedServing.servingId
-                  )
-                }
-              })
-              if (foundServing) {
-                servingIdentifier = getServingIdentifier(foundServing)
-              } else {
-                servingIdentifier = item.changedServing.servingId
-              }
-            } else {
-              servingIdentifier = item.changedServing.servingId
-            }
+          if (item.changedServing.servingOption) {
+            servingIdentifier = getServingIdentifier(item.changedServing.servingOption)
           }
 
           initialDisplayValues[itemKey] = {
             selectedServingId: servingIdentifier,
-            servingAmount: item.changedServing.value
+            servingAmount:
+              parseNumber(item.changedServing.value) ||
+              parseNumber(item.changedServing.quantity)
           }
         } else {
           // Use original serving info, or extract from serving array if not stored
@@ -751,42 +757,42 @@ const MyMenus = () => {
           // If not stored, try to extract from serving array
           if (
             !originalServingAmount &&
-            item?.serving &&
-            Array.isArray(item.serving) &&
-            item.serving.length > 0
+            item?.servingOptions &&
+            Array.isArray(item.servingOptions) &&
+            item.servingOptions.length > 0
           ) {
             const isRecipe = detectIsRecipe(item)
             if (isRecipe) {
-              // For recipes, try to find "Portion" (profileId=1) first
-              const portionServing = item.serving.find(s => s.profileId === 1)
+              const portionServing = findPortionServing(item.servingOptions)
               if (portionServing) {
-                const numberOfServings =
-                  item?.numberOfServings || item?.originalServings || 1
-                originalServingAmount = portionServing.amount * numberOfServings
+                const numberOfRecipeServings =
+                  item?.numberOfRecipeServings || item?.originalServings || 1
+                originalServingAmount =
+                  getServingAmount(portionServing) * numberOfRecipeServings
                 originalServingId = getServingIdentifier(portionServing)
               } else {
                 // Fall back to totalQuantity or weightAfterCooking if available
                 const totalWeight =
-                  item?.totalNutrients?.totalQuantity ||
-                  item?.totalNutrients?.weightAfterCooking ||
+                  item?.nutrientsPer100?.totalQuantity ||
+                  item?.nutrientsPer100?.weightAfterCooking ||
                   null
                 if (totalWeight) {
                   originalServingAmount = totalWeight
-                  const defaultServing = findDefaultServing(item.serving)
+                  const defaultServing = findDefaultServing(item.servingOptions)
                   originalServingId = getServingIdentifier(defaultServing)
                 } else {
-                  const defaultServing = findDefaultServing(item.serving)
-                  const numberOfServings =
-                    item?.numberOfServings || item?.originalServings || 1
+                  const defaultServing = findDefaultServing(item.servingOptions)
+                  const numberOfRecipeServings =
+                    item?.numberOfRecipeServings || item?.originalServings || 1
                   originalServingAmount =
-                    (defaultServing?.amount || 100) * numberOfServings
+                    (getServingAmount(defaultServing) || 100) * numberOfRecipeServings
                   originalServingId = getServingIdentifier(defaultServing)
                 }
               }
             } else {
               // For foods, use default serving
-              const defaultServing = findDefaultServing(item.serving)
-              originalServingAmount = defaultServing?.amount || 100
+              const defaultServing = findDefaultServing(item.servingOptions)
+              originalServingAmount = getServingAmount(defaultServing) || 100
               originalServingId = getServingIdentifier(defaultServing)
             }
           } else if (!originalServingAmount) {
@@ -1452,17 +1458,19 @@ const MyMenus = () => {
                         {searchResults.map((item, idx) => {
                           const isRecipeItem = detectIsRecipe(item)
                           const selectedServing = findDefaultServing(
-                            item?.serving
+                            item?.servingOptions
                           )
-                          const servingAmount = selectedServing?.amount || 0
-                          const numberOfServings = isRecipeItem
-                            ? item?.numberOfServings ||
+                          const servingAmount = getServingAmount(selectedServing)
+                          const numberOfRecipeServings = isRecipeItem
+                            ? item?.numberOfRecipeServings ||
                               item?.originalServings ||
                               1
                             : 1
                           const newAmount = isRecipeItem
-                            ? servingAmount * numberOfServings
+                            ? servingAmount * numberOfRecipeServings
                             : servingAmount
+                          const roundedAmount =
+                            roundServingAmountByUnitSystem(newAmount)
 
                           return (
                             <div
@@ -1475,8 +1483,8 @@ const MyMenus = () => {
                                 </div>
                                 <div className="text-xs text-gray-600">
                                   {detectIsRecipe(item) ? 'Recipe' : 'Food'}
-                                  {typeof item?.totalCalories === 'number'
-                                    ? ` • ${item.totalCalories} cal/${newAmount}g`
+                                  {typeof item?.caloriesPer100 === 'number'
+                                    ? ` • ${item.caloriesPer100} cal/${roundedAmount}g`
                                     : ''}
                                 </div>
                               </div>
@@ -1515,20 +1523,22 @@ const MyMenus = () => {
                           const itemKey = `${activeMealType}-${idx}`
                           const displayValue = displayValues[itemKey]
 
-                          const servingOptions =
-                            item?.serving && Array.isArray(item.serving)
-                              ? item.serving
-                              : []
+                          const servingOptions = buildServingOptionsForMenuItem(
+                            item,
+                            isImperial
+                          )
                           const hasServings = servingOptions.length > 0
 
                           const currentServingAmount =
                             displayValue?.servingAmount !== undefined
                               ? displayValue.servingAmount
                               : item?.originalServingAmount || 100
+                          const defaultServingIdentifier =
+                            getServingIdentifier(servingOptions[0]) || null
                           const currentServingId =
                             displayValue?.selectedServingId ||
                             item?.originalServingId ||
-                            null
+                            defaultServingIdentifier
 
                           let originalServingAmount =
                             item?.originalServingAmount
@@ -1537,40 +1547,38 @@ const MyMenus = () => {
                             servingOptions.length > 0
                           ) {
                             if (isRecipeItem) {
-                              const portionServing = servingOptions.find(
-                                s => s.profileId === 1
-                              )
+                              const portionServing = findPortionServing(servingOptions)
                               if (portionServing) {
-                                const numberOfServings =
-                                  item?.numberOfServings ||
+                                const numberOfRecipeServings =
+                                  item?.numberOfRecipeServings ||
                                   item?.originalServings ||
                                   1
                                 originalServingAmount =
-                                  portionServing.amount * numberOfServings
+                                  getServingAmount(portionServing) * numberOfRecipeServings
                               } else {
                                 const totalWeight =
-                                  item?.totalNutrients?.totalQuantity ||
-                                  item?.totalNutrients?.weightAfterCooking ||
+                                  item?.nutrientsPer100?.totalQuantity ||
+                                  item?.nutrientsPer100?.weightAfterCooking ||
                                   null
                                 if (totalWeight) {
                                   originalServingAmount = totalWeight
                                 } else {
                                   const defaultServing =
                                     findDefaultServing(servingOptions)
-                                  const numberOfServings =
-                                    item?.numberOfServings ||
+                                  const numberOfRecipeServings =
+                                    item?.numberOfRecipeServings ||
                                     item?.originalServings ||
                                     1
                                   originalServingAmount =
-                                    (defaultServing?.amount || 100) *
-                                    numberOfServings
+                                    (getServingAmount(defaultServing) || 100) *
+                                    numberOfRecipeServings
                                 }
                               }
                             } else {
                               const defaultServing =
                                 findDefaultServing(servingOptions)
                               originalServingAmount =
-                                defaultServing?.amount || 100
+                                getServingAmount(defaultServing) || 100
                             }
                           }
                           originalServingAmount = originalServingAmount || 100
@@ -1583,7 +1591,16 @@ const MyMenus = () => {
                           const calculated = calculateDisplayValues(
                             item,
                             servingAmountForCalc,
-                            originalServingAmount
+                            originalServingAmount,
+                            findServingByIdentifier(
+                              servingOptions,
+                              currentServingId
+                            )?.unitName ||
+                              findServingByIdentifier(
+                                servingOptions,
+                                currentServingId
+                              )?.unit ||
+                              (item?.isLiquid ? 'ml' : 'g')
                           )
                           const adjustedCalories = calculated.calories
                           const adjustedNutrients = calculated.nutrients
@@ -1615,7 +1632,7 @@ const MyMenus = () => {
                               {hasServings && (
                                 <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
                                   <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                    {t('pages.myMenus.serving')}
+                                    {t('pages.myMenus.servingOptions')}
                                   </label>
                                   <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
                                     <select
@@ -1629,7 +1646,7 @@ const MyMenus = () => {
                                             selectedIdentifier
                                           )
                                         const servingAmount =
-                                          selectedServing?.amount || 0
+                                          getServingAmount(selectedServing)
 
                                         setDisplayValues(prev => ({
                                           ...prev,
@@ -1637,7 +1654,9 @@ const MyMenus = () => {
                                             selectedServingId:
                                               selectedIdentifier,
                                             servingAmount:
-                                              servingAmount ||
+                                              roundServingAmountByUnitSystem(
+                                                servingAmount
+                                              ) ||
                                               currentServingAmount
                                           }
                                         }))
@@ -1652,7 +1671,10 @@ const MyMenus = () => {
                                             key={servingId || sIdx}
                                             value={servingId}
                                           >
-                                            {serving.name || serving.innerName}
+                                            {serving.name ||
+                                              serving.innerName ||
+                                              serving.unitName ||
+                                              serving.unit}
                                           </option>
                                         )
                                       })}
@@ -1703,7 +1725,12 @@ const MyMenus = () => {
                                         {findServingByIdentifier(
                                           servingOptions,
                                           currentServingId
-                                        )?.unit || 'g'}
+                                        )?.unitName ||
+                                          findServingByIdentifier(
+                                            servingOptions,
+                                            currentServingId
+                                          )?.unit ||
+                                          (item?.isLiquid ? 'ml' : 'g')}
                                       </span>
                                     </div>
                                   </div>
@@ -1715,7 +1742,7 @@ const MyMenus = () => {
                                   <span className="font-semibold">
                                     {t('pages.myMenus.originalServing')}:
                                   </span>{' '}
-                                  {item?.numberOfServings ||
+                                  {item?.numberOfRecipeServings ||
                                     item?.originalServings ||
                                     1}
                                 </div>

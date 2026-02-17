@@ -8,8 +8,7 @@ import {
 import LZString from 'lz-string'
 import {
   sumTotalsByMealsApplied,
-  detectIsRecipe,
-  findDefaultServing
+  computeAppliedItemTotals
 } from '../util/menuDisplay'
 import { getCategoryIcon } from '../util/categoryIcons'
 
@@ -83,64 +82,12 @@ const getItemDisplay = it => {
 }
 
 const getItemCalories = it => {
-  // For applied food items, scale calories based on quantity
-  if (it?.food && it?.quantity !== undefined && it?.food?.serving) {
-    const isRecipe = detectIsRecipe(it.food)
-    const baseCalories = Number(it.food.totalCalories || 0)
-    const baseNutrients = it.food.totalNutrients || {}
-    const quantity = Number(it.quantity) || 0
-
-    if (isRecipe) {
-      // For recipes: totalCalories is for ALL numberOfServings servings
-      const numberOfServings = it.food.numberOfServings || 1
-      const totalQuantity =
-        baseNutrients?.totalQuantity ||
-        baseNutrients?.weightAfterCooking ||
-        null
-
-      if (totalQuantity && totalQuantity > 0 && quantity > 0) {
-        // Scale recipe based on actual quantity vs total recipe weight
-        const scaleRatio = quantity / totalQuantity
-        return Math.round(baseCalories * scaleRatio)
-      } else {
-        // Fallback: use portion serving if available
-        const portionServing = (it.food.serving || []).find(
-          s => s.profileId === 1
-        )
-        const defaultServing =
-          portionServing || findDefaultServing(it.food.serving || [])
-        const defaultServingAmount = defaultServing?.amount || 100
-        const perServingWeight =
-          portionServing?.amount || defaultServingAmount / numberOfServings
-
-        if (perServingWeight && perServingWeight > 0 && quantity > 0) {
-          const selectedServings = quantity / perServingWeight
-          const scaleRatio = selectedServings / numberOfServings
-          return Math.round(baseCalories * scaleRatio)
-        } else {
-          const scaleRatio = quantity / defaultServingAmount
-          return Math.round(baseCalories * scaleRatio)
-        }
-      }
-    } else {
-      // For foods: use default serving
-      const servingArray = it.food.serving || []
-      const defaultServing = findDefaultServing(servingArray)
-      const defaultServingAmount = defaultServing?.amount || 100
-
-      if (quantity > 0) {
-        const scaleRatio = quantity / defaultServingAmount
-        return Math.round(baseCalories * scaleRatio)
-      } else {
-        return Math.round(baseCalories)
-      }
-    }
+  if (it?.food || it?.type) {
+    const totals = computeAppliedItemTotals(it)
+    return Math.round(totals.calories || 0)
   }
-  // Fallback for other item types
-  if (it?.food?.totalCalories) return Math.round(it.food.totalCalories)
-  if (typeof it?.calories === 'number') return Math.round(it.calories)
   if (it?.exercise?.caloriesBurnt) return Math.round(it.exercise.caloriesBurnt)
-  return Math.round(it?.totalCalories || 0)
+  return 0
 }
 
 const ItemRow = ({ it, onClick, t }) => {
@@ -287,7 +234,7 @@ const ClientJournal = ({ client }) => {
       list.forEach(item => {
         const dateApplied = item?.dateApplied
         const consumed = Number(
-          item?.caloriesConsumed || item?.totalCalories || 0
+          item?.caloriesConsumed || 0
         )
         const goal = Number(item?.caloriesGoal || item?.goalCalories || 0)
         const color = getColor(consumed, goal)
@@ -1154,27 +1101,33 @@ const ClientJournal = ({ client }) => {
                 </p>
                 {selectedItem?.unit && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {t('pages.clientJournal.unit') || 'Unit'}: {selectedItem.unit}
+                    {t('pages.clientJournal.unit') || 'Unit'}:{' '}
+                    {selectedItem.unit}
                   </p>
                 )}
                 {selectedItem?.quantity && (
                   <p className="text-xs text-gray-500">
-                    {t('pages.clientJournal.quantity') || 'Quantity'}:{' '}
-                    {selectedItem.quantity}
+                    {(() => {
+                      const q = Number(selectedItem.quantity)
+                      const displayQuantity = Number.isFinite(q)
+                        ? q.toFixed(1)
+                        : String(selectedItem.quantity)
+                      return `${t('pages.clientJournal.quantity') || 'Quantity'}: ${displayQuantity}`
+                    })()}
                   </p>
                 )}
               </div>
             </div>
 
             {/* Nutrients for food */}
-            {selectedItem?.food?.totalNutrients && (
+            {selectedItem?.food?.nutrientsPer100 && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-gray-500">
                     {t('pages.clientJournal.protein') || 'Protein'}
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.totalNutrients.proteinsInGrams || 0} g
+                    {selectedItem.food.nutrientsPer100.proteinsInGrams || 0} g
                   </p>
                 </div>
                 <div>
@@ -1182,7 +1135,7 @@ const ClientJournal = ({ client }) => {
                     {t('pages.clientJournal.carbs') || 'Carbs'}
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.totalNutrients.carbohydratesInGrams || 0} g
+                    {selectedItem.food.nutrientsPer100.carbohydratesInGrams || 0} g
                   </p>
                 </div>
                 <div>
@@ -1190,13 +1143,13 @@ const ClientJournal = ({ client }) => {
                     {t('pages.clientJournal.fat') || 'Fat'}
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.totalNutrients.fatInGrams || 0} g
+                    {selectedItem.food.nutrientsPer100.fatInGrams || 0} g
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Fiber</p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.totalNutrients.fibreInGrams || 0} g
+                    {selectedItem.food.nutrientsPer100.fibreInGrams || 0} g
                   </p>
                 </div>
               </div>

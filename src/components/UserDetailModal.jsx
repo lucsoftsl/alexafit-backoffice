@@ -26,6 +26,7 @@ import {
   deleteMessage,
   sendPushNotificationToUser
 } from '../services/api'
+import { computeAppliedItemTotals } from '../util/menuDisplay'
 
 const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   const { t } = useTranslation()
@@ -401,7 +402,25 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
           {nutritionData && !loading && (() => {
             // Sum up the individual food items that are already calculated correctly
             const calculateActualTotals = () => {
-              let totals = {
+              const apiTotals = {
+                totalCalories: Number(nutritionData?.totalCalories || 0),
+                totalProtein: Number(nutritionData?.totalProtein || 0),
+                totalCarbs: Number(nutritionData?.totalCarbs || 0),
+                totalFat: Number(nutritionData?.totalFat || 0),
+                totalFiber: Number(nutritionData?.totalFibers || 0),
+                totalSugar: Number(nutritionData?.totalSugar || 0)
+              }
+
+              const hasApiTotals =
+                apiTotals.totalCalories > 0 ||
+                apiTotals.totalProtein > 0 ||
+                apiTotals.totalCarbs > 0 ||
+                apiTotals.totalFat > 0
+
+              if (hasApiTotals) return apiTotals
+
+              // Fallback for unexpected payloads where backend totals are missing
+              const fallbackTotals = {
                 totalCalories: 0,
                 totalProtein: 0,
                 totalCarbs: 0,
@@ -409,124 +428,22 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                 totalFiber: 0,
                 totalSugar: 0
               }
-
-              if (nutritionData?.userItems) {
-                Object.entries(nutritionData.userItems).forEach(([, items]) => {
-                  if (!items || !Array.isArray(items)) return
-
-                  items.forEach(item => {
-                    // Extract quantity and unit from the string
-                    const quantityStr = item.quantity || '0'
-                    const unitStr = item.unit || 'g'
-
-                    // Parse quantity more carefully
-                    let quantity = 0
-                    if (typeof quantityStr === 'string') {
-                      // Extract just the number part (e.g., "130Grame" -> "130")
-                      const numberMatch = quantityStr.match(/(\d+(?:\.\d+)?)/)
-                      quantity = numberMatch ? parseFloat(numberMatch[1]) : 0
-                    } else if (typeof quantityStr === 'number') {
-                      quantity = quantityStr
-                    }
-
-                    const unit = unitStr.toLowerCase()
-
-                    // Convert to grams based on unit type
-                    let quantityInGrams = quantity
-
-                    // Handle serving units that contain gram amounts in parentheses
-                    if (unitStr.includes('(') && unitStr.includes('g)')) {
-                      // Extract serving amount from unit like "Lingurita rasa (5g)" or "Portie (108.0g)"
-                      const servingMatch = unitStr.match(/\((\d+(?:\.\d+)?)g\)/)
-                      if (servingMatch) {
-                        const servingAmount = parseFloat(servingMatch[1])
-                        quantityInGrams = quantity * servingAmount
-                      }
-                    } else if (unit.includes('mililitri') || unit.includes('ml')) {
-                      quantityInGrams = quantity // Assume 1ml = 1g for liquids
-                    } else if (unit.includes('litri') || unit.includes('l')) {
-                      quantityInGrams = quantity * 1000
-                    }
-
-                    const multiplier = quantityInGrams / 100
-
-                    const nutrients = item.food?.totalNutrients || {}
-                    // Calculate actual calories consumed
-                    let actualCalories = 0
-                    if (item.food?.type === 'recipe') {
-                      // Quantity is total grams eaten; recipe totals are for all servings
-                      const totalRecipeCalories = item.food?.totalCalories || 0
-                      const numberOfServings = item.food?.numberOfServings || 1
-                      let gramsPerServing
-                      if (Array.isArray(item.food?.serving)) {
-                        const portie = item.food.serving.find(s => s.profileId === 1)
-                        const grams = item.food.serving.find(s => s.profileId === 0 || s.innerName?.toLowerCase() === 'grame')
-                        gramsPerServing = portie?.amount || grams?.amount || undefined
-                      } else if (item.food?.servings?.amount) {
-                        gramsPerServing = item.food.servings.amount
-                      }
-                      const totalRecipeWeight = gramsPerServing && numberOfServings ? (gramsPerServing * numberOfServings) : undefined
-                      if (totalRecipeWeight && totalRecipeWeight > 0) {
-                        const caloriesPerGram = totalRecipeCalories / totalRecipeWeight
-                        actualCalories = caloriesPerGram * quantity
-                      } else {
-                        // Fallback to per-serving if weight unknown
-                        const caloriesPerServing = numberOfServings > 0 ? (totalRecipeCalories / numberOfServings) : 0
-                        actualCalories = caloriesPerServing * quantity
-                      }
-                    } else if (item.food?.type === 'food') {
-                      // For foods, quantity is already in grams, totalCalories is per 100g
-                      const caloriesPer100g = item.food?.totalCalories || item.calories || 0
-                      actualCalories = (caloriesPer100g / 100) * quantity
-                    } else {
-                      // Fallback for other types
-                      const caloriesPer100g = item.food?.totalCalories || item.calories || 0
-                      actualCalories = caloriesPer100g * multiplier
-                    }
-                    totals.totalCalories += actualCalories
-
-                    // Calculate nutrients based on food type
-                    if (item.food?.type === 'food') {
-                      // For foods, quantity is already in grams, nutrients are per 100g
-                      const nutrientMultiplier = quantity / 100
-                      totals.totalProtein += (nutrients.proteinsInGrams || 0) * nutrientMultiplier
-                      totals.totalCarbs += (nutrients.carbohydratesInGrams || 0) * nutrientMultiplier
-                      totals.totalFat += (nutrients.fatInGrams || 0) * nutrientMultiplier
-                      totals.totalFiber += (nutrients.fibreInGrams || 0) * nutrientMultiplier
-                      totals.totalSugar += (nutrients.sugarsInGrams || 0) * nutrientMultiplier
-                    } else if (item.food?.type === 'recipe') {
-                      // Recipe nutrients are totals for entire recipe; scale by grams eaten / total weight
-                      let gramsPerServing
-                      const numberOfServings = item.food?.numberOfServings || 1
-                      if (Array.isArray(item.food?.serving)) {
-                        const portie = item.food.serving.find(s => s.profileId === 1)
-                        const grams = item.food.serving.find(s => s.profileId === 0 || s.innerName?.toLowerCase() === 'grame')
-                        gramsPerServing = portie?.amount || grams?.amount || undefined
-                      } else if (item.food?.servings?.amount) {
-                        gramsPerServing = item.food.servings.amount
-                      }
-                      const totalRecipeWeight = gramsPerServing && numberOfServings ? (gramsPerServing * numberOfServings) : undefined
-                      if (totalRecipeWeight && totalRecipeWeight > 0) {
-                        const ratio = quantity / totalRecipeWeight
-                        totals.totalProtein += (nutrients.proteinsInGrams || 0) * ratio
-                        totals.totalCarbs += (nutrients.carbohydratesInGrams || 0) * ratio
-                        totals.totalFat += (nutrients.fatInGrams || 0) * ratio
-                        totals.totalFiber += (nutrients.fibreInGrams || 0) * ratio
-                        totals.totalSugar += (nutrients.sugarsInGrams || 0) * ratio
-                      }
-                    } else {
-                      // Other types: assume per-100g
-                      totals.totalProtein += (nutrients.proteinsInGrams || 0) * multiplier
-                      totals.totalCarbs += (nutrients.carbohydratesInGrams || 0) * multiplier
-                      totals.totalFat += (nutrients.fatInGrams || 0) * multiplier
-                      totals.totalFiber += (nutrients.fibreInGrams || 0) * multiplier
-                      totals.totalSugar += (nutrients.sugarsInGrams || 0) * multiplier
-                    }
-                  })
+              Object.entries(nutritionData?.userItems || {}).forEach(([, items]) => {
+                if (!Array.isArray(items)) return
+                items.forEach(item => {
+                  const quantity = Number(item?.quantity || 0)
+                  const nutrientsPer100 = item?.food?.nutrientsPer100 || {}
+                  const caloriesPer100 = Number(item?.food?.caloriesPer100 || 0)
+                  const ratio = quantity > 0 ? quantity / 100 : 0
+                  fallbackTotals.totalCalories += caloriesPer100 * ratio
+                  fallbackTotals.totalProtein += Number(nutrientsPer100?.proteinsInGrams || 0) * ratio
+                  fallbackTotals.totalCarbs += Number(nutrientsPer100?.carbohydratesInGrams || 0) * ratio
+                  fallbackTotals.totalFat += Number(nutrientsPer100?.fatInGrams || 0) * ratio
+                  fallbackTotals.totalFiber += Number(nutrientsPer100?.fibreInGrams || 0) * ratio
+                  fallbackTotals.totalSugar += Number(nutrientsPer100?.sugarsInGrams || 0) * ratio
                 })
-              }
-
-              return totals
+              })
+              return fallbackTotals
             }
 
             const actualTotals = calculateActualTotals()
@@ -867,75 +784,18 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                             </h4>
                             <div className="space-y-3">
                               {items.map((item, index) => {
-                                // Parse quantity more carefully
-                                let quantity = 0
-                                const quantityStr = item.quantity || '0'
-                                if (typeof quantityStr === 'string') {
-                                  // Extract just the number part (e.g., "130Grame" -> "130")
-                                  const numberMatch = quantityStr.match(/(\d+(?:\.\d+)?)/)
-                                  quantity = numberMatch ? parseFloat(numberMatch[1]) : 0
-                                } else if (typeof quantityStr === 'number') {
-                                  quantity = quantityStr
-                                }
-
-                                const unit = item.unit || 'g'
-                                const nutrients = item.food?.totalNutrients || {}
-
-                                // Convert to grams based on unit type
-                                let quantityInGrams = quantity
-
-                                // Handle serving units that contain gram amounts in parentheses
-                                if (unit.includes('(') && unit.includes('g)')) {
-                                  // Extract serving amount from unit like "Lingurita rasa (5g)" or "Portie (108.0g)"
-                                  const servingMatch = unit.match(/\((\d+(?:\.\d+)?)g\)/)
-                                  if (servingMatch) {
-                                    const servingAmount = parseFloat(servingMatch[1])
-                                    quantityInGrams = quantity * servingAmount
-                                  }
-                                } else if (unit.includes('mililitri') || unit.includes('ml')) {
-                                  quantityInGrams = quantity // Assume 1ml = 1g for liquids
-                                } else if (unit.includes('litri') || unit.includes('l')) {
-                                  quantityInGrams = quantity * 1000
-                                }
-
-                                const multiplier = quantityInGrams / 100
-
-                                // Calculate nutrients based on food type
-                                let protein, carbs, fat, fiber, sugar
-                                if (item.food?.type === 'food') {
-                                  // For foods, quantity is already in grams, nutrients are per 100g
-                                  const nutrientMultiplier = quantity / 100
-                                  protein = (nutrients.proteinsInGrams || 0) * nutrientMultiplier
-                                  carbs = (nutrients.carbohydratesInGrams || 0) * nutrientMultiplier
-                                  fat = (nutrients.fatInGrams || 0) * nutrientMultiplier
-                                  fiber = (nutrients.fibreInGrams || 0) * nutrientMultiplier
-                                  sugar = (nutrients.sugarsInGrams || 0) * nutrientMultiplier
-                                } else {
-                                  // For recipes and other types, use the calculated multiplier
-                                  protein = (nutrients.proteinsInGrams || 0) * multiplier
-                                  carbs = (nutrients.carbohydratesInGrams || 0) * multiplier
-                                  fat = (nutrients.fatInGrams || 0) * multiplier
-                                  fiber = (nutrients.fibreInGrams || 0) * multiplier
-                                  sugar = (nutrients.sugarsInGrams || 0) * multiplier
-                                }
-
-                                // Calculate actual calories consumed
-                                let actualCalories = 0
-                                if (item.food?.type === 'recipe') {
-                                  // For recipes, totalCalories is for all portions, so divide by numberOfServings first
-                                  const totalRecipeCalories = item.food?.totalCalories || 0
-                                  const numberOfServings = item.food?.numberOfServings || 1
-                                  const caloriesPerServing = totalRecipeCalories / numberOfServings
-                                  actualCalories = caloriesPerServing * quantity
-                                } else if (item.food?.type === 'food') {
-                                  // For foods, quantity is already in grams, totalCalories is per 100g
-                                  const caloriesPer100g = item.food?.totalCalories || item.calories || 0
-                                  actualCalories = (caloriesPer100g / 100) * quantity
-                                } else {
-                                  // Fallback for other types
-                                  const caloriesPer100g = item.food?.totalCalories || item.calories || 0
-                                  actualCalories = caloriesPer100g * multiplier
-                                }
+                                const quantity = Number(item?.quantity || 0)
+                                const unit = item?.unit || 'g'
+                                const totals = computeAppliedItemTotals(item)
+                                const displayQuantity = Number.isFinite(quantity)
+                                  ? quantity.toFixed(1)
+                                  : String(item?.quantity || 0)
+                                const nutrientsPer100 = item?.food?.nutrientsPer100 || {}
+                                const ratio = quantity > 0 ? quantity / 100 : 0
+                                const fiber =
+                                  Number(nutrientsPer100?.fibreInGrams || 0) * ratio
+                                const sugar =
+                                  Number(nutrientsPer100?.sugarsInGrams || 0) * ratio
 
                                 return (
                                   <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
@@ -944,20 +804,20 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                                         {item.food?.name || 'Unknown Food'}
                                       </div>
                                       <div className="text-sm text-gray-600">
-                                        {quantity} {unit} • <span className="font-semibold text-blue-600">{actualCalories.toFixed(0)} cal</span>
+                                        {displayQuantity} {unit} • <span className="font-semibold text-blue-600">{(totals.calories || 0).toFixed(0)} cal</span>
                                         {item.food?.category && ` • ${item.food.category}`}
                                       </div>
                                     </div>
                                     <div className="text-right text-sm">
                                       <div className="text-gray-600 font-medium">
-                                        Per 100g: P: {nutrients.proteinsInGrams || 0}g • C: {nutrients.carbohydratesInGrams || 0}g • F: {nutrients.fatInGrams || 0}g
+                                        Per 100g: P: {nutrientsPer100?.proteinsInGrams || 0}g • C: {nutrientsPer100?.carbohydratesInGrams || 0}g • F: {nutrientsPer100?.fatInGrams || 0}g
                                       </div>
                                       <div className="text-xs text-gray-500 mt-1">
-                                        Fiber: {nutrients.fibreInGrams || 0}g • Sugar: {nutrients.sugarsInGrams || 0}g
+                                        Fiber: {nutrientsPer100?.fibreInGrams || 0}g • Sugar: {nutrientsPer100?.sugarsInGrams || 0}g
                                       </div>
                                       <div className="text-right text-sm">
                                         <div className="text-gray-600 font-medium">
-                                          Actual: P: {protein.toFixed(1)}g • C: {carbs.toFixed(1)}g • F: {fat.toFixed(1)}g
+                                          Actual: P: {(totals.proteinsInGrams || 0).toFixed(1)}g • C: {(totals.carbohydratesInGrams || 0).toFixed(1)}g • F: {(totals.fatInGrams || 0).toFixed(1)}g
                                         </div>
                                         {(fiber > 0 || sugar > 0) && (
                                           <div className="text-xs text-gray-500 mt-1">
@@ -1310,111 +1170,13 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
                       if (!Array.isArray(items) || items.length === 0) return
                       lines.push(`${mealType.toUpperCase()}:`)
                       items.forEach((item) => {
-                        const quantityStr = item.quantity || '0'
-                        let qty = 0
-                        if (typeof quantityStr === 'string') {
-                          const m = quantityStr.match(/(\d+(?:\.\d+)?)/)
-                          qty = m ? parseFloat(m[1]) : 0
-                        } else if (typeof quantityStr === 'number') {
-                          qty = quantityStr
-                        }
-                        const unit = item.unit || 'g'
-
-                        // Convert to grams based on unit type
-                        let quantityInGrams = qty
-
-                        // Handle serving units that contain gram amounts in parentheses
-                        if (unit.includes('(') && unit.includes('g)')) {
-                          // Extract serving amount from unit like "Lingurita rasa (5g)" or "Portie (108.0g)"
-                          const servingMatch = unit.match(/\((\d+(?:\.\d+)?)g\)/)
-                          if (servingMatch) {
-                            const servingAmount = parseFloat(servingMatch[1])
-                            quantityInGrams = qty * servingAmount
-                          }
-                        } else if (unit.toLowerCase().includes('mililitri') || unit.toLowerCase().includes('ml')) {
-                          quantityInGrams = qty // Assume 1ml = 1g for liquids
-                        } else if (unit.toLowerCase().includes('litri') || unit.toLowerCase().includes('l')) {
-                          quantityInGrams = qty * 1000
-                        }
-
-                        const nutrients = item.food?.totalNutrients || {}
-
-                        // Calculate actual calories consumed using same logic as main component
-                        let itemCalories = 0
-                        if (item.food?.type === 'recipe') {
-                          // Quantity is total grams eaten; recipe totals are for all servings
-                          const totalRecipeCalories = item.food?.totalCalories || 0
-                          const numberOfServings = item.food?.numberOfServings || 1
-                          let gramsPerServing
-                          if (Array.isArray(item.food?.serving)) {
-                            const portie = item.food.serving.find(s => s.profileId === 1)
-                            const grams = item.food.serving.find(s => s.profileId === 0 || s.innerName?.toLowerCase() === 'grame')
-                            gramsPerServing = portie?.amount || grams?.amount || undefined
-                          } else if (item.food?.servings?.amount) {
-                            gramsPerServing = item.food.servings.amount
-                          }
-                          const totalRecipeWeight = gramsPerServing && numberOfServings ? (gramsPerServing * numberOfServings) : undefined
-                          if (totalRecipeWeight && totalRecipeWeight > 0) {
-                            const caloriesPerGram = totalRecipeCalories / totalRecipeWeight
-                            itemCalories = caloriesPerGram * qty
-                          } else {
-                            // Fallback to per-serving if weight unknown
-                            const caloriesPerServing = numberOfServings > 0 ? (totalRecipeCalories / numberOfServings) : 0
-                            itemCalories = caloriesPerServing * qty
-                          }
-                        } else if (item.food?.type === 'food') {
-                          // For foods, quantity is already in grams, totalCalories is per 100g
-                          const caloriesPer100g = item.food?.totalCalories || item.calories || 0
-                          itemCalories = (caloriesPer100g / 100) * qty
-                        } else {
-                          // Fallback for other types
-                          const caloriesPer100g = item.food?.totalCalories || item.calories || 0
-                          const multiplier = quantityInGrams / 100
-                          itemCalories = caloriesPer100g * multiplier
-                        }
-
-                        // Calculate nutrients using same logic as main component
-                        let p, c, f
-                        if (item.food?.type === 'food') {
-                          // For foods, quantity is already in grams, nutrients are per 100g
-                          const nutrientMultiplier = qty / 100
-                          p = (nutrients.proteinsInGrams || 0) * nutrientMultiplier
-                          c = (nutrients.carbohydratesInGrams || 0) * nutrientMultiplier
-                          f = (nutrients.fatInGrams || 0) * nutrientMultiplier
-                        } else if (item.food?.type === 'recipe') {
-                          // Recipe nutrients are totals for entire recipe; scale by grams eaten / total weight
-                          let gramsPerServing
-                          const numberOfServings = item.food?.numberOfServings || 1
-                          if (Array.isArray(item.food?.serving)) {
-                            const portie = item.food.serving.find(s => s.profileId === 1)
-                            const grams = item.food.serving.find(s => s.profileId === 0 || s.innerName?.toLowerCase() === 'grame')
-                            gramsPerServing = portie?.amount || grams?.amount || undefined
-                          } else if (item.food?.servings?.amount) {
-                            gramsPerServing = item.food.servings.amount
-                          }
-                          const totalRecipeWeight = gramsPerServing && numberOfServings ? (gramsPerServing * numberOfServings) : undefined
-                          if (totalRecipeWeight && totalRecipeWeight > 0) {
-                            const ratio = qty / totalRecipeWeight
-                            p = (nutrients.proteinsInGrams || 0) * ratio
-                            c = (nutrients.carbohydratesInGrams || 0) * ratio
-                            f = (nutrients.fatInGrams || 0) * ratio
-                          } else {
-                            // Fallback to per-serving
-                            const ratio = numberOfServings > 0 ? (qty / numberOfServings) : 0
-                            p = (nutrients.proteinsInGrams || 0) * ratio
-                            c = (nutrients.carbohydratesInGrams || 0) * ratio
-                            f = (nutrients.fatInGrams || 0) * ratio
-                          }
-                        } else {
-                          // Other types: assume per-100g
-                          const multiplier = quantityInGrams / 100
-                          p = (nutrients.proteinsInGrams || 0) * multiplier
-                          c = (nutrients.carbohydratesInGrams || 0) * multiplier
-                          f = (nutrients.fatInGrams || 0) * multiplier
-                        }
-
-                        // Show quantity in grams and actual consumed values
-                        lines.push(`- ${item.food?.name || 'Unknown'}: ${qty}g, ${Math.round(itemCalories)} cal, P ${p.toFixed(1)}g, C ${c.toFixed(1)}g, F ${f.toFixed(1)}g`)
+                        const qty = Number(item?.quantity || 0)
+                        const unit = item?.unit || 'g'
+                        const displayQuantity = Number.isFinite(qty)
+                          ? qty.toFixed(1)
+                          : String(item?.quantity || 0)
+                        const totals = computeAppliedItemTotals(item)
+                        lines.push(`- ${item.food?.name || 'Unknown'}: ${displayQuantity}${unit}, ${Math.round(totals.calories || 0)} cal, P ${(totals.proteinsInGrams || 0).toFixed(1)}g, C ${(totals.carbohydratesInGrams || 0).toFixed(1)}g, F ${(totals.fatInGrams || 0).toFixed(1)}g`)
                       })
                     })
                   }

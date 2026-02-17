@@ -1,191 +1,307 @@
+const OZ_TO_GRAMS = 28.3495
+const FL_OZ_TO_ML = 29.5735
+const STANDARD_UNITS = new Set(['g', 'ml', 'oz', 'fl oz'])
+const UNIT_ALIASES = {
+  grams: 'g',
+  gram: 'g',
+  g: 'g',
+  ounces: 'oz',
+  ounce: 'oz',
+  oz: 'oz',
+  milliliters: 'ml',
+  milliliter: 'ml',
+  millilitre: 'ml',
+  ml: 'ml',
+  floz: 'fl oz',
+  'fluid ounces': 'fl oz',
+  'fluid ounce': 'fl oz',
+  'fl oz': 'fl oz'
+}
+
+const parseNumber = value => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+const parseJsonObject = value => {
+  if (!value) return {}
+  if (typeof value === 'object') return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+
+const parseJsonArray = value => {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+const normalizeServingOptions = item => {
+  const servingOptions = parseJsonArray(item?.servingOptions)
+  return servingOptions
+}
+
+const toUnitKey = unitRaw => {
+  const key = String(unitRaw || '').trim().toLowerCase()
+  return UNIT_ALIASES[key] || key
+}
+
+const isLiquidItem = item =>
+  item?.isLiquid === true || item?.isLiquid === '1' || item?.selectedUnit === 'ml'
+
+const getAmountInBaseUnit = (item, quantity, unit) => {
+  const qty = parseNumber(quantity)
+  const normalizedUnit = (unit || 'g').toLowerCase().trim()
+
+  if (normalizedUnit === 'g' || normalizedUnit === 'gram') return qty
+  if (normalizedUnit === 'grams') return qty
+  if (normalizedUnit === 'kg') return qty * 1000
+  if (normalizedUnit === 'oz') return qty * OZ_TO_GRAMS
+  if (normalizedUnit === 'ml' || normalizedUnit === 'milliliter') return qty
+  if (normalizedUnit === 'millilitre') return qty
+  if (normalizedUnit === 'fl oz') return qty * FL_OZ_TO_ML
+  if (normalizedUnit === 'l') return qty * 1000
+
+  const options = normalizeServingOptions(item)
+  const servingOption = options.find(option => {
+    const optionUnit = (option?.unitName || '').toLowerCase().trim()
+    return optionUnit === normalizedUnit
+  })
+  if (servingOption) {
+    return qty * parseNumber(servingOption.value || 1)
+  }
+
+  return qty
+}
+
+const getChangedServingAmountAndUnit = item => {
+  const changed = item?.changedServing || {}
+  const quantityFromChanged = parseNumber(changed.quantity)
+  if (quantityFromChanged > 0 && changed.unit) {
+    return { amount: quantityFromChanged, unit: changed.unit }
+  }
+
+  const valueFromChanged = parseNumber(changed.value)
+  if (valueFromChanged > 0) {
+    const unitFromServingOption = toUnitKey(changed?.servingOption?.unitName || '')
+    const resolvedServingOptionUnit = STANDARD_UNITS.has(unitFromServingOption)
+      ? unitFromServingOption
+      : null
+    return {
+      amount: valueFromChanged,
+      unit: resolvedServingOptionUnit || item?.unit || (isLiquidItem(item) ? 'ml' : 'g')
+    }
+  }
+
+  const quantity = parseNumber(item?.quantity)
+  if (quantity > 0) {
+    return { amount: quantity, unit: item?.unit || (isLiquidItem(item) ? 'ml' : 'g') }
+  }
+
+  const originalServingAmount = parseNumber(item?.originalServingAmount)
+  if (originalServingAmount > 0) {
+    return { amount: originalServingAmount, unit: isLiquidItem(item) ? 'ml' : 'g' }
+  }
+
+  return { amount: 100, unit: isLiquidItem(item) ? 'ml' : 'g' }
+}
+
+const getItemCaloriesPer100 = item => {
+  return parseNumber(item?.caloriesPer100)
+}
+
+const getItemNutrientsPer100 = item => {
+  return parseJsonObject(item?.nutrientsPer100)
+}
+
 export const detectIsRecipe = item => {
-  const type = (item?.itemType || item?.type || '').toString().toUpperCase()
-  return type === 'RECIPE' || type === 'RECIPES'
+  const type = (item?.itemType || item?.type || '').toString().toLowerCase()
+  return type === 'recipe' || type === 'recipes'
 }
 
 export const getServingIdentifier = serving => {
-  if (serving?.id !== undefined && serving?.id !== null) {
-    return `${serving.id}_${serving.name || serving.innerName || ''}`
-  }
-  return serving?.name || serving?.innerName || ''
+  if (!serving) return ''
+  const unitName = serving?.unitName || ''
+  const value = parseNumber(serving?.value ?? 0)
+  return `${unitName}_${value}`
 }
 
 export const findServingByIdentifier = (servingOptions, identifier) => {
   if (!identifier) return null
-  return (servingOptions || []).find(s => {
-    const servingId = getServingIdentifier(s)
-    return servingId === identifier
-  })
+  const options = parseJsonArray(servingOptions)
+  return options.find(s => getServingIdentifier(s) === identifier) || null
 }
 
-export const findDefaultServing = servingArray => {
-  if (
-    !servingArray ||
-    !Array.isArray(servingArray) ||
-    servingArray.length === 0
-  ) {
-    return null
+export const findDefaultServing = servingOptions => {
+  const options = parseJsonArray(servingOptions)
+  if (options.length === 0) return null
+
+  const priorityUnits = ['g', 'ml']
+  for (const priorityUnit of priorityUnits) {
+    const found = options.find(s => (s?.unitName || '').toLowerCase() === priorityUnit)
+    if (found) return found
   }
-  let selectedServing = servingArray.find(s => s.profileId === 0)
-  if (!selectedServing) {
-    const namePatterns = ['g', 'gram', 'grame', 'gramm', 'ml']
-    selectedServing = servingArray.find(s => {
-      const nameLower = (s.name || '').toLowerCase()
-      return namePatterns.some(pattern => nameLower === pattern)
+
+  return options[0]
+}
+
+export const buildServingOptionsForMenuItem = (item, isImperial = false) => {
+  const options = normalizeServingOptions(item)
+  const liquid = isLiquidItem(item)
+  const metricUnit = liquid ? 'ml' : 'g'
+  const imperialUnit = liquid ? 'fl oz' : 'oz'
+  const imperialValue = liquid ? 100 / FL_OZ_TO_ML : 100 / OZ_TO_GRAMS
+
+  const normalized = []
+
+  // Always include base metric option (per-100 base for calculations)
+  normalized.push({
+    unitName: metricUnit,
+    value: 100,
+    name: metricUnit,
+    innerName: metricUnit,
+    unit: metricUnit
+  })
+
+  // Include base imperial option only when user preference is imperial
+  if (isImperial) {
+    normalized.push({
+      unitName: imperialUnit,
+      value: imperialValue,
+      name: imperialUnit,
+      innerName: imperialUnit,
+      unit: imperialUnit
     })
   }
-  if (!selectedServing) selectedServing = servingArray[0]
-  return selectedServing
+
+  // Include custom servings from item servingOptions (non-standard units only)
+  options.forEach(option => {
+    const unitRaw =
+      option?.unitName || option?.name || option?.innerName || option?.unit || ''
+    const unitKey = toUnitKey(unitRaw)
+    const value = parseNumber(option?.value ?? option?.amount ?? 0)
+    if (!unitRaw || value <= 0) return
+    if (STANDARD_UNITS.has(unitKey)) return
+    normalized.push({
+      ...option,
+      unitName: unitRaw,
+      value,
+      name: option?.name || option?.innerName || unitRaw,
+      innerName: option?.innerName || option?.name || unitRaw,
+      unit: option?.unit || unitRaw
+    })
+  })
+
+  // Deduplicate by serving identifier
+  const deduped = []
+  const seen = new Set()
+  normalized.forEach(option => {
+    const id = getServingIdentifier(option)
+    if (!id || seen.has(id)) return
+    seen.add(id)
+    deduped.push(option)
+  })
+
+  return deduped
 }
 
 export const safeNutrients = nutrients => ({
-  proteinsInGrams: Number(nutrients?.proteinsInGrams) || 0,
-  carbohydratesInGrams: Number(nutrients?.carbohydratesInGrams) || 0,
-  fatInGrams: Number(nutrients?.fatInGrams) || 0
+  proteinsInGrams: parseNumber(nutrients?.proteinsInGrams),
+  carbohydratesInGrams: parseNumber(nutrients?.carbohydratesInGrams),
+  fatInGrams: parseNumber(nutrients?.fatInGrams),
+  fibreInGrams: parseNumber(nutrients?.fibreInGrams),
+  sugarsInGrams: parseNumber(nutrients?.sugarsInGrams)
 })
 
 export const calculateDisplayValues = (
   item,
   selectedServingAmount,
-  originalServingAmount
+  _originalServingAmount,
+  selectedServingUnit = null
 ) => {
-  if (
-    !originalServingAmount ||
-    originalServingAmount <= 0 ||
-    !selectedServingAmount ||
-    selectedServingAmount <= 0
-  ) {
+  const selectedAmount = parseNumber(selectedServingAmount)
+  if (selectedAmount <= 0) {
     return {
-      calories: item?.originalCalories || item?.totalCalories || 0,
-      nutrients: item?.originalNutrients || item?.totalNutrients || {}
+      calories: 0,
+      nutrients: safeNutrients({})
     }
   }
 
-  const isRecipe = detectIsRecipe(item)
-  const originalCalories = item?.originalCalories || item?.totalCalories || 0
-  const originalNutrients =
-    item?.originalNutrients || item?.totalNutrients || {}
-  let scaleRatio
-
-  if (isRecipe) {
-    const numberOfServings =
-      item?.numberOfServings || item?.originalServings || 1
-    let perServingWeight = null
-    if (item?.serving && Array.isArray(item.serving)) {
-      const portionServing = item.serving.find(s => s.profileId === 1)
-      if (portionServing) {
-        perServingWeight = portionServing.amount
-      } else {
-        const nonDefaultServing = item.serving.find(
-          s =>
-            s.profileId !== 0 &&
-            s.name?.toLowerCase() !== 'grame' &&
-            s.innerName?.toLowerCase() !== 'grame'
-        )
-        perServingWeight =
-          nonDefaultServing?.amount || originalServingAmount / numberOfServings
-      }
-    } else {
-      perServingWeight = originalServingAmount / numberOfServings
-    }
-
-    if (perServingWeight && perServingWeight > 0) {
-      const selectedServings = selectedServingAmount / perServingWeight
-      scaleRatio = selectedServings / numberOfServings
-    } else {
-      scaleRatio = selectedServingAmount / originalServingAmount
-    }
-  } else {
-    scaleRatio = selectedServingAmount / originalServingAmount
-  }
+  const per100Calories = getItemCaloriesPer100(item)
+  const per100Nutrients = getItemNutrientsPer100(item)
+  const { unit: fallbackUnit } = getChangedServingAmountAndUnit(item)
+  const unit = selectedServingUnit || fallbackUnit
+  const amountInBaseUnit = getAmountInBaseUnit(item, selectedAmount, unit)
+  const ratio = amountInBaseUnit / 100
 
   return {
-    calories: Math.round(originalCalories * scaleRatio),
+    calories: Math.round(per100Calories * ratio),
     nutrients: {
-      proteinsInGrams: (originalNutrients?.proteinsInGrams || 0) * scaleRatio,
+      proteinsInGrams: parseNumber(per100Nutrients?.proteinsInGrams) * ratio,
       carbohydratesInGrams:
-        (originalNutrients?.carbohydratesInGrams || 0) * scaleRatio,
-      fatInGrams: (originalNutrients?.fatInGrams || 0) * scaleRatio,
-      cholesterol: (originalNutrients?.cholesterol || 0) * scaleRatio,
-      fibers: (originalNutrients?.fibers || 0) * scaleRatio,
-      nonSaturatedFat: (originalNutrients?.nonSaturatedFat || 0) * scaleRatio,
-      saturatedFat: (originalNutrients?.saturatedFat || 0) * scaleRatio,
-      sodium: (originalNutrients?.sodium || 0) * scaleRatio,
-      sugar: (originalNutrients?.sugar || 0) * scaleRatio
+        parseNumber(per100Nutrients?.carbohydratesInGrams) * ratio,
+      fatInGrams: parseNumber(per100Nutrients?.fatInGrams) * ratio,
+      fibreInGrams: parseNumber(per100Nutrients?.fibreInGrams) * ratio,
+      sugarsInGrams: parseNumber(per100Nutrients?.sugarsInGrams) * ratio
     }
   }
 }
 
-// Sum totals assuming items already have applied totals (items-by-date payload)
-// This now accounts for quantity and unit when calculating actual calories
+export const computeAppliedItemTotals = entry => {
+  const food = entry?.food || entry
+  if (!food) {
+    return {
+      calories: 0,
+      proteinsInGrams: 0,
+      carbohydratesInGrams: 0,
+      fatInGrams: 0
+    }
+  }
+
+  const per100Calories = getItemCaloriesPer100(food)
+  const per100Nutrients = getItemNutrientsPer100(food)
+  const quantity = parseNumber(entry?.quantity)
+  const unit = entry?.unit || (isLiquidItem(food) ? 'ml' : 'g')
+  const amountInBaseUnit =
+    quantity > 0
+      ? getAmountInBaseUnit(food, quantity, unit)
+      : getAmountInBaseUnit(food, 100, isLiquidItem(food) ? 'ml' : 'g')
+
+  const ratio = amountInBaseUnit / 100
+  return {
+    calories: per100Calories * ratio,
+    proteinsInGrams: parseNumber(per100Nutrients?.proteinsInGrams) * ratio,
+    carbohydratesInGrams:
+      parseNumber(per100Nutrients?.carbohydratesInGrams) * ratio,
+    fatInGrams: parseNumber(per100Nutrients?.fatInGrams) * ratio
+  }
+}
+
 export const computeAppliedTotals = items => {
   return (items || []).reduce(
     (acc, item) => {
-      const isRecipe = detectIsRecipe(item?.food || item)
-      const baseCalories = Number(
-        item?.totalCalories || item?.food?.totalCalories || 0
-      )
-      const baseNutrients =
-        item?.totalNutrients || item?.food?.totalNutrients || {}
-
-      // Get quantity from the applied item
-      const quantity = Number(item?.quantity) || 0
-
-      let calories = 0
-      let nutrients = safeNutrients(baseNutrients)
-      let scaleRatio = 1
-
-      if (isRecipe) {
-        // For recipes: totalCalories is for ALL numberOfServings servings
-        // We need to find the actual total weight and scale accordingly
-        const numberOfServings = item?.food?.numberOfServings || 1
-        const totalQuantity = baseNutrients?.totalQuantity ||
-                             baseNutrients?.weightAfterCooking ||
-                             null
-
-        if (totalQuantity && totalQuantity > 0 && quantity > 0) {
-          // Scale recipe based on actual quantity vs total recipe weight
-          scaleRatio = quantity / totalQuantity
-          calories = Math.round(baseCalories * scaleRatio)
-        } else {
-          // Fallback: use default serving if totalQuantity not available
-          const servingArray = item?.food?.serving || item?.serving || []
-          const portionServing = servingArray.find(s => s.profileId === 1)
-          const defaultServing = portionServing || findDefaultServing(servingArray)
-          const defaultServingAmount = defaultServing?.amount || 100
-          const perServingWeight = portionServing?.amount || (defaultServingAmount / numberOfServings)
-          
-          if (perServingWeight && perServingWeight > 0 && quantity > 0) {
-            const selectedServings = quantity / perServingWeight
-            scaleRatio = selectedServings / numberOfServings
-            calories = Math.round(baseCalories * scaleRatio)
-          } else {
-            scaleRatio = quantity / defaultServingAmount
-            calories = Math.round(baseCalories * scaleRatio)
-          }
-        }
-      } else {
-        // For foods: use default serving
-        const servingArray = item?.food?.serving || item?.serving || []
-        const defaultServing = findDefaultServing(servingArray)
-        const defaultServingAmount = defaultServing?.amount || 100
-        
-        if (quantity > 0) {
-          scaleRatio = quantity / defaultServingAmount
-          calories = Math.round(baseCalories * scaleRatio)
-        } else {
-          calories = Math.round(baseCalories)
-        }
-      }
-
+      const totals = computeAppliedItemTotals(item)
       return {
-        calories: acc.calories + calories,
-        proteinsInGrams:
-          acc.proteinsInGrams + nutrients.proteinsInGrams * scaleRatio,
+        calories: acc.calories + totals.calories,
+        proteinsInGrams: acc.proteinsInGrams + totals.proteinsInGrams,
         carbohydratesInGrams:
-          acc.carbohydratesInGrams +
-          nutrients.carbohydratesInGrams * scaleRatio,
-        fatInGrams: acc.fatInGrams + nutrients.fatInGrams * scaleRatio
+          acc.carbohydratesInGrams + totals.carbohydratesInGrams,
+        fatInGrams: acc.fatInGrams + totals.fatInGrams
       }
     },
     { calories: 0, proteinsInGrams: 0, carbohydratesInGrams: 0, fatInGrams: 0 }

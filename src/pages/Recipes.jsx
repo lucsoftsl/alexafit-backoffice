@@ -33,6 +33,45 @@ const AVAILABLE_COUNTRY_CODES = {
   UK: 'UK',
   US: 'US'
 }
+const ADMIN_USER_ID = 'BACKOFFICE_ADMIN'
+const DEFAULT_SERVING_OPTIONS = [
+  { unitName: 'g', value: 100 },
+  { unitName: 'oz', value: 28.34 },
+  { unitName: 'ml', value: 100 },
+  { unitName: 'fl oz', value: 29.57 }
+]
+const OZ_TO_GRAMS = 28.34
+const FL_OZ_TO_ML = 29.57
+const parseNumber = value => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+const parseNutrients = nutrients => {
+  if (!nutrients) return {}
+  if (typeof nutrients === 'object') return nutrients
+  if (typeof nutrients === 'string') {
+    try {
+      const parsed = JSON.parse(nutrients)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+const parseServingOptions = servingOptions => {
+  if (!servingOptions) return []
+  if (Array.isArray(servingOptions)) return servingOptions
+  if (typeof servingOptions === 'string') {
+    try {
+      const parsed = JSON.parse(servingOptions)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
 
 const Recipes = () => {
   const { t } = useTranslation()
@@ -60,7 +99,7 @@ const Recipes = () => {
   const [selectedIngredients, setSelectedIngredients] = useState([])
   const [recipeInstructions, setRecipeInstructions] = useState('')
   const [totalTimeInMinutes, setTotalTimeInMinutes] = useState('')
-  const [numberOfServings, setNumberOfServings] = useState(2)
+  const [numberOfRecipeServings, setNumberOfRecipeServings] = useState(1)
   const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
   const [existingPhotoUrl, setExistingPhotoUrl] = useState(null)
@@ -187,8 +226,8 @@ const Recipes = () => {
             bValue = (b.name || '').toLowerCase()
             return aValue.localeCompare(bValue) * factor
           case 'calories':
-            aValue = parseFloat(a.totalCalories) || 0
-            bValue = parseFloat(b.totalCalories) || 0
+            aValue = parseFloat(a.caloriesPer100) || 0
+            bValue = parseFloat(b.caloriesPer100) || 0
             return (aValue - bValue) * factor
           case 'isPublic':
             aValue = a.isPublic === true ? 1 : a.isPublic === false ? 0 : -1
@@ -241,7 +280,7 @@ const Recipes = () => {
       // Search with onlyRecipes = false
       const results = await searchFoodItems({
         searchText,
-        userId: 'BACKOFFICE_ADMIN',
+        userId: ADMIN_USER_ID,
         onlyRecipes: false,
         countryCode: selectedCountryCode
       })
@@ -264,21 +303,19 @@ const Recipes = () => {
   }
 
   const addIngredientToRecipe = item => {
-    // Add ingredient with default quantity of 100g
+    const servingOptions = parseServingOptions(item.servingOptions)
+    const isLiquid = item?.isLiquid === true || item?.isLiquid === '1'
     const ingredient = {
       id: item.id || item.itemId || item._id,
       name: item.name || item.title || 'Unnamed',
-      quantity: '100',
+      quantity: 100,
+      weight: 100,
       unit: 'g',
       category: item.category || null,
-      servingDisplay: '100 g',
-      servingAmount: '100',
-      weight: '100',
-      // Store full item data for nutrient calculation
-      totalCalories: item.totalCalories || 0,
-      totalNutrients: item.totalNutrients || {},
-      cholesterol: item.cholesterol || 0,
-      potassium: item.potassium || 0
+      caloriesPer100: parseNumber(item.caloriesPer100),
+      nutrientsPer100: parseNutrients(item.nutrientsPer100),
+      isLiquid,
+      servingOptions
     }
     setSelectedIngredients([...selectedIngredients, ingredient])
     setSearchText('')
@@ -289,150 +326,102 @@ const Recipes = () => {
     setSelectedIngredients(selectedIngredients.filter((_, i) => i !== index))
   }
 
-  // Helper function to convert weight to grams based on unit
-  const convertToGrams = (weight, unit) => {
-    const weightNum = parseFloat(weight) || 0
-    switch (unit) {
-      case 'g':
-        return weightNum
-      case 'kg':
-        return weightNum * 1000
-      case 'ml':
-        return weightNum // Approximate: 1ml ≈ 1g for liquids
-      case 'l':
-        return weightNum * 1000 // Approximate: 1l ≈ 1000g
-      case 'oz':
-        return weightNum * 28.3495 // 1 oz = 28.3495 g
-      default:
-        return weightNum
-    }
-  }
+  const getAmountInBaseUnit = (item, quantity, unit) => {
+    const qty = parseNumber(quantity)
+    const normalizedUnit = (unit || 'g').toLowerCase().trim()
+    const isLiquid = item?.isLiquid === true || item?.isLiquid === '1'
 
-  // Helper function to convert grams to a specific unit
-  const convertFromGrams = (grams, unit) => {
-    const gramsNum = parseFloat(grams) || 0
-    switch (unit) {
-      case 'g':
-        return gramsNum
-      case 'kg':
-        return gramsNum / 1000
-      case 'ml':
-        return gramsNum // Approximate
-      case 'l':
-        return gramsNum / 1000 // Approximate
-      case 'oz':
-        return gramsNum / 28.3495
-      default:
-        return gramsNum
-    }
+    if (normalizedUnit === 'g' || normalizedUnit === 'gram') return qty
+    if (normalizedUnit === 'grams') return qty
+    if (normalizedUnit === 'kg') return qty * 1000
+    if (normalizedUnit === 'oz') return qty * OZ_TO_GRAMS
+    if (normalizedUnit === 'ml' || normalizedUnit === 'milliliter') return qty
+    if (normalizedUnit === 'millilitre') return qty
+    if (normalizedUnit === 'fl oz') return qty * FL_OZ_TO_ML
+    if (normalizedUnit === 'l') return qty * 1000
+
+    const customOptions = Array.isArray(item?.servingOptions)
+      ? item.servingOptions
+      : []
+    const defaults = DEFAULT_SERVING_OPTIONS.filter(option =>
+      isLiquid
+        ? option.unitName === 'ml' || option.unitName === 'fl oz'
+        : option.unitName === 'g' || option.unitName === 'oz'
+    )
+    const allOptions = [...customOptions]
+    defaults.forEach(defaultOption => {
+      if (!allOptions.some(o => o?.unitName === defaultOption.unitName)) {
+        allOptions.push(defaultOption)
+      }
+    })
+    const selectedOption = allOptions.find(option => {
+      const optionUnit = (option?.unitName || '').toLowerCase()
+      return optionUnit === normalizedUnit || optionUnit.includes(normalizedUnit)
+    })
+    if (!selectedOption) return qty
+    return qty * parseNumber(selectedOption.value || 1)
   }
 
   const updateIngredientWeight = (index, weight) => {
     const updated = [...selectedIngredients]
     const ingredient = updated[index]
-    const weightStr = weight.toString().trim()
-    const weightNum = parseFloat(weightStr) || 0
-
-    // Update weight (keep as string for input field compatibility)
-    ingredient.weight = weightStr
-
-    // Update quantity and servingAmount to match weight
-    ingredient.quantity = weightStr
-    ingredient.servingAmount = weightStr
-
-    // Update servingDisplay with formatted value
-    const displayValue = weightNum > 0 ? weightNum : weightStr
-    ingredient.servingDisplay = `${displayValue} ${ingredient.unit}`
+    const nextValue = weight === '' ? '' : parseNumber(weight)
+    ingredient.weight = nextValue
+    ingredient.quantity = nextValue
 
     setSelectedIngredients(updated)
   }
 
   const updateIngredientUnit = (index, unit) => {
     const updated = [...selectedIngredients]
-    const ingredient = updated[index]
-    const oldUnit = ingredient.unit
-    const oldWeight = parseFloat(ingredient.weight) || 0
-
-    // Convert current weight to grams, then to new unit
-    const weightInGrams = convertToGrams(oldWeight, oldUnit)
-    const newWeight = convertFromGrams(weightInGrams, unit)
-
-    // Format the new weight (round to reasonable precision)
-    const formattedWeight =
-      newWeight > 0
-        ? newWeight % 1 === 0
-          ? newWeight.toString()
-          : newWeight.toFixed(2)
-        : '0'
-
-    // Update all fields
-    ingredient.unit = unit
-    ingredient.weight = formattedWeight
-    ingredient.quantity = formattedWeight
-    ingredient.servingAmount = formattedWeight
-    ingredient.servingDisplay = `${formattedWeight} ${unit}`
-
+    updated[index].unit = unit
     setSelectedIngredients(updated)
   }
 
-  // Calculate nutrients based on ingredients
-  const calculateNutrients = (ingredients, updateWeightAfterCooking = true) => {
+  const calculateNutrients = ingredients => {
     const totalNutrs = ingredients.reduce(
       (acc, ingredient) => {
-        // Convert weight to grams for consistent calculation
-        const amountInGrams = convertToGrams(
-          ingredient.weight || 0,
+        const amountInBaseUnit = getAmountInBaseUnit(
+          ingredient,
+          ingredient.quantity ?? ingredient.weight,
           ingredient.unit || 'g'
         )
+        const nutrientsPer100 = parseNutrients(ingredient?.nutrientsPer100)
         const totalCalories =
           acc.totalCalories +
-          ((ingredient?.totalCalories || 0) * amountInGrams) / 100
-        const totalQuantity = acc.totalQuantity + parseInt(amountInGrams, 10)
+          (parseNumber(ingredient?.caloriesPer100) * amountInBaseUnit) / 100
+        const totalQuantity = acc.totalQuantity + amountInBaseUnit
 
         const totalProtein =
           acc.totalProtein +
-          (amountInGrams * (ingredient?.totalNutrients?.proteinsInGrams || 0)) /
+          (amountInBaseUnit * parseNumber(nutrientsPer100.proteinsInGrams)) /
             100
         const totalCarbs =
           acc.totalCarbs +
-          (amountInGrams *
-            (ingredient?.totalNutrients?.carbohydratesInGrams || 0)) /
+          (amountInBaseUnit *
+            parseNumber(nutrientsPer100.carbohydratesInGrams)) /
             100
         const totalFat =
-          acc.totalFat +
-          (amountInGrams * (ingredient?.totalNutrients?.fatInGrams || 0)) / 100
+          acc.totalFat + (amountInBaseUnit * parseNumber(nutrientsPer100.fatInGrams)) / 100
         const totalFiber =
           acc.totalFiber +
-          (amountInGrams * (ingredient?.totalNutrients?.fibreInGrams || 0)) /
-            100
+          (amountInBaseUnit * parseNumber(nutrientsPer100.fibreInGrams)) / 100
         const totalSaturatedFat =
           acc.totalSaturatedFat +
-          (amountInGrams *
-            (ingredient?.totalNutrients?.fattyAcidsTotalSaturatedInGrams ||
-              0)) /
+          (amountInBaseUnit *
+            parseNumber(nutrientsPer100.fattyAcidsTotalSaturatedInGrams)) /
             100
         const totalUnSaturatedFat =
           acc.totalUnSaturatedFat +
-          (amountInGrams *
-            (ingredient?.totalNutrients?.fattyAcidsTotalUnSaturatedInGrams ||
-              0)) /
+          (amountInBaseUnit *
+            parseNumber(nutrientsPer100.fattyAcidsTotalUnSaturatedInGrams)) /
             100
         const totalSugar =
           acc.totalSugar +
-          (amountInGrams * (ingredient?.totalNutrients?.sugarsInGrams || 0)) /
-            100
+          (amountInBaseUnit * parseNumber(nutrientsPer100.sugarsInGrams)) / 100
 
         const totalSalt =
-          acc.totalSalt +
-          (amountInGrams * (ingredient?.totalNutrients?.saltInGrams || 0)) / 100
-
-        const totalCholesterol =
-          acc.totalCholesterol +
-          (amountInGrams * (ingredient.cholesterol || 0)) / 100
-
-        const totalPotassium =
-          acc.totalPotassium +
-          (amountInGrams * (ingredient.potassium || 0)) / 100
+          acc.totalSalt + (amountInBaseUnit * parseNumber(nutrientsPer100.saltInGrams)) / 100
 
         return {
           totalCalories,
@@ -444,9 +433,7 @@ const Recipes = () => {
           totalSaturatedFat,
           totalUnSaturatedFat,
           totalSugar,
-          totalSalt,
-          totalCholesterol,
-          totalPotassium
+          totalSalt
         }
       },
       {
@@ -459,54 +446,17 @@ const Recipes = () => {
         totalSaturatedFat: 0,
         totalUnSaturatedFat: 0,
         totalSugar: 0,
-        totalSalt: 0,
-        totalCholesterol: 0,
-        totalPotassium: 0
+        totalSalt: 0
       }
     )
     return totalNutrs
   }
 
-  // Generate default serving options based on recipe details
   const generateDefaultServings = (totalWeightInGrams, numServings) => {
-    const totalWeight = totalWeightInGrams || 100
-    const servings = numServings || numberOfServings || 2
-
-    // Calculate per-serving weight
-    const perServingWeight = totalWeight / servings
-
-    const servingOptions = [
-      {
-        amount: 100,
-        unit: 'grams',
-        innerName: 'Grame',
-        profileId: 0,
-        name: 'Grame'
-      }
-    ]
-
-    // Add portion serving (profileId: 1) - represents 1 serving
-    if (perServingWeight > 0) {
-      servingOptions.push({
-        amount: Math.round(perServingWeight * 100) / 100, // Round to 2 decimal places
-        unit: 'grams',
-        innerName: 'Portion',
-        profileId: 1,
-        name: `Portion (${Math.round(perServingWeight * 100) / 100}g)`
-      })
-
-      // Add oz option for portion (optional)
-      const perServingWeightOz = perServingWeight / 28.3495
-      servingOptions.push({
-        amount: Math.round(perServingWeightOz * 100) / 100,
-        unit: 'oz',
-        innerName: 'oz',
-        profileId: 1,
-        name: `Oz (${Math.round(perServingWeightOz * 100) / 100}oz)`
-      })
-    }
-
-    return servingOptions
+    const totalWeight = parseNumber(totalWeightInGrams) || 1
+    const servings = parseNumber(numServings) || 1
+    const value = totalWeight / servings
+    return [{ unitName: 'serving', value }]
   }
 
   const handlePhotoSelect = e => {
@@ -527,7 +477,7 @@ const Recipes = () => {
     setSelectedIngredients([])
     setRecipeInstructions('')
     setTotalTimeInMinutes('')
-    setNumberOfServings(2)
+    setNumberOfRecipeServings(1)
     setSelectedPhoto(null)
     setPhotoPreview(null)
     setExistingPhotoUrl(null)
@@ -544,7 +494,7 @@ const Recipes = () => {
       // Fetch full recipe data by ID
       const recipeId = recipe.id || recipe.itemId || recipe._id
       if (!recipeId) {
-        alert('Recipe ID not found')
+        alert(t('pages.recipes.recipeIdNotFound'))
         setLoadingEdit(false)
         return
       }
@@ -553,20 +503,20 @@ const Recipes = () => {
       const fullRecipe = resp?.data?.[0] || resp?.items?.[0]
 
       if (!fullRecipe) {
-        alert('Failed to load recipe data')
+        alert(t('pages.recipes.failedLoadRecipeData'))
         setLoadingEdit(false)
         return
       }
 
       setEditingRecipeId(recipeId)
-      setEditingUserId(fullRecipe.createdByUserId || 'BACKOFFICE_ADMIN')
+      setEditingUserId(fullRecipe.createdByUserId || ADMIN_USER_ID)
       setRecipeName(fullRecipe.name || '')
       setSelectedCountryCode(fullRecipe.countryCode || 'RO')
       setRecipeInstructions(
         fullRecipe.recipeSteps?.instructions?.join('\n') || ''
       )
       setTotalTimeInMinutes(fullRecipe.totalTimeInMinutes?.toString() || '')
-      setNumberOfServings(fullRecipe.numberOfServings || 2)
+      setNumberOfRecipeServings(fullRecipe.numberOfRecipeServings || 1)
       setExistingPhotoUrl(fullRecipe.photoUrl || null)
       setPhotoPreview(fullRecipe.photoUrl || null)
 
@@ -594,24 +544,35 @@ const Recipes = () => {
             // Enrich ingredients with full nutrient data
             const enrichedIngredients = ingredients.map(ing => {
               const detailed = detailedMap[ing.id]
+              const selectedIngredientUnit = ing.unit || 'g'
+              const selectedIngredientQuantity = parseNumber(
+                ing.quantity ?? ing.weight ?? 100
+              )
               if (detailed) {
                 return {
-                  ...ing,
-                  // Store full item data for nutrient calculation
-                  totalCalories: detailed.totalCalories || 0,
-                  totalNutrients: detailed.totalNutrients || {},
-                  cholesterol: detailed.cholesterol || 0,
-                  potassium: detailed.potassium || 0
+                  id: ing.id,
+                  name: ing.name || detailed.name,
+                  quantity: selectedIngredientQuantity,
+                  weight: selectedIngredientQuantity,
+                  unit: selectedIngredientUnit,
+                  category: ing.category || detailed.category || null,
+                  caloriesPer100: parseNumber(detailed.caloriesPer100),
+                  nutrientsPer100: parseNutrients(detailed.nutrientsPer100),
+                  isLiquid: detailed.isLiquid,
+                  servingOptions: parseServingOptions(detailed.servingOptions)
                 }
               }
-              // If detailed data not found, return original ingredient
-              // but try to use any existing nutrient data
               return {
-                ...ing,
-                totalCalories: ing.totalCalories || 0,
-                totalNutrients: ing.totalNutrients || {},
-                cholesterol: ing.cholesterol || 0,
-                potassium: ing.potassium || 0
+                id: ing.id,
+                name: ing.name,
+                quantity: selectedIngredientQuantity,
+                weight: selectedIngredientQuantity,
+                unit: selectedIngredientUnit,
+                category: ing.category || null,
+                caloriesPer100: parseNumber(ing.caloriesPer100),
+                nutrientsPer100: parseNutrients(ing.nutrientsPer100),
+                isLiquid: ing.isLiquid,
+                servingOptions: parseServingOptions(ing.servingOptions)
               }
             })
             setSelectedIngredients(enrichedIngredients)
@@ -635,14 +596,14 @@ const Recipes = () => {
       setLoadingEdit(false)
     } catch (e) {
       console.error('Failed to load recipe for editing', e)
-      alert('Failed to load recipe data. Please try again.')
+      alert(t('pages.recipes.failedLoadRecipeDataRetry'))
       setLoadingEdit(false)
     }
   }
 
   const handleDeleteRecipe = async recipe => {
     const confirmed = confirm(
-      `Are you sure you want to delete "${recipe.name}"?`
+      t('pages.recipes.confirmDeleteWithName', { name: recipe?.name || '' })
     )
     if (!confirmed) return
 
@@ -651,14 +612,14 @@ const Recipes = () => {
       await deleteItem({
         itemId: recipe.id,
         itemType: 'FOOD',
-        userId: recipe.createdByUserId || 'BACKOFFICE_ADMIN'
+        userId: recipe.createdByUserId || ADMIN_USER_ID
       })
-      alert('Recipe deleted successfully!')
+      alert(t('pages.recipes.deleteSuccess'))
       await new Promise(resolve => setTimeout(resolve, 1500))
       refreshData()
     } catch (e) {
       console.error('Failed to delete recipe', e)
-      alert('Failed to delete recipe. Please try again.')
+      alert(t('pages.recipes.deleteFail'))
     } finally {
       setDeleting(false)
     }
@@ -686,18 +647,18 @@ const Recipes = () => {
           await addPhotoToItem({
             itemId: recipe.id,
             itemType: 'FOOD',
-            userId: recipe.createdByUserId || 'BACKOFFICE_ADMIN',
+            userId: recipe.createdByUserId || ADMIN_USER_ID,
             photoUrl: photoUrl
           })
-          alert('Photo added successfully!')
+          alert(t('pages.recipes.photoAddedSuccess'))
           await new Promise(resolve => setTimeout(resolve, 1500))
           refreshData()
         } else {
-          alert('Failed to upload photo')
+          alert(t('pages.recipes.failedUploadPhoto'))
         }
       } catch (e) {
         console.error('Failed to add photo', e)
-        alert('Failed to add photo. Please try again.')
+        alert(t('pages.recipes.failedAddPhotoRetry'))
       } finally {
         setUploadingPhoto(false)
       }
@@ -707,11 +668,11 @@ const Recipes = () => {
 
   const handleCreateRecipe = async () => {
     if (!recipeName.trim()) {
-      alert('Please provide a recipe name')
+      alert(t('pages.recipes.provideRecipeName'))
       return
     }
     if (selectedIngredients.length === 0) {
-      alert('Please add at least one ingredient')
+      alert(t('pages.recipes.addAtLeastOneIngredient'))
       return
     }
 
@@ -721,7 +682,7 @@ const Recipes = () => {
 
       // Calculate nutrients
       const calculatedNutrients = calculateNutrients(selectedIngredients)
-      const weightAfterCooking = calculatedNutrients.totalQuantity
+      const weightAfterCooking = parseNumber(calculatedNutrients.totalQuantity)
 
       // Upload photo if selected (only for new recipes or when changing photo)
       let photoUrl = existingPhotoUrl
@@ -744,53 +705,59 @@ const Recipes = () => {
         .filter(line => line.length > 0)
 
       // Generate serving options based on calculated total weight and number of servings
-      const serving = generateDefaultServings(
+      const servingOptions = generateDefaultServings(
         calculatedNutrients.totalQuantity,
-        parseInt(numberOfServings) || 2
+        parseInt(numberOfRecipeServings, 10) || 1
       )
 
-      // Prepare ingredients for API (without full item data)
       const ingredientsForAPI = selectedIngredients.map(ing => ({
         id: ing.id,
         name: ing.name,
-        quantity: ing.quantity,
+        quantity: parseNumber(ing.quantity ?? ing.weight ?? 0),
         unit: ing.unit,
-        category: ing.category,
-        servingDisplay: ing.servingDisplay,
-        servingAmount: ing.servingAmount,
-        weight: ing.weight
+        category: ing.category
       }))
 
-      // Prepare recipe data
+      const totalQtyForPer100 = weightAfterCooking || 1
+      const caloriesPer100 =
+        (parseNumber(calculatedNutrients.totalCalories) * 100) / totalQtyForPer100
       const recipeData = {
         type: 'recipe',
         countryCode: selectedCountryCode,
-        serving: serving,
+        servingOptions,
         ingredients: ingredientsForAPI,
         photoUrl: photoUrl,
         recipeSteps: {
           instructions: instructions
         },
         totalTimeInMinutes: parseInt(totalTimeInMinutes) || 0,
-        totalCalories: calculatedNutrients.totalCalories,
+        caloriesPer100,
         name: recipeName.trim(),
         isPublic: true,
-        numberOfServings: parseInt(numberOfServings) || 2,
-        totalNutrients: {
-          vitaminAInGrams: 0,
-          proteinsInGrams: calculatedNutrients.totalProtein,
-          fatInGrams: calculatedNutrients.totalFat,
+        numberOfRecipeServings: parseInt(numberOfRecipeServings, 10) || 1,
+        nutrientsPer100: {
+          proteinsInGrams:
+            (parseNumber(calculatedNutrients.totalProtein) * 100) / totalQtyForPer100,
+          fatInGrams:
+            (parseNumber(calculatedNutrients.totalFat) * 100) / totalQtyForPer100,
           fattyAcidsTotalSaturatedInGrams:
-            calculatedNutrients.totalSaturatedFat,
+            (parseNumber(calculatedNutrients.totalSaturatedFat) * 100) /
+            totalQtyForPer100,
           fattyAcidsTotalUnSaturatedInGrams:
-            calculatedNutrients.totalUnSaturatedFat,
-          carbohydratesInGrams: calculatedNutrients.totalCarbs,
-          saltInGrams: calculatedNutrients.totalSalt,
-          fibreInGrams: calculatedNutrients.totalFiber,
-          sugarsInGrams: calculatedNutrients.totalSugar,
-          totalQuantity: calculatedNutrients.totalQuantity,
-          weightAfterCooking: weightAfterCooking
-        }
+            (parseNumber(calculatedNutrients.totalUnSaturatedFat) * 100) /
+            totalQtyForPer100,
+          carbohydratesInGrams:
+            (parseNumber(calculatedNutrients.totalCarbs) * 100) / totalQtyForPer100,
+          saltInGrams:
+            (parseNumber(calculatedNutrients.totalSalt) * 100) / totalQtyForPer100,
+          fibreInGrams:
+            (parseNumber(calculatedNutrients.totalFiber) * 100) / totalQtyForPer100,
+          sugarsInGrams:
+            (parseNumber(calculatedNutrients.totalSugar) * 100) / totalQtyForPer100
+        },
+        selectedUnit: 'serving',
+        isLiquid: false,
+        weightAfterCooking
       }
 
       if (editingRecipeId) {
@@ -801,16 +768,16 @@ const Recipes = () => {
           itemType: 'FOOD',
           data: recipeData
         })
-        alert('Recipe updated successfully!')
+        alert(t('pages.recipes.updateSuccess'))
       } else {
         // Create new recipe
         await addItem({
-          userId: currentUser?.uid || 'BACKOFFICE_ADMIN',
+          userId: ADMIN_USER_ID,
           itemType: 'FOOD',
           data: recipeData,
           countryCode: selectedCountryCode
         })
-        alert('Recipe created successfully!')
+        alert(t('pages.recipes.createSuccess'))
       }
 
       // Reset form
@@ -823,7 +790,9 @@ const Recipes = () => {
     } catch (e) {
       console.error('Failed to save recipe', e)
       alert(
-        `Failed to ${editingRecipeId ? 'update' : 'create'} recipe. Please try again.`
+        editingRecipeId
+          ? t('pages.recipes.updateFail')
+          : t('pages.recipes.createFail')
       )
     } finally {
       setSubmitting(false)
@@ -1039,12 +1008,12 @@ const Recipes = () => {
 
                   <div className="flex flex-wrap gap-3 text-sm text-gray-700">
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">Calories:</span>
-                      <span>{item.totalCalories || 'N/A'}</span>
+                      <span className="font-medium">Calories/100:</span>
+                      <span>{item.caloriesPer100 || 'N/A'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-medium">Servings:</span>
-                      <span>{item.numberOfServings || 'N/A'}</span>
+                      <span>{item.numberOfRecipeServings || 'N/A'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-medium">Created:</span>
@@ -1273,10 +1242,10 @@ const Recipes = () => {
                       {item.countryCode || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.totalCalories || 'N/A'}
+                      {item.caloriesPer100 || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.numberOfServings || 'N/A'}
+                      {item.numberOfRecipeServings || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {item.photoUrl ? (
@@ -1437,8 +1406,10 @@ const Recipes = () => {
                   Number of Servings
                 </label>
                 <input
-                  value={numberOfServings}
-                  onChange={e => setNumberOfServings(e.target.value)}
+                  type="number"
+                  min="1"
+                  value={numberOfRecipeServings}
+                  onChange={e => setNumberOfRecipeServings(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
@@ -1524,8 +1495,8 @@ const Recipes = () => {
                             {item?.name || item?.title || 'Unnamed'}
                           </div>
                           <div className="text-xs text-gray-600">
-                            {item?.totalCalories
-                              ? `${item.totalCalories} cal/100g`
+                            {item?.caloriesPer100
+                              ? `${item.caloriesPer100} cal/100`
                               : ''}
                           </div>
                         </div>
@@ -1587,10 +1558,9 @@ const Recipes = () => {
                               className="border border-gray-300 rounded-md px-2 py-1 text-sm"
                             >
                               <option value="g">g</option>
-                              <option value="kg">kg</option>
-                              <option value="ml">ml</option>
-                              <option value="l">l</option>
                               <option value="oz">oz</option>
+                              <option value="ml">ml</option>
+                              <option value="fl oz">fl oz</option>
                             </select>
                             <div className="text-xs text-gray-600">
                               {Math.round(calculatedNutrients.totalCalories)}{' '}
