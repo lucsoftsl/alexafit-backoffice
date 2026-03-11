@@ -926,3 +926,24 @@ export const getUserById = async userId => {
     throw error
   }
 }
+
+export const auth0Login = async ({ user, userId }) => {
+  try {
+    const response = await fetch(`${API_FE_BASE_URL}/users/auth0-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ user, userId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error completing auth0 login:', error)
+    throw error
+  }
+}

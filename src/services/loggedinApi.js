@@ -268,6 +268,23 @@ export async function saveUserDataFromWelcomeScreen({
   })
 }
 
+export async function completeBackofficeRegistration({
+  userId,
+  fullName,
+  email,
+  userType
+}) {
+  return request('/foodsync/users/completeBackofficeRegistration', {
+    method: 'POST',
+    body: {
+      userId,
+      fullName,
+      email,
+      userType
+    }
+  })
+}
+
 export async function getAvatars({ userId }) {
   // Get available avatars for a user
   return request('/foodsync/getAvatars', {

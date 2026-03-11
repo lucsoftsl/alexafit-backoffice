@@ -131,23 +131,48 @@
   "login": {
     "signInTitle": "Sign in to your account",
     "createAccountTitle": "Create a new account",
+    "welcomeBackTitle": "Welcome Back",
+    "welcomeBackSubtitle": "Login to your AlexaFit health dashboard",
+    "createAccountHeading": "Create Account",
+    "createAccountSubtitle": "Register as a nutritionist to access backoffice tools",
+    "fullNameLabel": "Full name",
+    "fullNamePlaceholder": "Enter your full name",
+    "nutritionistOnlyHint": "Backoffice signup is available for nutritionists only.",
     "emailLabel": "Email address",
     "emailPlaceholder": "Enter your email",
     "passwordLabel": "Password",
     "passwordPlaceholder": "Enter your password",
     "confirmPasswordLabel": "Confirm Password",
     "confirmPasswordPlaceholder": "Confirm your password",
+    "registerAsLabel": "Register as",
+    "registerAsOptions": {
+      "regular": "Regular user",
+      "nutritionist": "Nutritionist"
+    },
     "signInButton": "Sign in",
     "createAccountButton": "Create account",
+    "continueWithGoogle": "Continue with Google",
     "pleaseWait": "Please wait...",
     "orContinueWith": "Or continue with",
     "googleSignIn": "Google",
     "signUpPrompt": "Don't have an account? Sign up",
     "signInPrompt": "Already have an account? Sign in",
+    "signUpPromptPrefix": "Don't have an account?",
+    "signInPromptPrefix": "Already have an account?",
+    "signUpCta": "Sign up",
+    "signInCta": "Sign in",
     "validation": {
       "fillAllFields": "Please fill in all fields",
+      "enterEmail": "Please enter your email address",
       "passwordsDoNotMatch": "Passwords do not match",
       "passwordTooShort": "Password must be at least 6 characters"
+    },
+    "forgotPassword": {
+      "link": "Forgot?",
+      "title": "Forgot Password?",
+      "description": "Enter your email address and we'll send you a reset link.",
+      "sendButton": "Send Reset Link",
+      "success": "Password reset email sent. Check your inbox and spam folder."
     },
     "errors": {
       "userNotFound": "No account found with this email",
@@ -159,7 +184,8 @@
       "signInCancelled": "Sign-in cancelled",
       "popupBlocked": "Please allow popups for this site",
       "appleSignInFailed": "Failed to sign in with Apple",
-      "appleNotEnabled": "Apple Sign-In is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Apple"
+      "appleNotEnabled": "Apple Sign-In is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method → Apple",
+      "forgotPasswordFailed": "Failed to send password reset email"
     }
   },
   "app": {
@@ -503,7 +529,11 @@
       "noPermission": "You don't have permission to access this page.",
       "adminRequired": "Admin privileges required.",
       "adminOrNutritionistRequired": "Admin or Nutritionist privileges required.",
-      "nutritionistRequired": "Nutritionist privileges required."
+      "nutritionistRequired": "Nutritionist privileges required.",
+      "deniedTitle": "Access Denied",
+      "deniedMessage": "You are not authorized to access the backoffice.",
+      "deniedDescription": "Your account is not logged in or does not have backoffice access.",
+      "logout": "Logout"
     },
     "app": {
       "loadingUserData": "Loading user data..."
@@ -614,7 +644,12 @@
       "form": {
         "userIdLabel": "User ID",
         "userIdPlaceholder": "Enter user ID",
-        "help": "Enter the ID of an existing user to assign them to your client list"
+        "help": "Enter the unique identification number of the member.",
+        "quickTipTitle": "Quick Tip",
+        "quickTipBody": "If the user is not found, the user should create an account using the mobile app.",
+        "quickTipUserIdLocation": "The user ID can be found in the mobile app on the Profile page (top left), then scroll down to the About section.",
+        "iosLink": "iOS App Store",
+        "androidLink": "Android Play Store"
       },
       "errors": {
         "refresh": "Failed to refresh clients. Please try again.",

@@ -160,6 +160,66 @@
     },
     "close": "Cerrar"
   },
+  "login": {
+    "signInTitle": "Inicia sesión en tu cuenta",
+    "createAccountTitle": "Crear una nueva cuenta",
+    "welcomeBackTitle": "Bienvenido de nuevo",
+    "welcomeBackSubtitle": "Accede a tu panel de salud AlexaFit",
+    "createAccountHeading": "Crear cuenta",
+    "createAccountSubtitle": "Regístrate como nutricionista para acceder al backoffice",
+    "fullNameLabel": "Nombre completo",
+    "fullNamePlaceholder": "Ingresa tu nombre completo",
+    "nutritionistOnlyHint": "El registro en backoffice está disponible solo para nutricionistas.",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "Ingresa tu correo electrónico",
+    "passwordLabel": "Contraseña",
+    "passwordPlaceholder": "Ingresa tu contraseña",
+    "confirmPasswordLabel": "Confirmar contraseña",
+    "confirmPasswordPlaceholder": "Confirma tu contraseña",
+    "registerAsLabel": "Registrarse como",
+    "registerAsOptions": {
+      "regular": "Usuario regular",
+      "nutritionist": "Nutricionista"
+    },
+    "signInButton": "Inicia sesión",
+    "createAccountButton": "Crear cuenta",
+    "continueWithGoogle": "Continuar con Google",
+    "pleaseWait": "Por favor espera...",
+    "orContinueWith": "O continúa con",
+    "googleSignIn": "Google",
+    "signUpPrompt": "¿No tienes cuenta? Regístrate",
+    "signInPrompt": "¿Ya tienes una cuenta? Inicia sesión",
+    "signUpPromptPrefix": "¿No tienes cuenta?",
+    "signInPromptPrefix": "¿Ya tienes una cuenta?",
+    "signUpCta": "Regístrate",
+    "signInCta": "Inicia sesión",
+    "validation": {
+      "fillAllFields": "Por favor completa todos los campos",
+      "enterEmail": "Por favor ingresa tu correo electrónico",
+      "passwordsDoNotMatch": "Las contraseñas no coinciden",
+      "passwordTooShort": "La contraseña debe tener al menos 6 caracteres"
+    },
+    "forgotPassword": {
+      "link": "¿Olvidaste?",
+      "title": "¿Olvidaste tu contraseña?",
+      "description": "Ingresa tu correo electrónico y te enviaremos un enlace de restablecimiento.",
+      "sendButton": "Enviar enlace",
+      "success": "Se envió el correo de restablecimiento. Revisa tu bandeja de entrada y spam."
+    },
+    "errors": {
+      "userNotFound": "No se encontró una cuenta con este correo electrónico",
+      "wrongPassword": "Contraseña incorrecta",
+      "emailInUse": "Ya existe una cuenta con este correo electrónico",
+      "invalidEmail": "Correo electrónico inválido",
+      "weakPassword": "La contraseña es demasiado débil",
+      "googleSignInFailed": "Error al iniciar sesión con Google",
+      "signInCancelled": "Inicio de sesión cancelado",
+      "popupBlocked": "Por favor permite las ventanas emergentes en este sitio",
+      "appleSignInFailed": "Error al iniciar sesión con Apple",
+      "appleNotEnabled": "El inicio de sesión con Apple no está habilitado. Por favor habilitalo en Firebase Console → Authentication → Sign-in method → Apple",
+      "forgotPasswordFailed": "No se pudo enviar el correo de restablecimiento"
+    }
+  },
   "app": {
     "brand": "AlexaFit",
     "tagline": "Guía de nutrición",
@@ -501,7 +561,11 @@
       "noPermission": "No tienes permiso para acceder a esta página.",
       "adminRequired": "Se requieren privilegios de administrador.",
       "adminOrNutritionistRequired": "Se requieren privilegios de administrador o nutricionista.",
-      "nutritionistRequired": "Se requieren privilegios de nutricionista."
+      "nutritionistRequired": "Se requieren privilegios de nutricionista.",
+      "deniedTitle": "Acceso denegado",
+      "deniedMessage": "No estás autorizado para acceder al backoffice.",
+      "deniedDescription": "Tu cuenta no ha iniciado sesión o no tiene acceso al backoffice.",
+      "logout": "Cerrar sesión"
     },
     "app": {
       "loadingUserData": "Cargando datos del usuario..."
@@ -612,7 +676,12 @@
       "form": {
         "userIdLabel": "ID de usuario",
         "userIdPlaceholder": "Ingresa el ID de usuario",
-        "help": "Ingresa el ID de un usuario existente para asignarlo a tu lista de clientes"
+        "help": "Ingresa el número de identificación único del miembro.",
+        "quickTipTitle": "Consejo rápido",
+        "quickTipBody": "Si no se encuentra al usuario, debe crear una cuenta usando la aplicación móvil.",
+        "quickTipUserIdLocation": "El ID de usuario puede encontrarse en la app móvil, en la página Perfil (arriba a la izquierda), y luego bajando hasta la sección Acerca de.",
+        "iosLink": "App Store iOS",
+        "androidLink": "Google Play Android"
       },
       "errors": {
         "refresh": "Error al actualizar clientes. Intenta de nuevo.",

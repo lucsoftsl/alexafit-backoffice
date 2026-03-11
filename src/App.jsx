@@ -44,6 +44,22 @@ function App() {
   const userData = useSelector(selectUserData)
   const userLoading = useSelector(selectUserLoading)
   const userError = useSelector(selectUserError)
+  const shouldUseNutritionistTopTabs = isNutritionist && !isAdmin
+
+  const nutritionistTopTabs = [
+    { id: 'myday', label: t('sidebar.myDay') },
+    { id: 'myusers', label: t('sidebar.clients') },
+    { id: 'mymenus', label: t('sidebar.myMenus') },
+    { id: 'progress', label: t('sidebar.progress') }
+  ]
+
+  const getUserDisplayName = () => {
+    if (currentUser?.displayName) return currentUser.displayName
+    if (currentUser?.email) return currentUser.email.split('@')[0]
+    return 'AlexaFit'
+  }
+
+  const getUserInitial = () => getUserDisplayName().charAt(0).toUpperCase()
 
   const handleLogout = async () => {
     try {
@@ -223,19 +239,23 @@ function App() {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-md">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            {t('pages.access.deniedTitle')}
+          </h2>
           <p className="text-gray-700 mb-4">
-            {userError || 'You are not authorized to access the backoffice.'}
+            {userError
+              ? t(userError, { defaultValue: userError })
+              : t('pages.access.deniedMessage')}
           </p>
           <p className="text-gray-600 mb-6">
-            Your account is not logged in or does not have backoffice access.
+            {t('pages.access.deniedDescription')}
           </p>
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
           >
             <ArrowRightOnRectangleIcon className="w-4 h-4" />
-            Logout
+            {t('pages.access.logout')}
           </button>
         </div>
       </div>
@@ -247,6 +267,7 @@ function App() {
       <Sidebar
         activePage={activePage}
         onNavigate={handleNavigate}
+        hideDesktop={shouldUseNutritionistTopTabs}
         variant={sidebarVariant}
         onBackToMain={handleBackToMainSidebar}
         activeClientMenuItem={clientSidebarItem}
@@ -276,14 +297,67 @@ function App() {
           </span>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6">
-            {/* User info badge - desktop */}
-            <div className="mb-4 hidden items-center gap-2 md:flex">
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-                {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
-              </span>
+        {shouldUseNutritionistTopTabs && (
+          <div className="hidden border-b border-[#ececf2] bg-white md:block">
+            <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4">
+              <div className="flex items-center gap-10">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#7a56df] text-white">
+                    <span className="text-xs font-bold">{getUserInitial()}</span>
+                  </div>
+                  <p className="text-lg font-semibold text-[#1b2232]">AlexaFit</p>
+                </div>
+                <nav className="flex items-center gap-2">
+                  {nutritionistTopTabs.map(tab => {
+                    const isActive = activePage === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => handleNavigate(tab.id)}
+                        className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                          isActive
+                            ? 'bg-[#f1ecff] text-[#7a56df]'
+                            : 'text-[#566074] hover:bg-[#f7f7fb] hover:text-[#1b2232]'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    )
+                  })}
+                </nav>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleNavigate('settings')}
+                className="flex items-center gap-3 rounded-full border border-[#ebeef5] bg-[#fafbfe] px-3 py-2"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3e1d8] text-sm font-semibold text-[#1b2232]">
+                  {getUserInitial()}
+                </div>
+                <div className="text-left">
+                  <p className="max-w-[180px] truncate text-sm font-medium text-[#1b2232]">
+                    {getUserDisplayName()}
+                  </p>
+                  <p className="max-w-[180px] truncate text-xs text-[#7b8497]">
+                    {currentUser?.email || t('sidebar.backofficeAdmin')}
+                  </p>
+                </div>
+              </button>
             </div>
+          </div>
+        )}
+
+        <main className="flex-1 overflow-y-auto">
+          <div className={`${shouldUseNutritionistTopTabs ? 'mx-auto max-w-[1400px] p-4 md:px-6 md:py-7' : 'p-4 md:p-6'}`}>
+            {/* User info badge - desktop */}
+            {!shouldUseNutritionistTopTabs && (
+              <div className="mb-4 hidden items-center gap-2 md:flex">
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+                  {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
+                </span>
+              </div>
+            )}
             {renderPage()}
           </div>
         </main>

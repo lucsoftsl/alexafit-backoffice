@@ -131,23 +131,48 @@
   "login": {
     "signInTitle": "Connectez-vous à votre compte",
     "createAccountTitle": "Créer un nouveau compte",
+    "welcomeBackTitle": "Bon retour",
+    "welcomeBackSubtitle": "Connectez-vous à votre tableau de bord AlexaFit",
+    "createAccountHeading": "Créer un compte",
+    "createAccountSubtitle": "Inscrivez-vous comme nutritionniste pour accéder au back-office",
+    "fullNameLabel": "Nom complet",
+    "fullNamePlaceholder": "Entrez votre nom complet",
+    "nutritionistOnlyHint": "L'inscription au back-office est disponible uniquement pour les nutritionnistes.",
     "emailLabel": "Adresse e-mail",
     "emailPlaceholder": "Entrez votre e-mail",
     "passwordLabel": "Mot de passe",
     "passwordPlaceholder": "Entrez votre mot de passe",
     "confirmPasswordLabel": "Confirmer le mot de passe",
     "confirmPasswordPlaceholder": "Confirmez votre mot de passe",
+    "registerAsLabel": "S'inscrire en tant que",
+    "registerAsOptions": {
+      "regular": "Utilisateur standard",
+      "nutritionist": "Nutritionniste"
+    },
     "signInButton": "Se connecter",
     "createAccountButton": "Créer un compte",
+    "continueWithGoogle": "Continuer avec Google",
     "pleaseWait": "Veuillez patienter...",
     "orContinueWith": "Ou continuez avec",
     "googleSignIn": "Google",
     "signUpPrompt": "Vous n'avez pas de compte? S'inscrire",
     "signInPrompt": "Vous avez déjà un compte? Se connecter",
+    "signUpPromptPrefix": "Vous n'avez pas de compte ?",
+    "signInPromptPrefix": "Vous avez déjà un compte ?",
+    "signUpCta": "S'inscrire",
+    "signInCta": "Se connecter",
     "validation": {
       "fillAllFields": "Veuillez remplir tous les champs",
+      "enterEmail": "Veuillez saisir votre adresse e-mail",
       "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
       "passwordTooShort": "Le mot de passe doit comporter au moins 6 caractères"
+    },
+    "forgotPassword": {
+      "link": "Oublié ?",
+      "title": "Mot de passe oublié ?",
+      "description": "Entrez votre adresse e-mail et nous vous enverrons un lien de réinitialisation.",
+      "sendButton": "Envoyer le lien",
+      "success": "L'e-mail de réinitialisation a été envoyé. Vérifiez votre boîte de réception et vos spams."
     },
     "errors": {
       "userNotFound": "Aucun compte trouvé avec cet e-mail",
@@ -159,7 +184,8 @@
       "signInCancelled": "Connexion annulée",
       "popupBlocked": "Veuillez autoriser les fenêtres contextuelles pour ce site",
       "appleSignInFailed": "Échec de la connexion avec Apple",
-      "appleNotEnabled": "La connexion Apple n'est pas activée. Veuillez l'activer dans Firebase Console → Authentication → Sign-in method → Apple"
+      "appleNotEnabled": "La connexion Apple n'est pas activée. Veuillez l'activer dans Firebase Console → Authentication → Sign-in method → Apple",
+      "forgotPasswordFailed": "Impossible d'envoyer l'e-mail de réinitialisation"
     }
   },
   "app": {
@@ -503,7 +529,11 @@
       "noPermission": "Vous n'avez pas l'autorisation d'accéder à cette page.",
       "adminRequired": "Privilèges administrateur requis.",
       "adminOrNutritionistRequired": "Privilèges administrateur ou nutritionniste requis.",
-      "nutritionistRequired": "Privilèges nutritionniste requis."
+      "nutritionistRequired": "Privilèges nutritionniste requis.",
+      "deniedTitle": "Accès refusé",
+      "deniedMessage": "Vous n'êtes pas autorisé à accéder au back-office.",
+      "deniedDescription": "Votre compte n'est pas connecté ou n'a pas accès au back-office.",
+      "logout": "Se déconnecter"
     },
     "app": {
       "loadingUserData": "Chargement des données utilisateur..."
@@ -614,7 +644,12 @@
       "form": {
         "userIdLabel": "ID utilisateur",
         "userIdPlaceholder": "Entrez l'ID utilisateur",
-        "help": "Entrez l'ID d'un utilisateur existant pour l'ajouter à votre liste de clients"
+        "help": "Entrez le numéro d'identification unique du membre.",
+        "quickTipTitle": "Astuce rapide",
+        "quickTipBody": "Si l'utilisateur est introuvable, il doit créer un compte via l'application mobile.",
+        "quickTipUserIdLocation": "L'identifiant utilisateur se trouve dans l'application mobile, sur la page Profil (en haut à gauche), puis en faisant défiler jusqu'à la section À propos.",
+        "iosLink": "App Store iOS",
+        "androidLink": "Google Play Android"
       },
       "errors": {
         "refresh": "Échec de l'actualisation des clients. Veuillez réessayer.",

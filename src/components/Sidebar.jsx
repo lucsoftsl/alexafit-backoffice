@@ -23,6 +23,7 @@ const Sidebar = ({
   onNavigate,
   isMobileOpen = false,
   onClose,
+  hideDesktop = false,
   variant = 'main',
   onBackToMain,
   activeClientMenuItem = 'all-clients',
@@ -108,7 +109,11 @@ const Sidebar = ({
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-white shadow-lg border-r border-gray-200 transition-transform duration-200 md:static md:translate-x-0 md:flex md:flex-col ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-white shadow-lg border-r border-gray-200 transition-transform duration-200 ${
+          hideDesktop && variant !== 'clients'
+            ? 'md:hidden'
+            : 'md:static md:translate-x-0 md:flex md:flex-col'
+        } ${isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         <div className="flex h-full flex-col">
           <div className="p-6">

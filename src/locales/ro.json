@@ -131,23 +131,48 @@
   "login": {
     "signInTitle": "Conectați-vă la contul dvs",
     "createAccountTitle": "Creați un cont nou",
+    "welcomeBackTitle": "Bine ai revenit",
+    "welcomeBackSubtitle": "Intră în dashboard-ul tău AlexaFit",
+    "createAccountHeading": "Creează cont",
+    "createAccountSubtitle": "Înregistrează-te ca nutriționist pentru acces în backoffice",
+    "fullNameLabel": "Nume complet",
+    "fullNamePlaceholder": "Introduceți numele complet",
+    "nutritionistOnlyHint": "Înregistrarea în backoffice este disponibilă doar pentru nutriționiști.",
     "emailLabel": "Adresă de e-mail",
     "emailPlaceholder": "Introduceți adresa de e-mail",
     "passwordLabel": "Parolă",
     "passwordPlaceholder": "Introduceți parola",
     "confirmPasswordLabel": "Confirmare parolă",
     "confirmPasswordPlaceholder": "Confirmați parola",
+    "registerAsLabel": "Înregistrare ca",
+    "registerAsOptions": {
+      "regular": "Utilizator obișnuit",
+      "nutritionist": "Nutriționist"
+    },
     "signInButton": "Conectare",
     "createAccountButton": "Creare cont",
+    "continueWithGoogle": "Continuă cu Google",
     "pleaseWait": "Vă rugăm așteptați...",
     "orContinueWith": "Sau continuați cu",
     "googleSignIn": "Google",
     "signUpPrompt": "Nu aveți cont? Înregistrare",
     "signInPrompt": "Aveți deja un cont? Conectare",
+    "signUpPromptPrefix": "Nu ai cont?",
+    "signInPromptPrefix": "Ai deja cont?",
+    "signUpCta": "Înregistrează-te",
+    "signInCta": "Conectează-te",
     "validation": {
       "fillAllFields": "Vă rugăm completați toate câmpurile",
+      "enterEmail": "Vă rugăm introduceți adresa de e-mail",
       "passwordsDoNotMatch": "Parolele nu se potrivesc",
       "passwordTooShort": "Parola trebuie să aibă cel puțin 6 caractere"
+    },
+    "forgotPassword": {
+      "link": "Ai uitat?",
+      "title": "Ai uitat parola?",
+      "description": "Introdu adresa de e-mail și îți trimitem un link de resetare.",
+      "sendButton": "Trimite linkul de resetare",
+      "success": "E-mailul de resetare a fost trimis. Verifică inbox-ul și folderul spam."
     },
     "errors": {
       "userNotFound": "Nu s-a găsit niciun cont cu această adresă de e-mail",
@@ -159,7 +184,8 @@
       "signInCancelled": "Conectare anulată",
       "popupBlocked": "Vă rugăm permiteti ferestrelele pop-up pentru acest site",
       "appleSignInFailed": "Eșec la conectarea cu Apple",
-      "appleNotEnabled": "Conectarea Apple nu este activată. Vă rugăm activați-o în Firebase Console → Authentication → Sign-in method → Apple"
+      "appleNotEnabled": "Conectarea Apple nu este activată. Vă rugăm activați-o în Firebase Console → Authentication → Sign-in method → Apple",
+      "forgotPasswordFailed": "Trimiterea e-mailului de resetare a eșuat"
     }
   },
   "app": {
@@ -503,7 +529,11 @@
       "noPermission": "Nu aveți permisiunea de a accesa această pagină.",
       "adminRequired": "Sunt necesare privilegii de administrator.",
       "adminOrNutritionistRequired": "Sunt necesare privilegii de administrator sau nutriționist.",
-      "nutritionistRequired": "Sunt necesare privilegii de nutriționist."
+      "nutritionistRequired": "Sunt necesare privilegii de nutriționist.",
+      "deniedTitle": "Acces interzis",
+      "deniedMessage": "Nu sunteți autorizat să accesați backoffice-ul.",
+      "deniedDescription": "Contul dvs. nu este conectat sau nu are acces la backoffice.",
+      "logout": "Deconectare"
     },
     "app": {
       "loadingUserData": "Se încarcă datele utilizatorului..."
@@ -614,7 +644,12 @@
       "form": {
         "userIdLabel": "ID utilizator",
         "userIdPlaceholder": "Introduceți ID-ul utilizatorului",
-        "help": "Introduceți ID-ul unui utilizator existent pentru a-l adăuga în lista de clienți"
+        "help": "Introduceți numărul unic de identificare al membrului.",
+        "quickTipTitle": "Sfat rapid",
+        "quickTipBody": "Dacă utilizatorul nu este găsit, acesta trebuie să își creeze un cont folosind aplicația mobilă.",
+        "quickTipUserIdLocation": "ID-ul utilizatorului poate fi găsit în aplicația mobilă pe pagina Profil (stânga sus), apoi derulează până la secțiunea Despre.",
+        "iosLink": "iOS App Store",
+        "androidLink": "Android Play Store"
       },
       "errors": {
         "refresh": "Eroare la reîmprospătarea clienților. Încercați din nou.",

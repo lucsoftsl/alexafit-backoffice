@@ -7,17 +7,19 @@ import {
   TrashIcon,
   ExclamationTriangleIcon,
   UserPlusIcon,
-  SparklesIcon
+  XMarkIcon,
+  FingerPrintIcon,
+  InformationCircleIcon,
+  CheckCircleIcon,
+  ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline'
 import { getNutritionistClients, assignClientToNutritionist, unassignClientFromNutritionist } from '../services/loggedinApi'
 import { useAuth } from '../contexts/AuthContext'
 import { selectUserData } from '../store/userSlice'
 
 const MyUsers = ({ onSelectClient = () => {} }) => {
-  // Glass UI utility classes
-  const glassCardClass = 'relative rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-xl'
-  const glassSurfaceClass = 'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
-  const softBadgeClass = 'px-2.5 py-1 rounded-full border text-xs'
+  const cardClass = 'rounded-[24px] border border-[#e7eaf1] bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)]'
+  const statCardClass = 'rounded-[20px] border border-[#e7def8] bg-[#f7f2ff] p-4 md:p-5'
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -131,12 +133,32 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredUsers.length / usersPerPage)), [filteredUsers.length, usersPerPage])
 
+  const filterTabs = [
+    { value: 'all', label: t('pages.myUsers.filters.allStatus') },
+    { value: 'active', label: t('pages.myUsers.active') },
+    { value: 'inactive', label: t('pages.myUsers.inactive') }
+  ]
+
+  const getDisplayName = user =>
+    user?.userData?.name ||
+    user?.loginDetails?.displayName ||
+    `${user?.firstName || ''} ${user?.lastName || ''}`.trim() ||
+    t('pages.myUsers.list.unknown')
+
+  const getDisplayEmail = user =>
+    user?.loginDetails?.email || user?.email || t('pages.myUsers.list.notAvailable')
+
+  const getDisplayAssignedDate = user =>
+    user?.dateTimeAssigned
+      ? new Date(user.dateTimeAssigned).toLocaleDateString()
+      : t('pages.myUsers.list.notAvailable')
+
   const getStatusBadge = (status) => {
     const normalized = (status || '').toString().toLowerCase()
     const statusStyles = {
-      active: 'bg-emerald-400/15 text-emerald-300 border-emerald-300/30',
-      inactive: 'bg-gray-400/15 text-gray-300 border-gray-300/30',
-      suspended: 'bg-rose-400/15 text-rose-300 border-rose-300/30'
+      active: 'bg-[#ddf6e7] text-[#1f8b50]',
+      inactive: 'bg-[#eef2f7] text-[#6d7a92]',
+      suspended: 'bg-[#ffe2e2] text-[#c35353]'
     }
     const style = statusStyles[normalized] || statusStyles.inactive
     const statusLabels = {
@@ -146,7 +168,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
     }
     const label = statusLabels[normalized] || (normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : t('pages.myUsers.list.unknown'))
     return (
-      <span className={`${softBadgeClass} ${style}`}>
+      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${style}`}>
         {label}
       </span>
     )
@@ -233,22 +255,18 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}> 
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <SparklesIcon className="w-6 h-6 text-indigo-400" />
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myUsers.headerTitle')}</h1>
-                <p className="text-gray-700">{t('pages.myUsers.headerSubtitle')}</p>
-              </div>
-            </div>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-[-0.03em] text-[#1b2232]">
+            {t('pages.myUsers.headerTitle')}
+          </h1>
+          <p className="mt-2 text-base text-[#607089]">
+            {t('pages.myUsers.headerSubtitle')}
+          </p>
         </div>
-        <div className={`${glassSurfaceClass} p-8 flex items-center justify-center`}>
+        <div className={`${cardClass} flex items-center justify-center p-10`}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-            <p className="mt-4 text-gray-700">{t('pages.myUsers.loading')}</p>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-[#7a56df]"></div>
+            <p className="mt-4 text-[#607089]">{t('pages.myUsers.loading')}</p>
           </div>
         </div>
       </div>
@@ -258,23 +276,26 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}> 
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
-          <div className="flex items-center gap-3">
-            <SparklesIcon className="w-6 h-6 text-indigo-400" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myUsers.headerTitle')}</h1>
-              <p className="text-gray-700">{t('pages.myUsers.headerSubtitle')}</p>
-            </div>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-[-0.03em] text-[#1b2232]">
+            {t('pages.myUsers.headerTitle')}
+          </h1>
+          <p className="mt-2 text-base text-[#607089]">
+            {t('pages.myUsers.headerSubtitle')}
+          </p>
         </div>
-        <div className={`${glassCardClass} p-6`}>
+        <div className={`${cardClass} p-6`}>
           <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-8 w-8 text-rose-600 mr-4" />
+            <ExclamationTriangleIcon className="mr-4 h-8 w-8 text-rose-600" />
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{t('pages.myUsers.error')}</h3>
-              <p className="text-gray-700 mt-1">{error}</p>
-              <button onClick={refreshUsers} className="btn-primary mt-4">{t('common.tryAgain')}</button>
+              <h3 className="text-lg font-semibold text-[#1b2232]">{t('pages.myUsers.error')}</h3>
+              <p className="mt-1 text-[#607089]">{error}</p>
+              <button
+                onClick={refreshUsers}
+                className="mt-4 rounded-xl bg-[#7a56df] px-4 py-2 text-sm font-semibold text-white"
+              >
+                {t('common.tryAgain')}
+              </button>
             </div>
           </div>
         </div>
@@ -284,114 +305,119 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header - Glass hero with quick stats */}
-      <div className={`p-6 sm:p-8 ${glassCardClass} overflow-hidden`}>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-500/20 via-fuchsia-500/20 to-pink-500/20" />
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <SparklesIcon className="w-7 h-7 text-indigo-400" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('pages.myUsers.headerTitle')}</h1>
-              <p className="text-gray-700 mt-1">{t('pages.myUsers.headerSubtitle')}</p>
-            </div>
-          </div>
-          <div className="flex gap-2 items-center justify-center sm:justify-end">
-            <button
-              onClick={refreshUsers}
-              className="btn-secondary flex items-center"
-              disabled={loading}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              {loading ? t('pages.myUsers.actions.loading') : t('pages.myUsers.actions.refresh')}
-            </button>
-            <button
-              onClick={() => setIsAssignModalOpen(true)}
-              className="btn-primary flex items-center"
-            >
-              <UserPlusIcon className="w-5 h-5 mr-2" />
-              {t('pages.myUsers.actions.assignUser')}
-            </button>
-          </div>
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-[-0.03em] text-[#1b2232]">
+            {t('pages.myUsers.headerTitle')}
+          </h1>
+          <p className="mt-2 text-base text-[#607089]">
+            {t('pages.myUsers.headerSubtitle')}
+          </p>
         </div>
+        <div className="flex gap-3">
+          <button
+            onClick={refreshUsers}
+            className="hidden items-center rounded-2xl border border-[#dfe3ec] bg-white px-4 py-3 text-sm font-medium text-[#4f5e76] transition hover:bg-[#f8f9fc] md:inline-flex"
+            disabled={loading}
+          >
+            {loading ? t('pages.myUsers.actions.loading') : t('pages.myUsers.actions.refresh')}
+          </button>
+          <button
+            onClick={() => setIsAssignModalOpen(true)}
+            className="inline-flex items-center rounded-2xl bg-[#7a56df] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(122,86,223,0.28)] transition hover:bg-[#6947ca]"
+          >
+            <UserPlusIcon className="mr-2 h-5 w-5" />
+            {t('pages.myUsers.actions.assignUser')}
+          </button>
+        </div>
+      </div>
 
-        {/* Stats */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.total')}</p>
-            <p className="text-2xl font-semibold text-gray-900">{stats.total}</p>
-          </div>
-          <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.active')}</p>
-            <p className="text-2xl font-semibold text-gray-900">{stats.active}</p>
-          </div>
-          <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.inactive')}</p>
-            <p className="text-2xl font-semibold text-gray-900">{stats.inactive}</p>
-          </div>
-          <div className={`${glassSurfaceClass} p-4`}> 
-            <p className="text-sm text-gray-600">{t('pages.myUsers.stats.assigned7d')}</p>
-            <p className="text-2xl font-semibold text-gray-900">{stats.recentAssigned}</p>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className={statCardClass}>
+          <p className="text-sm text-[#62718a]">{t('pages.myUsers.stats.total')}</p>
+          <p className="mt-2 text-4xl font-bold tracking-[-0.04em] text-[#7a56df]">{stats.total}</p>
+        </div>
+        <div className={statCardClass}>
+          <p className="text-sm text-[#62718a]">{t('pages.myUsers.stats.active')}</p>
+          <p className="mt-2 text-4xl font-bold tracking-[-0.04em] text-[#7a56df]">{stats.active}</p>
+        </div>
+        <div className={statCardClass}>
+          <p className="text-sm text-[#62718a]">{t('pages.myUsers.stats.inactive')}</p>
+          <p className="mt-2 text-4xl font-bold tracking-[-0.04em] text-[#7a56df]">{stats.inactive}</p>
+        </div>
+        <div className={statCardClass}>
+          <p className="text-sm text-[#62718a]">{t('pages.myUsers.stats.assigned7d')}</p>
+          <p className="mt-2 text-4xl font-bold tracking-[-0.04em] text-[#7a56df]">{stats.recentAssigned}</p>
+        </div>
+      </div>
+
+      <div className={cardClass}>
+        <div className="border-b border-[#edf0f5] px-4 py-4 md:px-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              {filterTabs.map(tab => {
+                const isActive = filterStatus === tab.value
+                return (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    onClick={() => setFilterStatus(tab.value)}
+                    className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
+                      isActive
+                        ? 'bg-[#f1ecff] text-[#7a56df]'
+                        : 'text-[#66758e] hover:bg-[#f6f7fb] hover:text-[#1b2232]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={refreshUsers}
+                className="inline-flex items-center rounded-2xl border border-[#dfe3ec] bg-white px-4 py-3 text-sm font-medium text-[#4f5e76] transition hover:bg-[#f8f9fc] md:hidden"
+                disabled={loading}
+              >
+                {loading ? t('pages.myUsers.actions.loading') : t('pages.myUsers.actions.refresh')}
+              </button>
+              <div className="relative w-full md:w-[320px]">
+                <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a3abb9]" />
+                <input
+                  type="text"
+                  placeholder={t('pages.myUsers.filters.searchPlaceholder')}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full rounded-2xl border border-[#e3e7ef] bg-[#fafbfd] py-3 pl-11 pr-4 text-sm text-[#1b2232] outline-none transition placeholder:text-[#98a1b3] focus:border-[#7a56df]"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className={`${glassSurfaceClass} p-6`}>
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder={t('pages.myUsers.filters.searchPlaceholder')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input pl-10 bg-white/40 backdrop-blur-sm border-white/30"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="input w-40 bg-white/40 backdrop-blur-sm border-white/30"
-            >
-              <option value="all">{t('pages.myUsers.filters.allStatus')}</option>
-              <option value="active">{t('pages.myUsers.active')}</option>
-              <option value="inactive">{t('pages.myUsers.inactive')}</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Users List - Mobile Cards */}
       <div className="space-y-3 md:hidden">
         {paginatedUsers.map((user) => {
-          const name = user?.userData?.name || 
-                     user?.loginDetails?.displayName || 
-                             `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
-                             t('pages.myUsers.list.unknown')
-          const email = user?.loginDetails?.email || user?.email || t('pages.myUsers.list.notAvailable')
+          const name = getDisplayName(user)
+          const email = getDisplayEmail(user)
           const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                  const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : t('pages.myUsers.list.notAvailable')
+          const assignedDate = getDisplayAssignedDate(user)
           const accountStatus = (user?.status || '').toString().toLowerCase()
           const userId = Array.isArray(user?.userId) ? user.userId[0] : user?.userId
           return (
             <div
               key={userId || user?.id}
-              className={`${glassCardClass} p-4 cursor-pointer hover:shadow-2xl transition-shadow`}
+              className={`${cardClass} cursor-pointer p-4 transition hover:shadow-[0_16px_32px_rgba(15,23,42,0.08)]`}
               onClick={() => handleSelectClient(user)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center">
-                  <div className="h-10 w-10 rounded-full mr-3 bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white shadow-md">
+                  <div className="mr-3 flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#7a56df,#a35bff)] text-white shadow-md">
                     <span className="text-sm font-semibold">{avatar}</span>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{name}</p>
-                    <p className="text-xs text-gray-500">{email}</p>
+                    <p className="text-sm font-semibold text-[#1b2232]">{name}</p>
+                    <p className="text-xs text-[#7b8497]">{email}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -400,7 +426,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                       e.stopPropagation()
                       handleUnassignUser(userId)
                     }}
-                    className="text-rose-600 hover:text-rose-800"
+                    className="rounded-full p-2 text-[#8f98ab] transition hover:bg-[#f8f9fc] hover:text-rose-600"
                     title={t('pages.myUsers.unassign')}
                   >
                     <TrashIcon className="w-4 h-4" />
@@ -409,12 +435,12 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                 <div className="space-y-1">
-                  <p className="text-gray-500">{t('pages.myUsers.list.status')}</p>
+                  <p className="text-[#7b8497]">{t('pages.myUsers.list.status')}</p>
                   {getStatusBadge(accountStatus)}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-gray-500">{t('pages.myUsers.list.assigned')}</p>
-                  <p className="text-gray-800 text-sm">{assignedDate}</p>
+                  <p className="text-[#7b8497]">{t('pages.myUsers.list.assigned')}</p>
+                  <p className="text-sm text-[#1b2232]">{assignedDate}</p>
                 </div>
               </div>
             </div>
@@ -422,42 +448,42 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         })}
 
         {/* Mobile Pagination */}
-        <div className={`mt-2 ${glassSurfaceClass} px-4 py-3 flex flex-col gap-3`}>
+        <div className={`${cardClass} mt-2 flex flex-col gap-3 px-4 py-3`}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-700">{t('pages.myUsers.pagination.perPage')}</label>
+              <label className="text-sm text-[#607089]">{t('pages.myUsers.pagination.perPage')}</label>
               <select
                 value={usersPerPage}
                 onChange={(e) => {
                   setUsersPerPage(Number(e.target.value))
                   setCurrentPage(1)
                 }}
-                className="px-2 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
+                className="rounded-md border border-[#dfe3ec] bg-white px-2 py-1 text-sm"
               >
                 <option value="5">5</option>
                 <option value="15">15</option>
                 <option value="25">25</option>
               </select>
             </div>
-            <span className="text-xs text-gray-600">{t('pages.myUsers.pagination.pageOf', { current: currentPage, total: totalPages })}</span>
+            <span className="text-xs text-[#7b8497]">{t('pages.myUsers.pagination.pageOf', { current: currentPage, total: totalPages })}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="w-full px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-md border border-[#dfe3ec] bg-white px-3 py-2 text-sm font-medium text-[#1b2232] hover:bg-[#fafbfd] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.Previous')}
             </button>
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage >= totalPages}
-              className="w-full px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-md border border-[#dfe3ec] bg-white px-3 py-2 text-sm font-medium text-[#1b2232] hover:bg-[#fafbfd] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.Next')}
             </button>
           </div>
-          <div className="text-xs text-gray-600 text-center">
+          <div className="text-center text-xs text-[#7b8497]">
             {filteredUsers.length === 0
               ? t('pages.myUsers.pagination.showingZero')
               : t('pages.myUsers.pagination.showingRange', {
@@ -470,59 +496,56 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
       </div>
 
       {/* Users Table - Desktop */}
-      <div className={`${glassSurfaceClass} overflow-hidden hidden md:block`}>
+      <div className={`${cardClass} hidden overflow-hidden md:block`}>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-white/10">
+          <table className="min-w-full">
+            <thead className="bg-[#f8f9fc]">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[#7b8497]">
                   {t('pages.myUsers.list.user')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[#7b8497]">
                   {t('pages.myUsers.list.status')}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[#7b8497]">
                   {t('pages.myUsers.list.assignedDate')}
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.16em] text-[#7b8497]">
                   {t('pages.myUsers.list.actions')}
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-transparent divide-y divide-white/10">
+            <tbody className="divide-y divide-[#edf0f5] bg-white">
               {paginatedUsers.map((user) => {
-                const name = user?.userData?.name || 
-                           user?.loginDetails?.displayName || 
-                           `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 
-                           t('pages.myUsers.list.unknown')
-                const email = user?.loginDetails?.email || user?.email || t('pages.myUsers.list.notAvailable')
+                const name = getDisplayName(user)
+                const email = getDisplayEmail(user)
                 const avatar = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-                const assignedDate = user?.dateTimeAssigned ? new Date(user.dateTimeAssigned).toLocaleDateString() : t('pages.myUsers.list.notAvailable')
+                const assignedDate = getDisplayAssignedDate(user)
                 const accountStatus = (user?.status || '').toString().toLowerCase()
                 const userId = Array.isArray(user?.userId) ? user.userId[0] : user?.userId
                 return (
                   <tr
                     key={userId || user?.id}
-                    className="hover:bg-white/5 cursor-pointer"
+                    className="cursor-pointer transition hover:bg-[#fafbfd]"
                     onClick={() => handleSelectClient(user)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-white shadow-md">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#7a56df,#a35bff)] text-white shadow-md">
                             <span className="text-sm font-semibold">{avatar}</span>
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{name}</div>
-                          <div className="text-sm text-gray-500">{email}</div>
+                          <div className="text-sm font-medium text-[#1b2232]">{name}</div>
+                          <div className="text-sm text-[#7b8497]">{email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(accountStatus)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#55657d]">
                       {assignedDate}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -532,7 +555,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
                             e.stopPropagation()
                             handleUnassignUser(userId)
                           }}
-                          className="text-rose-600 hover:text-rose-800"
+                          className="rounded-full p-2 text-[#8f98ab] transition hover:bg-[#f8f9fc] hover:text-rose-600"
                           title={t('pages.myUsers.unassign')}
                         >
                           <TrashIcon className="w-4 h-4" />
@@ -547,16 +570,16 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
         </div>
 
         {/* Pagination */}
-        <div className={`px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-white/15 sm:px-6`}>
+        <div className="hidden flex-wrap items-center gap-4 border-t border-[#edf0f5] px-4 py-4 md:flex md:gap-6 sm:px-6">
           <div className="flex items-center gap-3">
-            <label className="text-sm text-gray-700">{t('pages.myUsers.pagination.perPage')}:</label>
+            <label className="text-sm text-[#607089]">{t('pages.myUsers.pagination.perPage')}:</label>
             <select
               value={usersPerPage}
               onChange={(e) => {
                 setUsersPerPage(Number(e.target.value))
                 setCurrentPage(1)
               }}
-              className="px-3 py-1 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm"
+              className="rounded-md border border-[#dfe3ec] bg-white px-3 py-1 text-sm"
             >
               <option value="5">5</option>
               <option value="15">15</option>
@@ -564,9 +587,9 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             </select>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center md:gap-3 text-sm text-gray-700">
+          <div className="flex flex-col text-sm text-[#607089] md:flex-row md:items-center md:gap-3">
             <span className="font-medium">{t('pages.myUsers.pagination.pageOf', { current: currentPage, total: totalPages })}</span>
-            <span className="text-gray-600">
+            <span className="text-[#7b8497]">
               {filteredUsers.length === 0
                 ? t('pages.myUsers.pagination.showingZero')
                 : t('pages.myUsers.pagination.showingRangeResults', {
@@ -581,7 +604,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-md border border-[#dfe3ec] bg-white px-3 py-2 text-sm font-medium text-[#1b2232] hover:bg-[#fafbfd] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.Previous')}
             </button>
@@ -589,7 +612,7 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage >= totalPages}
-              className="px-3 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-sm font-medium text-gray-800 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-md border border-[#dfe3ec] bg-white px-3 py-2 text-sm font-medium text-[#1b2232] hover:bg-[#fafbfd] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.Next')}
             </button>
@@ -599,65 +622,102 @@ const MyUsers = ({ onSelectClient = () => {} }) => {
 
       {/* Assign User Modal */}
       {isAssignModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`${glassCardClass} w-full max-w-md p-6`}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">{t('pages.myUsers.actions.assignExisting')}</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-800/55 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl overflow-hidden rounded-[24px] bg-[#f4f5f7] shadow-[0_30px_80px_rgba(15,23,42,0.28)]">
+            <div className="flex items-center justify-between border-b border-[#d9dce3] px-8 py-6">
+              <h3 className="text-[2rem] font-semibold tracking-[-0.03em] text-[#1a2233]">
+                {t('pages.myUsers.actions.assignUser')}
+              </h3>
               <button
-                className="text-white hover:text-gray-300 cursor-pointer"
+                className="text-[#99a0af] transition hover:text-[#677084] cursor-pointer"
                 onClick={() => {
                   setIsAssignModalOpen(false)
                   setAssignError(null)
                   setAssignUserId('')
                 }}
               >
-                ✕
+                <XMarkIcon className="h-7 w-7" />
               </button>
             </div>
 
-            <form onSubmit={handleAssignUser}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-1">
-                    {t('pages.myUsers.form.userIdLabel')} <span className="text-red-500">*</span>
+            <form onSubmit={handleAssignUser} className="px-8 py-7">
+              <div className="space-y-7">
+                <div className="space-y-3">
+                  <label className="block text-[1.4rem] font-semibold text-[#394255]">
+                    {t('pages.myUsers.form.userIdLabel')}
                   </label>
-                  <input
-                    type="text"
-                    value={assignUserId}
-                    onChange={(e) => setAssignUserId(e.target.value)}
-                    className="input w-full bg-white/40 backdrop-blur-sm border-white/30"
-                    placeholder={t('pages.myUsers.form.userIdPlaceholder')}
-                    required
-                  />
-                  <p className="text-xs text-white mt-1">{t('pages.myUsers.form.help')}</p>
+                  <div className="relative">
+                    <FingerPrintIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#a0a8b8]" />
+                    <input
+                      type="text"
+                      value={assignUserId}
+                      onChange={(e) => setAssignUserId(e.target.value)}
+                      className="w-full rounded-2xl border border-[#d7dce7] bg-[#f8faff] py-4 pl-12 pr-4 text-lg text-[#1a2233] outline-none transition placeholder:text-[#9aa3b5] focus:border-[#7a56df] focus:ring-2 focus:ring-[#7a56df]/15"
+                      placeholder={t('pages.myUsers.form.userIdPlaceholder')}
+                      required
+                    />
+                  </div>
+                  <p className="text-base italic text-[#7e8798]">
+                    {t('pages.myUsers.form.help')}
+                  </p>
                 </div>
 
                 {assignError && (
-                  <div className="bg-rose-500/10 border border-rose-400/30 rounded p-3">
-                    <p className="text-sm text-rose-800">{assignError}</p>
+                  <div className="rounded-2xl border border-[#f0c7c7] bg-[#fff2f2] px-4 py-3">
+                    <p className="text-sm text-[#be4f4f]">{assignError}</p>
                   </div>
                 )}
+
+                <div className="rounded-2xl border border-[#dfd8f2] bg-[#f3effd] px-5 py-4">
+                  <div className="flex gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#d7ccfb] text-[#7a56df]">
+                      <InformationCircleIcon className="h-7 w-7" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[1.3rem] font-semibold text-[#2c3550]">
+                        {t('pages.myUsers.form.quickTipTitle')}
+                      </p>
+                      <p className="mt-1 text-lg leading-7 text-[#5f6980]">
+                        {t('pages.myUsers.form.quickTipBody')}
+                      </p>
+                      <p className="mt-2 text-base leading-6 text-[#7a8397]">
+                        {t('pages.myUsers.form.quickTipUserIdLocation')}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <a
+                          href="https://apps.apple.com/app/id6736826072"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-[#d6dced] bg-white px-4 py-2 text-sm font-medium text-[#2c3550] transition hover:border-[#7a56df] hover:text-[#7a56df]"
+                        >
+                          <span>{t('pages.myUsers.form.iosLink')}</span>
+                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                        </a>
+                        <a
+                          href="https://play.google.com/store/apps/details?id=com.lucsoft.foodsync"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-[#d6dced] bg-white px-4 py-2 text-sm font-medium text-[#2c3550] transition hover:border-[#7a56df] hover:text-[#7a56df]"
+                        >
+                          <span>{t('pages.myUsers.form.androidLink')}</span>
+                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  className="btn-secondary px-4 py-2"
-                  onClick={() => {
-                    setIsAssignModalOpen(false)
-                    setAssignError(null)
-                    setAssignUserId('')
-                  }}
-                  disabled={assigning}
-                >
-                  {t('common.cancel')}
-                </button>
+              <div className="mt-8 flex justify-end border-t border-[#dde1e8] pt-6">
                 <button
                   type="submit"
-                  className="btn-primary px-4 py-2"
+                  className="inline-flex items-center gap-3 rounded-2xl bg-[#7a56df] px-6 py-4 text-lg font-semibold text-white shadow-[0_14px_30px_rgba(122,86,223,0.35)] transition hover:bg-[#6947ca] disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={assigning}
                 >
-                  {assigning ? t('pages.myUsers.actions.assigning') : t('pages.myUsers.actions.assignUser')}
+                  <CheckCircleIcon className="h-5 w-5" />
+                  {assigning
+                    ? t('pages.myUsers.actions.assigning')
+                    : t('pages.myUsers.actions.assignUser')}
                 </button>
               </div>
             </form>

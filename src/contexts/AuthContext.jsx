@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import {
   createUserWithEmailAndPassword,
@@ -7,10 +7,16 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
-  OAuthProvider
+  OAuthProvider,
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth'
 import { auth } from '../config/firebase'
-import { getUserById } from '../services/api'
+import { auth0Login, getUserById } from '../services/api'
+import {
+  completeBackofficeRegistration,
+  saveUserDataFromWelcomeScreen
+} from '../services/loggedinApi'
 import {
   setUserData,
   setLoading,
@@ -33,6 +39,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setAuthLoading] = useState(true)
   const [error, setError] = useState(null)
   const dispatch = useDispatch()
+  const isRegisteringRef = useRef(false)
 
   // Fetch backend user data
   const fetchUserData = async firebaseUser => {
@@ -46,7 +53,7 @@ export const AuthProvider = ({ children }) => {
         dispatch(setUserData(response.data))
       } else {
         // User not found or not logged in on backend
-        dispatch(setUserError('User not authorized for backoffice'))
+        dispatch(setUserError('pages.access.deniedMessage'))
         console.warn('User not authorized:', response)
       }
     } catch (err) {
@@ -58,20 +65,65 @@ export const AuthProvider = ({ children }) => {
   }
 
   // Register new user
-  const register = async (email, password) => {
+  const register = async ({ email, password, fullName }) => {
     try {
       setError(null)
+      isRegisteringRef.current = true
+      dispatch(setLoading(true))
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       )
+      const normalizedFullName = String(fullName || '').trim()
+      if (normalizedFullName) {
+        await updateProfile(userCredential.user, {
+          displayName: normalizedFullName
+        })
+      }
+
+      const registeredUser = auth.currentUser || userCredential.user
+      const loginPayload = {
+        displayName: registeredUser.displayName || normalizedFullName,
+        email: registeredUser.email,
+        photoURL: registeredUser.photoURL,
+        emailVerified: registeredUser.emailVerified,
+        isAnonymous: registeredUser.isAnonymous,
+        phoneNumber: registeredUser.phoneNumber,
+        providerId: registeredUser.providerId,
+        lastSignInTime: registeredUser.metadata?.lastSignInTime,
+        creationTime: registeredUser.metadata?.creationTime,
+        uid: registeredUser.uid,
+        userId: registeredUser.uid,
+        providerData: registeredUser.providerData
+      }
+
+      await auth0Login({
+        user: loginPayload,
+        userId: registeredUser.uid
+      })
+      await saveUserDataFromWelcomeScreen({
+        userId: registeredUser.uid,
+        userData: {
+          name: normalizedFullName
+        },
+        selectedDate: new Date().toISOString().split('T')[0]
+      })
+      await completeBackofficeRegistration({
+        userId: registeredUser.uid,
+        fullName: normalizedFullName,
+        email: registeredUser.email,
+        userType: 'NUTRITIONIST'
+      })
+
       // Fetch backend user data after registration
-      await fetchUserData(userCredential.user)
-      return userCredential.user
+      await fetchUserData(registeredUser)
+      return registeredUser
     } catch (err) {
       setError(err.message)
       throw err
+    } finally {
+      isRegisteringRef.current = false
     }
   }
 
@@ -143,6 +195,18 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const resetPassword = async (email, language = 'en') => {
+    try {
+      setError(null)
+      auth.languageCode = language || 'en'
+      await sendPasswordResetEmail(auth, email)
+      return true
+    } catch (err) {
+      setError(err.message)
+      throw err
+    }
+  }
+
   // Get current user's ID token
   const getIdToken = async () => {
     if (currentUser) {
@@ -159,6 +223,9 @@ export const AuthProvider = ({ children }) => {
 
       // Fetch backend user data when Firebase auth state changes
       if (user) {
+        if (isRegisteringRef.current) {
+          return
+        }
         fetchUserData(user)
       } else {
         // Clear Redux data on logout
@@ -175,6 +242,7 @@ export const AuthProvider = ({ children }) => {
     login,
     signInWithGoogle,
     signInWithApple,
+    resetPassword,
     logout,
     getIdToken,
     error,
