@@ -814,7 +814,18 @@
       "approve": "Approuver",
       "reject": "Rejeter",
       "confirmApprove": "Approuver cet élément ?",
-      "confirmReject": "Rejeter cet élément ?"
+      "confirmReject": "Rejeter cet élément ?",
+      "unverifyItem": "Désapprouver l’élément",
+      "bulkUnverify": "Désapprouver en lot",
+      "bulkUnverifyHint": "La désapprobation en lot accepte des ID séparés par des virgules ou des retours à la ligne.",
+      "searchPlaceholder": "Rechercher des éléments...",
+      "filterCountryPlaceholder": "Filtrer par code pays",
+      "showOnlyAIGenerated": "Afficher uniquement les éléments générés par l’IA",
+      "selectAllOnPage": "Tout sélectionner sur cette page",
+      "bulkApproveWithCount_one": "Approuver en lot ({{count}})",
+      "bulkApproveWithCount_other": "Approuver en lot ({{count}})",
+      "bulkDeleteWithCount_one": "Supprimer en lot ({{count}})",
+      "bulkDeleteWithCount_other": "Supprimer en lot ({{count}})"
     },
     "myMenus": {
       "title": "Mes menus",

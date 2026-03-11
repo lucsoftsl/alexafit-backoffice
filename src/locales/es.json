@@ -812,7 +812,18 @@
       "approve": "Aprobar",
       "reject": "Rechazar",
       "confirmApprove": "¿Aprobar este elemento?",
-      "confirmReject": "¿Rechazar este elemento?"
+      "confirmReject": "¿Rechazar este elemento?",
+      "unverifyItem": "Desaprobar elemento",
+      "bulkUnverify": "Desaprobar en bloque",
+      "bulkUnverifyHint": "La desaprobación en bloque acepta IDs separados por comas o saltos de línea.",
+      "searchPlaceholder": "Buscar elementos...",
+      "filterCountryPlaceholder": "Filtrar por código de país",
+      "showOnlyAIGenerated": "Mostrar solo elementos generados por IA",
+      "selectAllOnPage": "Seleccionar todo en esta página",
+      "bulkApproveWithCount_one": "Aprobar en bloque ({{count}})",
+      "bulkApproveWithCount_other": "Aprobar en bloque ({{count}})",
+      "bulkDeleteWithCount_one": "Eliminar en bloque ({{count}})",
+      "bulkDeleteWithCount_other": "Eliminar en bloque ({{count}})"
     },
     "myMenus": {
       "title": "Mis menús",

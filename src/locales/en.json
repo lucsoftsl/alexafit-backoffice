@@ -814,7 +814,18 @@
       "approve": "Approve",
       "reject": "Reject",
       "confirmApprove": "Approve this item?",
-      "confirmReject": "Reject this item?"
+      "confirmReject": "Reject this item?",
+      "unverifyItem": "Unverify item",
+      "bulkUnverify": "Bulk unverify",
+      "bulkUnverifyHint": "Bulk unverify accepts comma-separated or newline-separated item IDs.",
+      "searchPlaceholder": "Search items...",
+      "filterCountryPlaceholder": "Filter by country code",
+      "showOnlyAIGenerated": "Show only AI-generated items",
+      "selectAllOnPage": "Select all on this page",
+      "bulkApproveWithCount_one": "Bulk approve ({{count}})",
+      "bulkApproveWithCount_other": "Bulk approve ({{count}})",
+      "bulkDeleteWithCount_one": "Bulk delete ({{count}})",
+      "bulkDeleteWithCount_other": "Bulk delete ({{count}})"
     },
     "myMenus": {
       "title": "My Menus",

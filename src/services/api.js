@@ -309,6 +309,54 @@ export const setItemVerifiedStatus = async ({ itemId, verified, itemType }) => {
   }
 }
 
+export const setItemsVerifiedStatus = async ({ items, verified }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/setItemsVerifiedStatus`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        items,
+        verified
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error setting items verified status:', error)
+    throw error
+  }
+}
+
+export const deleteItems = async ({ items, userId }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/deleteItems`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        items,
+        userId
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error deleting items:', error)
+    throw error
+  }
+}
+
 export const getAllMenuTemplates = async (createdByUserId = null) => {
   try {
     const headers = await getHeaders()

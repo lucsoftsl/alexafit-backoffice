@@ -7,7 +7,7 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, deleteItem, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
+import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, setItemsVerifiedStatus, deleteItem, deleteItems, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
 
@@ -22,6 +22,13 @@ const UnapprovedItems = () => {
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCountryCode, setFilterCountryCode] = useState('')
+  const [showOnlyAIGenerated, setShowOnlyAIGenerated] = useState(false)
+  const [selectedFoodItemIds, setSelectedFoodItemIds] = useState([])
+  const [selectedExerciseItemIds, setSelectedExerciseItemIds] = useState([])
+  const [sortConfig, setSortConfig] = useState({
+    food: { key: 'dateTimeCreated', direction: 'desc' },
+    exercise: { key: 'dateTimeCreated', direction: 'desc' }
+  })
   const [activeTab, setActiveTab] = useState('food') // 'food' or 'exercise'
   const [itemsPerPage, setItemsPerPage] = useState(25)
   const [currentPage, setCurrentPage] = useState(1)
@@ -97,29 +104,217 @@ const UnapprovedItems = () => {
     loadVerifiedItems()
   }, [])
 
+  const hasValue = (value) => value !== null && value !== undefined && value !== ''
+
+  const getDisplayValue = (value) => (hasValue(value) ? value : '')
+
+  const getBooleanLabel = (value) => {
+    if (value === true) return 'Yes'
+    if (value === false) return 'No'
+    return ''
+  }
+
+  const getCaloriesValue = (item) => item.totalCalories ?? item.caloriesPer100 ?? ''
+
+  const getFoodTimeValue = (item) => {
+    if (!hasValue(item.totalTimeInMinutes)) return ''
+    return `${item.totalTimeInMinutes}m`
+  }
+
+  const matchesAIGeneratedFilter = (item) => !showOnlyAIGenerated || item?.isAIGenerated === true
+
+  const getFoodSortValue = (item, key) => {
+    switch (key) {
+      case 'name':
+      case 'type':
+      case 'countryCode':
+      case 'createdByUserId':
+      case 'barcode':
+      case 'category':
+      case 'brand':
+      case 'nutriscore':
+        return item[key] ?? ''
+      case 'ingredients':
+        return item.ingredients?.length ?? 0
+      case 'recipeSteps':
+        return item.recipeSteps?.instructions?.length ?? 0
+      case 'isVerified':
+      case 'isPublic':
+      case 'isManual':
+      case 'isAIGenerated':
+        return item[key] ? 1 : 0
+      case 'time':
+        return Number(item.totalTimeInMinutes) || 0
+      case 'calories':
+        return Number(getCaloriesValue(item)) || 0
+      case 'nutrients':
+        return item.totalNutrients || item.nutrientsPer100 ? 1 : 0
+      case 'serving': {
+        const servings = item.servingOptions || item.serving
+        if (!servings) return 0
+        if (Array.isArray(servings)) return servings.length
+        if (typeof servings === 'string') {
+          try {
+            const parsed = JSON.parse(servings)
+            return Array.isArray(parsed) ? parsed.length : 0
+          } catch {
+            return 0
+          }
+        }
+        return 0
+      }
+      case 'photo':
+        return item.photoUrl ? 1 : 0
+      case 'brandPhoto':
+        return item.brandPhotoUrl ? 1 : 0
+      case 'dateTimeCreated':
+      case 'dateTimeUpdated':
+        return item[key] ? new Date(item[key]).getTime() : 0
+      default:
+        return item[key] ?? ''
+    }
+  }
+
+  const getExerciseSortValue = (item, key) => {
+    switch (key) {
+      case 'name':
+      case 'createdByUserId':
+        return item[key] ?? ''
+      case 'durationInMinutes':
+      case 'caloriesBurnt':
+        return Number(item[key]) || 0
+      case 'isVerified':
+      case 'isPublic':
+      case 'isManual':
+        return item[key] ? 1 : 0
+      case 'photo':
+        return item.photoUrl ? 1 : 0
+      case 'dateTimeCreated':
+      case 'dateTimeUpdated':
+        return item[key] ? new Date(item[key]).getTime() : 0
+      default:
+        return item[key] ?? ''
+    }
+  }
+
+  const sortItems = (items, tab) => {
+    const currentSort = sortConfig[tab]
+    if (!currentSort?.key) return items
+
+    const getValue = tab === 'food' ? getFoodSortValue : getExerciseSortValue
+    return [...items].sort((a, b) => {
+      const aValue = getValue(a, currentSort.key)
+      const bValue = getValue(b, currentSort.key)
+
+      if (typeof aValue === 'string' || typeof bValue === 'string') {
+        const result = String(aValue).localeCompare(String(bValue), undefined, { sensitivity: 'base' })
+        return currentSort.direction === 'asc' ? result : -result
+      }
+
+      const result = aValue > bValue ? 1 : aValue < bValue ? -1 : 0
+      return currentSort.direction === 'asc' ? result : -result
+    })
+  }
+
+  const handleSort = (tab, key) => {
+    setSortConfig((currentConfig) => {
+      const existingSort = currentConfig[tab]
+      const direction = existingSort?.key === key && existingSort.direction === 'asc' ? 'desc' : 'asc'
+      return {
+        ...currentConfig,
+        [tab]: { key, direction }
+      }
+    })
+  }
+
+  const renderSortableHeader = (tab, key, label) => {
+    const currentSort = sortConfig[tab]
+    const isActive = currentSort?.key === key
+    const sortIndicator = isActive ? (currentSort.direction === 'asc' ? ' ↑' : ' ↓') : ''
+
+    return (
+      <button
+        type="button"
+        onClick={() => handleSort(tab, key)}
+        className="flex items-center gap-1 text-left uppercase tracking-wider hover:text-gray-700"
+      >
+        <span>{label}</span>
+        <span>{sortIndicator}</span>
+      </button>
+    )
+  }
+
   // Filter items based on search term
   const filteredFoodItems = foodItems.filter(item =>
     (item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.category?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (filterCountryCode ? item.countryCode?.toLowerCase().includes(filterCountryCode.toLowerCase()) : true)
+    (filterCountryCode ? item.countryCode?.toLowerCase().includes(filterCountryCode.toLowerCase()) : true) &&
+    matchesAIGeneratedFilter(item)
   )
 
   const filteredExerciseItems = exerciseItems.filter(item =>
-    item.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    item.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    matchesAIGeneratedFilter(item)
   )
+
+  const sortedFoodItems = sortItems(filteredFoodItems, 'food')
+  const sortedExerciseItems = sortItems(filteredExerciseItems, 'exercise')
 
   // Pagination logic
   const getCurrentItems = () => {
-    const items = activeTab === 'food' ? filteredFoodItems : filteredExerciseItems
+    const items = activeTab === 'food' ? sortedFoodItems : sortedExerciseItems
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     return items.slice(startIndex, endIndex)
   }
 
   const getTotalPages = () => {
-    const items = activeTab === 'food' ? filteredFoodItems : filteredExerciseItems
+    const items = activeTab === 'food' ? sortedFoodItems : sortedExerciseItems
     return Math.ceil(items.length / itemsPerPage)
+  }
+
+  const getSelectedItemIds = () => (
+    activeTab === 'food' ? selectedFoodItemIds : selectedExerciseItemIds
+  )
+
+  const setSelectedItemIds = (updater) => {
+    if (activeTab === 'food') {
+      setSelectedFoodItemIds(updater)
+      return
+    }
+    setSelectedExerciseItemIds(updater)
+  }
+
+  const toggleItemSelection = (itemId, itemType) => {
+    const setSelection = itemType === 'FOOD' ? setSelectedFoodItemIds : setSelectedExerciseItemIds
+    setSelection((currentIds) => (
+      currentIds.includes(itemId)
+        ? currentIds.filter((id) => id !== itemId)
+        : [...currentIds, itemId]
+    ))
+  }
+
+  const isInteractiveElement = (target) => (
+    target instanceof Element &&
+    Boolean(target.closest('button, a, input, textarea, select, label'))
+  )
+
+  const handleRowSelection = (event, itemId, itemType) => {
+    if (isInteractiveElement(event.target)) return
+    toggleItemSelection(itemId, itemType)
+  }
+
+  const toggleCurrentPageSelection = () => {
+    const currentItemIds = getCurrentItems().map((item) => item.id)
+    const selectedIds = getSelectedItemIds()
+    const allCurrentItemsSelected = currentItemIds.length > 0 && currentItemIds.every((id) => selectedIds.includes(id))
+
+    setSelectedItemIds((currentIds) => (
+      allCurrentItemsSelected
+        ? currentIds.filter((id) => !currentItemIds.includes(id))
+        : [...new Set([...currentIds, ...currentItemIds])]
+    ))
   }
 
   const handleShowImage = (imageUrl) => {
@@ -130,7 +325,15 @@ const UnapprovedItems = () => {
   // Reset to page 1 when switching tabs or changing filters
   useEffect(() => {
     setCurrentPage(1)
-  }, [activeTab, searchTerm, filterCountryCode])
+  }, [activeTab, searchTerm, filterCountryCode, showOnlyAIGenerated])
+
+  useEffect(() => {
+    setSelectedFoodItemIds((currentIds) => currentIds.filter((id) => foodItems.some((item) => item.id === id)))
+  }, [foodItems])
+
+  useEffect(() => {
+    setSelectedExerciseItemIds((currentIds) => currentIds.filter((id) => exerciseItems.some((item) => item.id === id)))
+  }, [exerciseItems])
 
   const handleShowIngredients = (ingredients) => {
     setSelectedIngredients(ingredients)
@@ -194,10 +397,19 @@ const UnapprovedItems = () => {
     return `${normalized.length} option(s)`
   }
 
+  const parseItemIds = (value) => (
+    value
+      .split(/[\n,]+/)
+      .map((itemId) => itemId.trim())
+      .filter(Boolean)
+  )
+
   const refreshData = async () => {
     setError(null)
     setFoodItems([])
     setExerciseItems([])
+    setSelectedFoodItemIds([])
+    setSelectedExerciseItemIds([])
     localStorage.removeItem('unapprovedItems')
     setLoading(true)
     try {
@@ -220,17 +432,37 @@ const UnapprovedItems = () => {
     }
   }
 
+  const approveItems = async (itemIds, itemType) => {
+    if (itemIds.length === 1) {
+      await setItemVerifiedStatus({ itemId: itemIds[0], verified: true, itemType })
+    } else {
+      await setItemsVerifiedStatus({
+        items: itemIds.map((itemId) => ({ itemId, itemType })),
+        verified: true
+      })
+    }
+
+    const verifiedItems = JSON.parse(localStorage.getItem('verifiedItems') || '[]')
+    const newVerifiedItems = itemIds.map((itemId) => ({ itemId, itemType }))
+    const deduplicatedVerifiedItems = [
+      ...verifiedItems.filter(
+        (item) => !newVerifiedItems.some(
+          (newItem) => newItem.itemId === item.itemId && newItem.itemType === item.itemType
+        )
+      ),
+      ...newVerifiedItems
+    ]
+    localStorage.setItem('verifiedItems', JSON.stringify(deduplicatedVerifiedItems))
+    setVerifiedItems(deduplicatedVerifiedItems)
+  }
+
   const handleApproveItem = async (itemId, itemType) => {
     const confirmed = confirm('Are you sure you want to approve this item?')
     if (confirmed) {
       try {
-        await setItemVerifiedStatus({ itemId, verified: true, itemType })
-
-        // Save to localStorage
-        const verifiedItems = JSON.parse(localStorage.getItem('verifiedItems') || '[]')
-        verifiedItems.push({ itemId, itemType })
-        localStorage.setItem('verifiedItems', JSON.stringify(verifiedItems))
-
+        await approveItems([itemId], itemType)
+        setSelectedFoodItemIds((currentIds) => currentIds.filter((id) => id !== itemId))
+        setSelectedExerciseItemIds((currentIds) => currentIds.filter((id) => id !== itemId))
         console.log(`Item ${itemId} approved and saved to localStorage`)
 
         localStorage.removeItem('unapprovedItems')
@@ -249,6 +481,35 @@ const UnapprovedItems = () => {
         console.error('Error approving item:', err)
         alert('Failed to approve item. Please try again.')
       }
+    }
+  }
+
+  const handleBulkApprove = async () => {
+    const selectedItemIds = getSelectedItemIds()
+    const itemType = activeTab === 'food' ? 'FOOD' : 'EXERCISE'
+
+    if (!selectedItemIds.length) {
+      alert('Select at least one item to approve')
+      return
+    }
+
+    const confirmed = confirm(`Are you sure you want to approve ${selectedItemIds.length} item(s)?`)
+    if (!confirmed) return
+
+    try {
+      await approveItems(selectedItemIds, itemType)
+      if (itemType === 'FOOD') {
+        setSelectedFoodItemIds([])
+      } else {
+        setSelectedExerciseItemIds([])
+      }
+      localStorage.removeItem('unapprovedItems')
+      setLoading(true)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      refreshData()
+    } catch (err) {
+      console.error('Error bulk approving items:', err)
+      alert('Failed to bulk approve items. Please try again.')
     }
   }
 
@@ -272,39 +533,99 @@ const UnapprovedItems = () => {
     }
   }
 
+  const handleBulkDelete = async () => {
+    const selectedItemIds = getSelectedItemIds()
+    const itemType = activeTab === 'food' ? 'FOOD' : 'EXERCISE'
+    const currentItems = activeTab === 'food' ? foodItems : exerciseItems
+    const selectedItems = currentItems.filter((item) => selectedItemIds.includes(item.id))
+    const selectedUserIds = [...new Set(selectedItems.map((item) => item.createdByUserId).filter(Boolean))]
+    const bulkDeleteUserId = selectedUserIds.length === 1 ? selectedUserIds[0] : ADMIN_USER_ID
+
+    if (!selectedItemIds.length) {
+      alert('Select at least one item to delete')
+      return
+    }
+
+    const confirmed = confirm(`Are you sure you want to delete ${selectedItemIds.length} item(s)?`)
+    if (!confirmed) return
+
+    try {
+      await deleteItems({
+        items: selectedItemIds.map((itemId) => ({
+          itemId,
+          itemType
+        })),
+        userId: bulkDeleteUserId
+      })
+
+      if (itemType === 'FOOD') {
+        setSelectedFoodItemIds([])
+      } else {
+        setSelectedExerciseItemIds([])
+      }
+
+      localStorage.removeItem('unapprovedItems')
+      setLoading(true)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      refreshData()
+    } catch (err) {
+      console.error('Error bulk deleting items:', err)
+      alert('Failed to bulk delete items. Please try again.')
+    }
+  }
+
   const handleItemIdChange = (itemId) => {
     setUnverifyItemId(itemId)
     // Automatically set the itemType if found in verifiedItems
-    const item = verifiedItems.find(v => v.itemId === itemId)
+    const parsedItemIds = parseItemIds(itemId)
+    if (parsedItemIds.length !== 1) return
+    const item = verifiedItems.find(v => v.itemId === parsedItemIds[0])
     if (item) {
       setUnverifyItemType(item.itemType)
     }
   }
 
+  const unverifyItems = async (itemIds, itemType) => {
+    if (itemIds.length === 1) {
+      await setItemVerifiedStatus({
+        itemId: itemIds[0],
+        verified: false,
+        itemType
+      })
+    } else {
+      await setItemsVerifiedStatus({
+        items: itemIds.map((itemId) => ({ itemId, itemType })),
+        verified: false
+      })
+    }
+
+    const verifiedItemsData = JSON.parse(localStorage.getItem('verifiedItems') || '[]')
+    const updatedVerifiedItems = verifiedItemsData.filter(
+      item => !(item.itemType === itemType && itemIds.includes(item.itemId))
+    )
+    localStorage.setItem('verifiedItems', JSON.stringify(updatedVerifiedItems))
+    setVerifiedItems(updatedVerifiedItems)
+  }
+
   const handleUnverifyItem = async () => {
-    if (!unverifyItemId || !unverifyItemType) {
+    const parsedItemIds = parseItemIds(unverifyItemId)
+
+    if (!parsedItemIds.length || !unverifyItemType) {
       alert('Please fill in both itemId and itemType')
+      return
+    }
+
+    if (parsedItemIds.length > 1) {
+      alert('Use the bulk unverify button for multiple item IDs')
       return
     }
 
     const confirmed = confirm('Are you sure you want to unverify this item?')
     if (confirmed) {
       try {
-        await setItemVerifiedStatus({
-          itemId: unverifyItemId,
-          verified: false,
-          itemType: unverifyItemType
-        })
+        await unverifyItems(parsedItemIds, unverifyItemType)
 
-        console.log(`Item ${unverifyItemId} unverified`)
-
-        // Remove from localStorage verifiedItems
-        const verifiedItemsData = JSON.parse(localStorage.getItem('verifiedItems') || '[]')
-        const updatedVerifiedItems = verifiedItemsData.filter(
-          item => !(item.itemId === unverifyItemId && item.itemType === unverifyItemType)
-        )
-        localStorage.setItem('verifiedItems', JSON.stringify(updatedVerifiedItems))
-        setVerifiedItems(updatedVerifiedItems)
+        console.log(`Item ${parsedItemIds[0]} unverified`)
 
         // Clear the input fields
         setUnverifyItemId('')
@@ -318,6 +639,34 @@ const UnapprovedItems = () => {
         console.error('Error unverifying item:', err)
         alert('Failed to unverify item. Please try again.')
       }
+    }
+  }
+
+  const handleBulkUnverify = async () => {
+    const parsedItemIds = parseItemIds(unverifyItemId)
+
+    if (!parsedItemIds.length || !unverifyItemType) {
+      alert('Please fill in both itemId and itemType')
+      return
+    }
+
+    if (parsedItemIds.length === 1) {
+      alert('Use the single unverify button for one item ID')
+      return
+    }
+
+    const confirmed = confirm(`Are you sure you want to unverify ${parsedItemIds.length} item(s)?`)
+    if (!confirmed) return
+
+    try {
+      await unverifyItems(parsedItemIds, unverifyItemType)
+      setUnverifyItemId('')
+      setUnverifyItemType('')
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      refreshData()
+    } catch (err) {
+      console.error('Error bulk unverifying items:', err)
+      alert('Failed to bulk unverify items. Please try again.')
     }
   }
 
@@ -461,20 +810,16 @@ const UnapprovedItems = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Item ID
             </label>
-            <input
-              type="text"
-              placeholder="Enter item ID"
+            <textarea
+              placeholder="Enter one or more item IDs, separated by commas or new lines"
               value={unverifyItemId}
               onChange={(e) => handleItemIdChange(e.target.value)}
-              className="input"
-              list={verifiedItems.length > 0 ? 'verifiedItemIds' : undefined}
+              className="input min-h-24"
             />
             {verifiedItems.length > 0 && (
-              <datalist id="verifiedItemIds">
-                {[...new Set(verifiedItems.map(v => v.itemId))].map((id) => (
-                  <option key={id} value={id} />
-                ))}
-              </datalist>
+              <p className="mt-2 text-xs text-gray-500">
+                {t('pages.unapprovedItems.bulkUnverifyHint')}
+              </p>
             )}
           </div>
           <div className="flex-1">
@@ -502,12 +847,20 @@ const UnapprovedItems = () => {
             )}
           </div>
           <div>
-            <button
-              onClick={handleUnverifyItem}
-              className="btn-primary whitespace-nowrap"
-            >
-              Unverify item
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleUnverifyItem}
+                className="btn-primary whitespace-nowrap"
+              >
+                {t('pages.unapprovedItems.unverifyItem')}
+              </button>
+              <button
+                onClick={handleBulkUnverify}
+                className="btn-secondary whitespace-nowrap"
+              >
+                {t('pages.unapprovedItems.bulkUnverify')}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -518,7 +871,7 @@ const UnapprovedItems = () => {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search items..."
+            placeholder={t('pages.unapprovedItems.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="input pl-10"
@@ -531,12 +884,24 @@ const UnapprovedItems = () => {
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Filter by country code"
+            placeholder={t('pages.unapprovedItems.filterCountryPlaceholder')}
             value={filterCountryCode}
             onChange={(e) => setFilterCountryCode(e.target.value)}
             className="input pl-10"
           />
         </div>
+      </div>
+
+      <div className="card p-6">
+        <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={showOnlyAIGenerated}
+            onChange={(e) => setShowOnlyAIGenerated(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          {t('pages.unapprovedItems.showOnlyAIGenerated')}
+        </label>
       </div>
 
       {/* Tabs */}
@@ -563,6 +928,33 @@ const UnapprovedItems = () => {
             </button>
           </nav>
         </div>
+        <div className="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <label className="flex items-center gap-3 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={getCurrentItems().length > 0 && getCurrentItems().every((item) => getSelectedItemIds().includes(item.id))}
+              onChange={toggleCurrentPageSelection}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            {t('pages.unapprovedItems.selectAllOnPage')}
+          </label>
+          <div className="flex gap-3">
+            <button
+              onClick={handleBulkApprove}
+              disabled={getSelectedItemIds().length === 0}
+              className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {t('pages.unapprovedItems.bulkApproveWithCount', { count: getSelectedItemIds().length })}
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={getSelectedItemIds().length === 0}
+              className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {t('pages.unapprovedItems.bulkDeleteWithCount', { count: getSelectedItemIds().length })}
+            </button>
+          </div>
+        </div>
 
         {/* Food Items Table */}
         {activeTab === 'food' && (
@@ -570,19 +962,35 @@ const UnapprovedItems = () => {
             {/* Mobile Card View */}
             <div className="md:hidden grid gap-4 p-4">
               {getCurrentItems().map((item) => (
-                <div key={item.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                <div
+                  key={item.id}
+                  className={`rounded-lg shadow p-4 space-y-3 cursor-pointer border ${
+                    selectedFoodItemIds.includes(item.id)
+                      ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200'
+                      : 'bg-white border-transparent'
+                  }`}
+                  onClick={(event) => handleRowSelection(event, item.id, 'FOOD')}
+                >
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900">{item.name || 'N/A'}</div>
-                      <div className="text-sm text-gray-500 mt-1">
-                        {item.type && (
-                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 mr-2">
-                            {item.type}
-                          </span>
-                        )}
-                        {item.category && (
-                          <span className="text-gray-600">{item.category}</span>
-                        )}
+                    <div className="flex items-start gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedFoodItemIds.includes(item.id)}
+                        onChange={() => toggleItemSelection(item.id, 'FOOD')}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">{getDisplayValue(item.name)}</div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {item.type && (
+                            <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 mr-2">
+                              {item.type}
+                            </span>
+                          )}
+                          {item.category && (
+                            <span className="text-gray-600">{item.category}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <button
@@ -608,27 +1016,27 @@ const UnapprovedItems = () => {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-gray-500">Country:</span>
-                      <span className="ml-1 text-gray-900">{item.countryCode || 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{getDisplayValue(item.countryCode)}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Calories:</span>
-                      <span className="ml-1 text-gray-900">{item.totalCalories || 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{getCaloriesValue(item)}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Brand:</span>
-                      <span className="ml-1 text-gray-900">{item.brand || 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{getDisplayValue(item.brand)}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Time:</span>
-                      <span className="ml-1 text-gray-900">{item.totalTimeInMinutes ? `${item.totalTimeInMinutes}m` : 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{getFoodTimeValue(item)}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Barcode:</span>
-                      <span className="ml-1 text-gray-900">{item.barcode || 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{getDisplayValue(item.barcode)}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Nutriscore:</span>
-                      <span className="ml-1 text-gray-900">{item.nutriscore || 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{getDisplayValue(item.nutriscore)}</span>
                     </div>
                   </div>
 
@@ -723,35 +1131,54 @@ const UnapprovedItems = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Select
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barcode</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ingredients</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipe Steps</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verified</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Public</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manual</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI Gen</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calories</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nutriscore</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nutrients</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serving</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand Photo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'name', 'Name')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'type', 'Type')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'countryCode', 'Country')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'createdByUserId', 'User ID')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'barcode', 'Barcode')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'ingredients', 'Ingredients')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'recipeSteps', 'Recipe Steps')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'category', 'Category')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'isVerified', 'Verified')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'isPublic', 'Public')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'isManual', 'Manual')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'isAIGenerated', 'AI Gen')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'brand', 'Brand')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'time', 'Time')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'calories', 'Calories')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'nutriscore', 'Nutriscore')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'nutrients', 'Nutrients')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'serving', 'Serving')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'photo', 'Photo')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'brandPhoto', 'Brand Photo')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'dateTimeCreated', 'Created')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('food', 'dateTimeUpdated', 'Updated')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {getCurrentItems().map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr
+                    key={item.id}
+                    className={`cursor-pointer ${
+                      selectedFoodItemIds.includes(item.id)
+                        ? 'bg-blue-50'
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={(event) => handleRowSelection(event, item.id, 'FOOD')}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedFoodItemIds.includes(item.id)}
+                        onChange={() => toggleItemSelection(item.id, 'FOOD')}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-center space-x-2">
                         <button className="text-blue-600 hover:text-blue-900 cursor-pointer" onClick={() => handleApproveItem(item.id, 'FOOD')}>
@@ -773,15 +1200,15 @@ const UnapprovedItems = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900 max-w-xs truncate" title={item.name}>
-                        {item.name || 'N/A'}
+                        {getDisplayValue(item.name)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                        {item.type || 'N/A'}
+                        {getDisplayValue(item.type)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.countryCode || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(item.countryCode)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate" title={item.createdByUserId}>
                       {item.createdByUserId ? (
                         <button
@@ -790,9 +1217,9 @@ const UnapprovedItems = () => {
                         >
                           {item.createdByUserId}
                         </button>
-                      ) : 'N/A'}
+                      ) : ''}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.barcode || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getDisplayValue(item.barcode)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.ingredients ? (
                         <button
@@ -802,7 +1229,7 @@ const UnapprovedItems = () => {
                           {item.ingredients.length} ingredients
                         </button>
                       ) : (
-                        'N/A'
+                        ''
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -814,10 +1241,10 @@ const UnapprovedItems = () => {
                           View
                         </button>
                       ) : (
-                        'N/A'
+                        ''
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.category || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(item.category)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {item.isVerified ? 'Yes' : 'No'}
@@ -825,23 +1252,23 @@ const UnapprovedItems = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}>
-                        {item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'Yes' : 'No') : 'N/A'}
+                        {getBooleanLabel(item.isPublic)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isManual ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {item.isManual !== null && item.isManual !== undefined ? (item.isManual ? 'Yes' : 'No') : 'N/A'}
+                        {getBooleanLabel(item.isManual)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isAIGenerated ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {item.isAIGenerated !== null && item.isAIGenerated !== undefined ? (item.isAIGenerated ? 'Yes' : 'No') : 'N/A'}
+                        {getBooleanLabel(item.isAIGenerated)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.brand || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.totalTimeInMinutes || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.totalCalories || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.nutriscore || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(item.brand)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getFoodTimeValue(item)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getCaloriesValue(item)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(item.nutriscore)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {(item.totalNutrients || item.nutrientsPer100 || typeof item.caloriesPer100 === 'number') ? (
                         <button
@@ -851,7 +1278,7 @@ const UnapprovedItems = () => {
                           View
                         </button>
                       ) : (
-                        'N/A'
+                        ''
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -863,7 +1290,7 @@ const UnapprovedItems = () => {
                           {formatServings(item.servingOptions || item.serving)}
                         </button>
                       ) : (
-                        'N/A'
+                        ''
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -875,7 +1302,7 @@ const UnapprovedItems = () => {
                           View
                         </button>
                       ) : (
-                        'N/A'
+                        ''
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -887,14 +1314,14 @@ const UnapprovedItems = () => {
                           View
                         </button>
                       ) : (
-                        'N/A'
+                        ''
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : 'N/A'}
+                      {item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : ''}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.dateTimeUpdated ? new Date(item.dateTimeUpdated).toLocaleDateString() : 'N/A'}
+                      {item.dateTimeUpdated ? new Date(item.dateTimeUpdated).toLocaleDateString() : ''}
                     </td>
                   </tr>
                 ))}
@@ -910,10 +1337,26 @@ const UnapprovedItems = () => {
             {/* Mobile Card View */}
             <div className="md:hidden grid gap-4 p-4">
               {getCurrentItems().map((item) => (
-                <div key={item.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                <div
+                  key={item.id}
+                  className={`rounded-lg shadow p-4 space-y-3 cursor-pointer border ${
+                    selectedExerciseItemIds.includes(item.id)
+                      ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200'
+                      : 'bg-white border-transparent'
+                  }`}
+                  onClick={(event) => handleRowSelection(event, item.id, 'EXERCISE')}
+                >
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900">{item.name || 'N/A'}</div>
+                    <div className="flex items-start gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedExerciseItemIds.includes(item.id)}
+                        onChange={() => toggleItemSelection(item.id, 'EXERCISE')}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">{getDisplayValue(item.name)}</div>
+                      </div>
                     </div>
                     <button
                       onClick={() => handleApproveItem(item.id, 'EXERCISE')}
@@ -938,11 +1381,11 @@ const UnapprovedItems = () => {
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-gray-500">Duration:</span>
-                      <span className="ml-1 text-gray-900">{item.durationInMinutes ? `${item.durationInMinutes} min` : 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{hasValue(item.durationInMinutes) ? `${item.durationInMinutes} min` : ''}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Calories Burnt:</span>
-                      <span className="ml-1 text-gray-900">{item.caloriesBurnt || 'N/A'}</span>
+                      <span className="ml-1 text-gray-900">{getDisplayValue(item.caloriesBurnt)}</span>
                     </div>
                     {item.createdByUserId && (
                       <div className="col-span-2">
@@ -991,22 +1434,39 @@ const UnapprovedItems = () => {
               <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Select</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration (min)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calories Burnt</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verified</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Public</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manual</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Photo</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'name', 'Name')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'durationInMinutes', 'Duration (min)')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'caloriesBurnt', 'Calories Burnt')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'createdByUserId', 'User ID')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'isVerified', 'Verified')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'isPublic', 'Public')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'isManual', 'Manual')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'photo', 'Photo')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'dateTimeCreated', 'Created')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">{renderSortableHeader('exercise', 'dateTimeUpdated', 'Updated')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {getCurrentItems().map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr
+                    key={item.id}
+                    className={`cursor-pointer ${
+                      selectedExerciseItemIds.includes(item.id)
+                        ? 'bg-blue-50'
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={(event) => handleRowSelection(event, item.id, 'EXERCISE')}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedExerciseItemIds.includes(item.id)}
+                        onChange={() => toggleItemSelection(item.id, 'EXERCISE')}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex justify-center space-x-2">
                         <button className="text-blue-600 hover:text-blue-900 cursor-pointer" onClick={() => handleApproveItem(item.id, 'EXERCISE')}>
@@ -1027,12 +1487,12 @@ const UnapprovedItems = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{item.name || 'N/A'}</div>
+                      <div className="text-sm font-medium text-gray-900">{getDisplayValue(item.name)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.durationInMinutes || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.caloriesBurnt || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(item.durationInMinutes)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(item.caloriesBurnt)}</td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.createdByUserId || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getDisplayValue(item.createdByUserId)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {item.isVerified ? 'Yes' : 'No'}
@@ -1040,7 +1500,7 @@ const UnapprovedItems = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800'}`}>
-                        {item.isPublic !== null && item.isPublic !== undefined ? (item.isPublic ? 'Yes' : 'No') : 'N/A'}
+                        {getBooleanLabel(item.isPublic)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1057,14 +1517,14 @@ const UnapprovedItems = () => {
                           View
                         </button>
                       ) : (
-                        'N/A'
+                        ''
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : 'N/A'}
+                      {item.dateTimeCreated ? new Date(item.dateTimeCreated).toLocaleDateString() : ''}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.dateTimeUpdated ? new Date(item.dateTimeUpdated).toLocaleDateString() : 'N/A'}
+                      {item.dateTimeUpdated ? new Date(item.dateTimeUpdated).toLocaleDateString() : ''}
                     </td>
                   </tr>
                 ))}
@@ -1227,11 +1687,11 @@ const UnapprovedItems = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {selectedIngredients.map((ing, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.name || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.quantity ?? ing.servingAmount ?? 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ing.unit || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ing.category || 'N/A'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{ing.weight ?? ing.quantity ?? 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(ing.name)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(ing.quantity ?? ing.servingAmount)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getDisplayValue(ing.unit)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getDisplayValue(ing.category)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{getDisplayValue(ing.weight ?? ing.quantity)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1280,10 +1740,10 @@ const UnapprovedItems = () => {
                   {selectedServings.map((serving, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {serving?.unitName || serving?.unit || serving?.name || serving?.innerName || 'N/A'}
+                        {getDisplayValue(serving?.unitName || serving?.unit || serving?.name || serving?.innerName)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {serving?.value ?? serving?.amount ?? 'N/A'}
+                        {getDisplayValue(serving?.value ?? serving?.amount)}
                       </td>
                     </tr>
                   ))}
@@ -1324,7 +1784,7 @@ const UnapprovedItems = () => {
 
             <div className="mb-4 p-3 bg-blue-50 rounded text-sm text-gray-800">
               Calories{selectedNutritionData.isPer100 ? ' (per 100g)' : ''}: {' '}
-              {selectedNutritionData.calories ?? 'N/A'}
+              {getDisplayValue(selectedNutritionData.calories)}
             </div>
 
             <div className="overflow-x-auto">
@@ -1340,7 +1800,7 @@ const UnapprovedItems = () => {
                     <tr key={key}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{key}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {value ?? 'N/A'}
+                        {getDisplayValue(value)}
                       </td>
                     </tr>
                   ))}

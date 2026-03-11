@@ -814,7 +814,20 @@
       "approve": "Aprobă",
       "reject": "Respinge",
       "confirmApprove": "Aprobi acest element?",
-      "confirmReject": "Respingi acest element?"
+      "confirmReject": "Respingi acest element?",
+      "unverifyItem": "Dezaprobă elementul",
+      "bulkUnverify": "Dezaprobare în masă",
+      "bulkUnverifyHint": "Dezaprobarea în masă acceptă ID-uri separate prin virgulă sau linii noi.",
+      "searchPlaceholder": "Caută elemente...",
+      "filterCountryPlaceholder": "Filtrează după codul țării",
+      "showOnlyAIGenerated": "Afișează doar elementele generate de AI",
+      "selectAllOnPage": "Selectează tot pe această pagină",
+      "bulkApproveWithCount_one": "Aprobare în masă ({{count}})",
+      "bulkApproveWithCount_few": "Aprobare în masă ({{count}})",
+      "bulkApproveWithCount_other": "Aprobare în masă ({{count}})",
+      "bulkDeleteWithCount_one": "Ștergere în masă ({{count}})",
+      "bulkDeleteWithCount_few": "Ștergere în masă ({{count}})",
+      "bulkDeleteWithCount_other": "Ștergere în masă ({{count}})"
     },
     "myMenus": {
       "title": "Meniurile mele",
