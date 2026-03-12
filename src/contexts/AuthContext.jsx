@@ -112,8 +112,7 @@ export const AuthProvider = ({ children }) => {
       await completeBackofficeRegistration({
         userId: registeredUser.uid,
         fullName: normalizedFullName,
-        email: registeredUser.email,
-        userType: 'NUTRITIONIST'
+        email: registeredUser.email
       })
 
       // Fetch backend user data after registration

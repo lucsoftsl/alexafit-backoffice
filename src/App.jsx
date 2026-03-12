@@ -8,6 +8,7 @@ import MyMenus from './pages/MyMenus'
 import Users from './pages/Users'
 import Subscribers from './pages/Subscribers'
 import UnapprovedItems from './pages/UnapprovedItems'
+import Analytics from './pages/Analytics'
 import Menus from './pages/Menus'
 import Recipes from './pages/Recipes'
 import Settings from './pages/Settings'
@@ -200,6 +201,8 @@ function App() {
         return <Subscribers />
       case 'unapprovedItems':
         return <UnapprovedItems />
+      case 'analytics':
+        return <Analytics />
       case 'menus':
         return <Menus />
       case 'recipes':

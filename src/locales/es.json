@@ -387,6 +387,79 @@
         "delete": "Error al eliminar la nota"
       }
     },
+    "analytics": {
+      "title": "Analítica",
+      "subtitle": "Supervisa eventos, fallos y actividad de usuarios en la app y la API.",
+      "loading": "Cargando analítica…",
+      "stats": {
+        "totalEvents": "Eventos Totales",
+        "uniqueUsers": "Usuarios Únicos",
+        "apiFailures": "Fallos de API",
+        "appFailures": "Fallos de la App"
+      },
+      "filters": {
+        "timeWindow": "Ventana de Tiempo",
+        "refresh": "Actualizar",
+        "sortOrder": "Orden",
+        "searchQuickRanges": "Buscar rangos rápidos",
+        "ascending": "Ascendente",
+        "descending": "Descendente",
+        "rangeLabels": {
+          "15m": "Últimos 15 minutos",
+          "30m": "Últimos 30 minutos",
+          "1h": "Última hora",
+          "3h": "Últimas 3 horas",
+          "6h": "Últimas 6 horas",
+          "12h": "Últimas 12 horas",
+          "1d": "Últimas 24 horas",
+          "2d": "Últimos 2 días",
+          "7d": "Últimos 7 días"
+        }
+      },
+      "timeline": {
+        "title": "Cronología de Eventos",
+        "subtitle": "Haz clic en un punto para seleccionar un bloque de tiempo y luego decide si quieres ver los logs alrededor de ese momento.",
+        "selectedBucket": "Bloque seleccionado",
+        "none": "Ninguno",
+        "zoomRange": "Rango de zoom",
+        "dragToZoom": "Arrastra sobre el gráfico para hacer zoom en un rango de tiempo.",
+        "resetZoom": "Restablecer zoom",
+        "confirmTitle": "¿Ver logs alrededor de {{bucket}}?",
+        "confirmSubtitle": "Se capturaron {{count}} eventos en este bloque.",
+        "viewLogs": "Ver logs",
+        "cancel": "Cancelar"
+      },
+      "breakdowns": {
+        "analyticsKinds": "Tipos de Analítica",
+        "devices": "Distribución por Dispositivo",
+        "sources": "Distribución por Fuente",
+        "appVersions": "Distribución por Versión de la App",
+        "endpoints": "Distribución por Endpoint",
+        "topUsers": "Usuarios Principales",
+        "events": "Eventos"
+      },
+      "details": {
+        "title": "Detalles del Bloque",
+        "subtitle": "Selecciona un punto del gráfico y confirma para inspeccionar sus filas de analítica.",
+        "subtitleWithBucket": "{{count}} eventos en {{bucket}}",
+        "loadBefore": "Cargar Anteriores",
+        "loadAfter": "Cargar Siguientes",
+        "awaitingSelection": "Selecciona un punto del gráfico y confirma para ver los logs alrededor de ese momento.",
+        "empty": "No hay filas de analítica para el bloque seleccionado."
+      },
+      "table": {
+        "action": "Acción",
+        "classification": "Clasificación",
+        "createdAt": "Creado",
+        "userId": "ID de Usuario",
+        "endpoint": "Endpoint",
+        "details": "Detalles",
+        "data": "Datos"
+      },
+      "errors": {
+        "loadFailed": "No se pudo cargar la analítica."
+      }
+    },
     "settings": {
       "title": "Configuración",
       "subtitle": "Gestiona tu perfil y preferencias",

@@ -82,6 +82,8 @@ async function requestGet(path, { timeout = DEFAULT_TIMEOUT_MS } = {}) {
   }
 }
 
+const analyticsFeedInFlightRequests = new Map()
+
 export async function getDailyNutrition({ userId, dateApplied }) {
   // RN http.ts: POST /foodsync/getUserItemsByDateApplied
   return request('/foodsync/getUserItemsByDateApplied', {
@@ -271,16 +273,14 @@ export async function saveUserDataFromWelcomeScreen({
 export async function completeBackofficeRegistration({
   userId,
   fullName,
-  email,
-  userType
+  email
 }) {
   return request('/foodsync/users/completeBackofficeRegistration', {
     method: 'POST',
     body: {
       userId,
       fullName,
-      email,
-      userType
+      email
     }
   })
 }
@@ -428,4 +428,31 @@ export async function deleteUserCheckin({ userId, checkInId }) {
       checkInId
     }
   })
+}
+
+export async function getBackofficeAnalyticsFeed({
+  userId,
+  lookbackWindow = '1h'
+}) {
+  const requestKey = JSON.stringify({
+    userId,
+    lookbackWindow
+  })
+
+  if (analyticsFeedInFlightRequests.has(requestKey)) {
+    return analyticsFeedInFlightRequests.get(requestKey)
+  }
+
+  const requestPromise = request('/backoffice/getAnalyticsFeed', {
+    method: 'POST',
+    body: {
+      userId,
+      lookbackWindow
+    }
+  }).finally(() => {
+    analyticsFeedInFlightRequests.delete(requestKey)
+  })
+
+  analyticsFeedInFlightRequests.set(requestKey, requestPromise)
+  return requestPromise
 }

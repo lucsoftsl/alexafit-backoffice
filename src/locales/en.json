@@ -355,6 +355,79 @@
         "delete": "Failed to delete note"
       }
     },
+    "analytics": {
+      "title": "Analytics",
+      "subtitle": "Monitor events, failures, and user activity across the app and API.",
+      "loading": "Loading analytics…",
+      "stats": {
+        "totalEvents": "Total Events",
+        "uniqueUsers": "Unique Users",
+        "apiFailures": "API Failures",
+        "appFailures": "App Failures"
+      },
+      "filters": {
+        "timeWindow": "Time Window",
+        "refresh": "Refresh",
+        "sortOrder": "Sort Order",
+        "searchQuickRanges": "Search quick ranges",
+        "ascending": "Ascending",
+        "descending": "Descending",
+        "rangeLabels": {
+          "15m": "Last 15 minutes",
+          "30m": "Last 30 minutes",
+          "1h": "Last 1 hour",
+          "3h": "Last 3 hours",
+          "6h": "Last 6 hours",
+          "12h": "Last 12 hours",
+          "1d": "Last 24 hours",
+          "2d": "Last 2 days",
+          "7d": "Last 7 days"
+        }
+      },
+      "timeline": {
+        "title": "Event Timeline",
+        "subtitle": "Click a point to select a time bucket, then choose whether to view the surrounding logs.",
+        "selectedBucket": "Selected bucket",
+        "none": "None",
+        "zoomRange": "Zoom Range",
+        "dragToZoom": "Drag on the chart to zoom into a time range.",
+        "resetZoom": "Reset zoom",
+        "confirmTitle": "View logs around {{bucket}}?",
+        "confirmSubtitle": "{{count}} events were captured in this bucket.",
+        "viewLogs": "View logs",
+        "cancel": "Cancel"
+      },
+      "breakdowns": {
+        "analyticsKinds": "Analytics Types",
+        "devices": "Device Breakdown",
+        "sources": "Source Breakdown",
+        "appVersions": "App Version Breakdown",
+        "endpoints": "Endpoint Breakdown",
+        "topUsers": "Top Users",
+        "events": "Events"
+      },
+      "details": {
+        "title": "Bucket Details",
+        "subtitle": "Select a graph point and confirm to inspect its analytics rows.",
+        "subtitleWithBucket": "{{count}} events in {{bucket}}",
+        "loadBefore": "Load Before",
+        "loadAfter": "Load After",
+        "awaitingSelection": "Select a graph point and confirm to view logs around that time.",
+        "empty": "No analytics rows available for the selected bucket."
+      },
+      "table": {
+        "action": "Action",
+        "classification": "Classification",
+        "createdAt": "Created At",
+        "userId": "User ID",
+        "endpoint": "Endpoint",
+        "details": "Details",
+        "data": "Data"
+      },
+      "errors": {
+        "loadFailed": "Failed to load analytics."
+      }
+    },
     "settings": {
       "title": "Settings",
       "subtitle": "Manage your profile and preferences",

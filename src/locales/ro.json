@@ -355,6 +355,79 @@
         "delete": "Eroare la ștergerea notei"
       }
     },
+    "analytics": {
+      "title": "Analitice",
+      "subtitle": "Monitorizează evenimentele, erorile și activitatea utilizatorilor din aplicație și API.",
+      "loading": "Se încarcă analiticele…",
+      "stats": {
+        "totalEvents": "Evenimente Totale",
+        "uniqueUsers": "Utilizatori Unici",
+        "apiFailures": "Erori API",
+        "appFailures": "Erori Aplicație"
+      },
+      "filters": {
+        "timeWindow": "Fereastră de Timp",
+        "refresh": "Reîmprospătează",
+        "sortOrder": "Ordine Sortare",
+        "searchQuickRanges": "Caută intervale rapide",
+        "ascending": "Ascendent",
+        "descending": "Descendent",
+        "rangeLabels": {
+          "15m": "Ultimele 15 minute",
+          "30m": "Ultimele 30 de minute",
+          "1h": "Ultima oră",
+          "3h": "Ultimele 3 ore",
+          "6h": "Ultimele 6 ore",
+          "12h": "Ultimele 12 ore",
+          "1d": "Ultimele 24 de ore",
+          "2d": "Ultimele 2 zile",
+          "7d": "Ultimele 7 zile"
+        }
+      },
+      "timeline": {
+        "title": "Cronologie Evenimente",
+        "subtitle": "Apasă pe un punct pentru a selecta un interval, apoi alege dacă vrei să vezi logurile din jurul acelui moment.",
+        "selectedBucket": "Interval selectat",
+        "none": "Niciunul",
+        "zoomRange": "Interval zoom",
+        "dragToZoom": "Trage pe grafic pentru a face zoom pe un interval de timp.",
+        "resetZoom": "Resetează zoom",
+        "confirmTitle": "Vezi logurile din jurul intervalului {{bucket}}?",
+        "confirmSubtitle": "{{count}} evenimente au fost capturate în acest interval.",
+        "viewLogs": "Vezi logurile",
+        "cancel": "Anulează"
+      },
+      "breakdowns": {
+        "analyticsKinds": "Tipuri de Analitice",
+        "devices": "Distribuție Dispozitive",
+        "sources": "Distribuție Surse",
+        "appVersions": "Distribuție Versiuni Aplicație",
+        "endpoints": "Distribuție Endpoint-uri",
+        "topUsers": "Top Utilizatori",
+        "events": "Evenimente"
+      },
+      "details": {
+        "title": "Detalii Interval",
+        "subtitle": "Selectează un punct din grafic și confirmă pentru a inspecta rândurile de analitice.",
+        "subtitleWithBucket": "{{count}} evenimente în {{bucket}}",
+        "loadBefore": "Încarcă Anterioare",
+        "loadAfter": "Încarcă Următoare",
+        "awaitingSelection": "Selectează un punct din grafic și confirmă pentru a vedea logurile din jurul acelui moment.",
+        "empty": "Nu există rânduri de analitice pentru intervalul selectat."
+      },
+      "table": {
+        "action": "Acțiune",
+        "classification": "Clasificare",
+        "createdAt": "Creat La",
+        "userId": "ID Utilizator",
+        "endpoint": "Endpoint",
+        "details": "Detalii",
+        "data": "Date"
+      },
+      "errors": {
+        "loadFailed": "Nu s-au putut încărca analiticele."
+      }
+    },
     "settings": {
       "title": "Setări",
       "subtitle": "Gestionează-ți profilul și preferințele",

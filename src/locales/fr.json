@@ -355,6 +355,79 @@
         "delete": "Échec de la suppression de la note"
       }
     },
+    "analytics": {
+      "title": "Analytique",
+      "subtitle": "Surveillez les événements, les échecs et l'activité des utilisateurs dans l'app et l'API.",
+      "loading": "Chargement des analytiques…",
+      "stats": {
+        "totalEvents": "Événements Totaux",
+        "uniqueUsers": "Utilisateurs Uniques",
+        "apiFailures": "Échecs API",
+        "appFailures": "Échecs de l'App"
+      },
+      "filters": {
+        "timeWindow": "Fenêtre de Temps",
+        "refresh": "Actualiser",
+        "sortOrder": "Ordre de Tri",
+        "searchQuickRanges": "Rechercher des plages rapides",
+        "ascending": "Croissant",
+        "descending": "Décroissant",
+        "rangeLabels": {
+          "15m": "15 dernières minutes",
+          "30m": "30 dernières minutes",
+          "1h": "Dernière heure",
+          "3h": "3 dernières heures",
+          "6h": "6 dernières heures",
+          "12h": "12 dernières heures",
+          "1d": "24 dernières heures",
+          "2d": "2 derniers jours",
+          "7d": "7 derniers jours"
+        }
+      },
+      "timeline": {
+        "title": "Chronologie des Événements",
+        "subtitle": "Cliquez sur un point pour sélectionner un bloc temporel, puis choisissez si vous voulez voir les logs autour de ce moment.",
+        "selectedBucket": "Bloc sélectionné",
+        "none": "Aucun",
+        "zoomRange": "Plage de zoom",
+        "dragToZoom": "Faites glisser sur le graphique pour zoomer sur une plage de temps.",
+        "resetZoom": "Réinitialiser le zoom",
+        "confirmTitle": "Voir les logs autour de {{bucket}} ?",
+        "confirmSubtitle": "{{count}} événements ont été capturés dans ce bloc.",
+        "viewLogs": "Voir les logs",
+        "cancel": "Annuler"
+      },
+      "breakdowns": {
+        "analyticsKinds": "Types d'Analytique",
+        "devices": "Répartition par Appareil",
+        "sources": "Répartition par Source",
+        "appVersions": "Répartition par Version de l'App",
+        "endpoints": "Répartition par Endpoint",
+        "topUsers": "Top Utilisateurs",
+        "events": "Événements"
+      },
+      "details": {
+        "title": "Détails du Bloc",
+        "subtitle": "Sélectionnez un point du graphique et confirmez pour inspecter les lignes analytiques.",
+        "subtitleWithBucket": "{{count}} événements dans {{bucket}}",
+        "loadBefore": "Charger Avant",
+        "loadAfter": "Charger Après",
+        "awaitingSelection": "Sélectionnez un point du graphique et confirmez pour voir les logs autour de ce moment.",
+        "empty": "Aucune ligne analytique pour le bloc sélectionné."
+      },
+      "table": {
+        "action": "Action",
+        "classification": "Classification",
+        "createdAt": "Créé le",
+        "userId": "ID Utilisateur",
+        "endpoint": "Endpoint",
+        "details": "Détails",
+        "data": "Données"
+      },
+      "errors": {
+        "loadFailed": "Impossible de charger les analytiques."
+      }
+    },
     "settings": {
       "title": "Paramètres",
       "subtitle": "Gérez votre profil et vos préférences",
