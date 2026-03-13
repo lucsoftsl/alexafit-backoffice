@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 import { auth } from '../config/firebase'
 
-import { API_BASE_FOODSYNC_URL } from './const'
+import { API_BASE_FOODSYNC_URL, API_BASE_UTILS_URL } from './const'
 
 // Endpoints that require Firebase Bearer token (parity with RN http)
 // Mobile app uses `Authorization: Bearer <token>` via getValidToken()
@@ -54,6 +54,39 @@ async function request(
   } catch (err) {
     clearTimeout(timer)
     console.error('loggedinApi request error:', err)
+    throw err
+  }
+}
+
+async function requestAbsolute(
+  url,
+  {
+    method = 'POST',
+    body = null,
+    isForm = false,
+    timeout = DEFAULT_TIMEOUT_MS
+  } = {}
+) {
+  const controller = new AbortController()
+  const signal = controller.signal
+  const timer = setTimeout(() => controller.abort(), timeout)
+  try {
+    const headers = await getBearerHeaders(!isForm)
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: isForm ? body : body ? JSON.stringify(body) : undefined,
+      signal
+    })
+    clearTimeout(timer)
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`)
+    }
+    const data = await res.json()
+    return data
+  } catch (err) {
+    clearTimeout(timer)
+    console.error('loggedinApi absolute request error:', err)
     throw err
   }
 }
@@ -443,13 +476,16 @@ export async function getBackofficeAnalyticsFeed({
     return analyticsFeedInFlightRequests.get(requestKey)
   }
 
-  const requestPromise = request('/backoffice/getAnalyticsFeed', {
-    method: 'POST',
-    body: {
-      userId,
-      lookbackWindow
+  const requestPromise = requestAbsolute(
+    `${API_BASE_UTILS_URL}/analytics/alexafit/feed`,
+    {
+      method: 'POST',
+      body: {
+        userId,
+        lookbackWindow
+      }
     }
-  }).finally(() => {
+  ).finally(() => {
     analyticsFeedInFlightRequests.delete(requestKey)
   })
 

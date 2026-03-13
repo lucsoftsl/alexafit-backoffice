@@ -410,6 +410,8 @@
         "title": "Bucket Details",
         "subtitle": "Select a graph point and confirm to inspect its analytics rows.",
         "subtitleWithBucket": "{{count}} events in {{bucket}}",
+        "eventType": "Event Type",
+        "allEventTypes": "All event types",
         "loadBefore": "Load Before",
         "loadAfter": "Load After",
         "awaitingSelection": "Select a graph point and confirm to view logs around that time.",
@@ -421,6 +423,8 @@
         "createdAt": "Created At",
         "userId": "User ID",
         "endpoint": "Endpoint",
+        "request": "Request",
+        "response": "Response",
         "details": "Details",
         "data": "Data"
       },

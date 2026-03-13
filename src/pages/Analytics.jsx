@@ -135,6 +135,26 @@ const truncateLabel = (value, maxLength = 32) => {
   return `${label.slice(0, maxLength - 1)}…`
 }
 
+const formatEndpointLabel = value => {
+  const endpoint = String(value || '').trim()
+  if (!endpoint) {
+    return 'N/A'
+  }
+
+  if (endpoint.startsWith('firebase://') || endpoint.startsWith('storage://')) {
+    return endpoint
+  }
+
+  try {
+    if (/^https?:\/\//i.test(endpoint)) {
+      const parsed = new URL(endpoint)
+      return `${parsed.pathname || '/'}${parsed.search || ''}${parsed.hash || ''}`
+    }
+  } catch {}
+
+  return endpoint
+}
+
 const buildCountRows = (counts = {}, labelKey = 'label') =>
   Object.entries(counts)
     .map(([label, value]) => ({
@@ -213,6 +233,7 @@ const Analytics = () => {
   const [analyticsFeed, setAnalyticsFeed] = useState({ rows: [], meta: {} })
   const [pendingBucketKey, setPendingBucketKey] = useState(null)
   const [confirmedBucketKey, setConfirmedBucketKey] = useState(null)
+  const [selectedBucketKindFilter, setSelectedBucketKindFilter] = useState('ALL')
   const [zoomRange, setZoomRange] = useState({ startIndex: 0, endIndex: 0 })
   const [dragSelection, setDragSelection] = useState({
     startKey: null,
@@ -381,7 +402,13 @@ const Analytics = () => {
     [analyticsMeta?.sourcePlatformCounts]
   )
   const endpointRows = useMemo(
-    () => buildCountRows(analyticsMeta?.endpointCounts, 'endpoint').slice(0, 10),
+    () =>
+      buildCountRows(analyticsMeta?.endpointCounts, 'endpoint')
+        .map(row => ({
+          ...row,
+          endpointDisplay: formatEndpointLabel(row.endpoint)
+        }))
+        .slice(0, 10),
     [analyticsMeta?.endpointCounts]
   )
   const appVersionRows = useMemo(
@@ -399,6 +426,19 @@ const Analytics = () => {
   }, [analyticsRows])
 
   const selectedBucketRows = selectedBucket?.rows || []
+  const selectedBucketKindOptions = useMemo(() => {
+    const kinds = [...new Set(selectedBucketRows.map(row => row?.analyticsKind || 'OTHER'))]
+    return ['ALL', ...kinds]
+  }, [selectedBucketRows])
+  const filteredSelectedBucketRows = useMemo(() => {
+    if (selectedBucketKindFilter === 'ALL') {
+      return selectedBucketRows
+    }
+
+    return selectedBucketRows.filter(
+      row => (row?.analyticsKind || 'OTHER') === selectedBucketKindFilter
+    )
+  }, [selectedBucketKindFilter, selectedBucketRows])
   const filteredTimeRangeOptions = TIME_RANGE_OPTIONS.filter(option =>
     option.label.toLowerCase().includes(timeframeSearch.toLowerCase())
   )
@@ -406,6 +446,10 @@ const Analytics = () => {
     dragSelection.startKey &&
     dragSelection.endKey &&
     dragSelection.startKey !== dragSelection.endKey
+
+  useEffect(() => {
+    setSelectedBucketKindFilter('ALL')
+  }, [confirmedBucketKey])
 
   const handleSeriesSelection = kind => {
     setVisibleSeries(current => {
@@ -537,17 +581,88 @@ const Analytics = () => {
     return null
   }
 
+  const pageHeader = (
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">
+          {t('pages.analytics.title')}
+        </h1>
+        <p className="mt-1 text-sm text-slate-600">
+          {t('pages.analytics.subtitle')}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-end">
+        <div className="relative min-w-56">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            {t('pages.analytics.filters.timeWindow')}
+          </p>
+          <button
+            type="button"
+            onClick={() => setTimeframeMenuOpen(open => !open)}
+            className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white"
+          >
+            <span>
+              {getRangeLabel(lookbackWindow, t)}
+            </span>
+            <span className="text-slate-400">▾</span>
+          </button>
+
+          {timeframeMenuOpen ? (
+            <div className="absolute left-0 top-full z-20 mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+              <input
+                type="text"
+                value={timeframeSearch}
+                onChange={event => setTimeframeSearch(event.target.value)}
+                placeholder={t('pages.analytics.filters.searchQuickRanges')}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-violet-400"
+              />
+              <div className="mt-3 max-h-64 overflow-auto">
+                {filteredTimeRangeOptions.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setLookbackWindow(option.value)
+                      setTimeframeMenuOpen(false)
+                      setTimeframeSearch('')
+                    }}
+                    className={`flex w-full rounded-xl px-3 py-2 text-left text-sm transition ${
+                      lookbackWindow === option.value
+                        ? 'bg-slate-100 font-semibold text-slate-900'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {getRangeLabel(option.value, t)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="min-w-32">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            {t('pages.analytics.filters.refresh')}
+          </p>
+          <button
+            type="button"
+            onClick={() => setRefreshTick(value => value + 1)}
+            disabled={loading}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            {t('pages.analytics.filters.refresh')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">
-            {t('pages.analytics.title')}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {t('pages.analytics.subtitle')}
-          </p>
-        </div>
+        {pageHeader}
         <div className="flex h-72 items-center justify-center rounded-3xl border border-slate-200 bg-white">
           <div className="text-center">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-violet-600" />
@@ -563,14 +678,7 @@ const Analytics = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">
-            {t('pages.analytics.title')}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {t('pages.analytics.subtitle')}
-          </p>
-        </div>
+        {pageHeader}
         <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-700">
           <p className="font-semibold">{t('pages.analytics.errors.loadFailed')}</p>
           <p className="mt-2 text-sm">{error}</p>
@@ -581,82 +689,7 @@ const Analytics = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">
-            {t('pages.analytics.title')}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {t('pages.analytics.subtitle')}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-end">
-          <div className="relative min-w-56">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              {t('pages.analytics.filters.timeWindow')}
-            </p>
-            <button
-              type="button"
-              onClick={() => setTimeframeMenuOpen(open => !open)}
-              className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white"
-            >
-              <span>
-                {getRangeLabel(lookbackWindow, t)}
-              </span>
-              <span className="text-slate-400">▾</span>
-            </button>
-
-            {timeframeMenuOpen ? (
-              <div className="absolute left-0 top-full z-20 mt-2 w-full rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
-                <input
-                  type="text"
-                  value={timeframeSearch}
-                  onChange={event => setTimeframeSearch(event.target.value)}
-                  placeholder={t('pages.analytics.filters.searchQuickRanges')}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-violet-400"
-                />
-                <div className="mt-3 max-h-64 overflow-auto">
-                  {filteredTimeRangeOptions.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        setLookbackWindow(option.value)
-                        setTimeframeMenuOpen(false)
-                        setTimeframeSearch('')
-                      }}
-                      className={`flex w-full rounded-xl px-3 py-2 text-left text-sm transition ${
-                        lookbackWindow === option.value
-                          ? 'bg-slate-100 font-semibold text-slate-900'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      {getRangeLabel(option.value, t)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="min-w-32">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              {t('pages.analytics.filters.refresh')}
-            </p>
-            <button
-              type="button"
-              onClick={() => setRefreshTick(value => value + 1)}
-              disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              {t('pages.analytics.filters.refresh')}
-            </button>
-          </div>
-
-        </div>
-      </div>
+      {pageHeader}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map(stat => {
@@ -752,7 +785,7 @@ const Analytics = () => {
             ) : null}
           </div>
 
-          <div className="h-80">
+          <div className="h-80 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={timelineBuckets}
@@ -869,11 +902,11 @@ const Analytics = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">
               {t('pages.analytics.breakdowns.analyticsKinds')}
             </h2>
-            <div className="mt-4 h-60">
+            <div className="mt-4 h-60 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -903,11 +936,11 @@ const Analytics = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">
             {t('pages.analytics.breakdowns.devices')}
           </h2>
-          <div className="mt-4 h-64">
+          <div className="mt-4 h-64 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={deviceRows}>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -920,11 +953,11 @@ const Analytics = () => {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">
             {t('pages.analytics.breakdowns.sources')}
           </h2>
-          <div className="mt-4 h-64">
+          <div className="mt-4 h-64 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sourceRows}>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -938,7 +971,7 @@ const Analytics = () => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">
             {t('pages.analytics.breakdowns.appVersions')}
@@ -947,7 +980,7 @@ const Analytics = () => {
             {t('pages.analytics.breakdowns.events')}
           </span>
         </div>
-        <div className="h-72">
+        <div className="h-72 min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={appVersionRows}>
               <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
@@ -965,7 +998,7 @@ const Analytics = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">
               {t('pages.analytics.breakdowns.endpoints')}
@@ -974,21 +1007,21 @@ const Analytics = () => {
               {t('pages.analytics.breakdowns.events')}
             </span>
           </div>
-          <div className="h-72">
+          <div className="h-72 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={endpointRows} layout="vertical" margin={{ left: 16 }}>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
                 <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
                 <YAxis
                   type="category"
-                  dataKey="endpoint"
+                  dataKey="endpointDisplay"
                   width={220}
                   tick={{ fontSize: 12 }}
                   tickFormatter={value => truncateLabel(value, 34)}
                 />
                 <Tooltip
                   formatter={value => [value, t('pages.analytics.breakdowns.events')]}
-                  labelFormatter={value => String(value || 'N/A')}
+                  labelFormatter={value => formatEndpointLabel(value)}
                 />
                 <Bar dataKey="value" fill="#0f766e" radius={[0, 8, 8, 0]} />
               </BarChart>
@@ -1096,7 +1129,7 @@ const Analytics = () => {
 
               {selectedBucket ? (
                 <div className="space-y-6">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       disabled={selectedBucketIndex <= 0}
@@ -1126,90 +1159,115 @@ const Analytics = () => {
                       {t('pages.analytics.details.loadAfter')}
                       <ArrowRightIcon className="h-4 w-4" />
                     </button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <label
+                        htmlFor="bucket-kind-filter"
+                        className="text-sm font-medium text-slate-600"
+                      >
+                        {t('pages.analytics.details.eventType')}
+                      </label>
+                      <select
+                        id="bucket-kind-filter"
+                        value={selectedBucketKindFilter}
+                        onChange={event => setSelectedBucketKindFilter(event.target.value)}
+                        className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                      >
+                        {selectedBucketKindOptions.map(kind => (
+                          <option key={kind} value={kind}>
+                            {kind === 'ALL'
+                              ? t('pages.analytics.details.allEventTypes')
+                              : kind}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  {selectedBucketRows.length === 0 ? (
+                  {filteredSelectedBucketRows.length === 0 ? (
                     <div className="py-10 text-center text-sm text-slate-500">
                       {t('pages.analytics.details.empty')}
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {selectedBucketRows.map(row => (
-                        <div
+                      {filteredSelectedBucketRows.map(row => (
+                        <details
                           key={row.id}
-                          className="overflow-hidden rounded-3xl border border-slate-200"
+                          className="overflow-hidden rounded-2xl border border-slate-200 bg-white group"
                         >
-                          <div className="grid gap-4 bg-slate-50 px-5 py-4 md:grid-cols-[1.1fr_0.9fr_0.7fr_1fr]">
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                {t('pages.analytics.table.action')}
-                              </p>
-                              <p className="mt-1 text-sm font-semibold text-slate-900">
-                                {row.action || 'N/A'}
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500">
-                                {row.message || 'N/A'}
-                              </p>
-                              <p className="mt-2 break-all text-xs text-slate-500">
-                                <span className="font-semibold text-slate-700">
-                                  {t('pages.analytics.table.endpoint')}:
-                                </span>{' '}
-                                {row.endpoint || 'N/A'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                {t('pages.analytics.table.classification')}
-                              </p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
-                                  {row.analyticsKind}
+                          <summary className="grid cursor-pointer grid-cols-[20px_190px_minmax(0,1fr)] items-center gap-4 bg-slate-50 px-4 py-3 font-mono text-[13px] text-slate-800 marker:content-none hover:bg-slate-100">
+                            <span className="text-slate-400 transition group-open:rotate-90">
+                              ▶
+                            </span>
+                            <span className="whitespace-nowrap text-slate-600">
+                              {row.createdAt || 'N/A'}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                <span className="font-semibold text-slate-900">
+                                  [{row.analyticsKind || 'UNKNOWN'}]
                                 </span>
-                                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                                  {row.sourcePlatform}
+                                <span className="text-slate-500">
+                                  [{row.requestMethod || 'N/A'}]
                                 </span>
-                                <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
-                                  {row.deviceType}
+                                <span className="text-slate-500">
+                                  [{row.httpStatusCode || 'N/A'}]
+                                </span>
+                                <span className="truncate text-slate-700">
+                                  {row.action || row.message || 'N/A'}
                                 </span>
                               </div>
+                              <div className="mt-1 truncate text-xs text-slate-500">
+                                {row.endpoint || row.message || 'N/A'}
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                {t('pages.analytics.table.createdAt')}
-                              </p>
-                              <p className="mt-1 text-sm text-slate-900">
-                                {formatDateTime(row.createdAt)}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                {t('pages.analytics.table.userId')}
-                              </p>
-                              <p className="mt-1 break-all text-sm text-slate-900">
-                                {row.userID || 'N/A'}
-                              </p>
-                            </div>
-                          </div>
+                          </summary>
 
-                          <div className="grid gap-4 px-5 py-4 lg:grid-cols-2">
-                            <div>
-                              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                {t('pages.analytics.table.details')}
-                              </p>
-                              <pre className="max-h-56 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
-                                {safePrettyJson(row.parsedDetails || row.details)}
-                              </pre>
+                          <div className="border-t border-slate-200 px-4 py-4">
+                            <div className="mb-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
+                              <div>
+                                <span className="font-semibold text-slate-900">
+                                  {t('pages.analytics.table.userId')}:
+                                </span>{' '}
+                                <span className="break-all">{row.userID || 'N/A'}</span>
+                              </div>
+                              <div>
+                                <span className="font-semibold text-slate-900">
+                                  {t('pages.analytics.table.classification')}:
+                                </span>{' '}
+                                {row.sourcePlatform || 'N/A'} / {row.deviceType || 'N/A'}
+                              </div>
                             </div>
-                            <div>
-                              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                {t('pages.analytics.table.data')}
-                              </p>
-                              <pre className="max-h-56 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
-                                {safePrettyJson(row.parsedData || row.data)}
-                              </pre>
+
+                            <div className="grid gap-4 lg:grid-cols-2">
+                              <div>
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                  {t('pages.analytics.table.request')}
+                                </p>
+                                <pre className="max-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
+                                  {safePrettyJson({
+                                    endpoint: row.endpoint,
+                                    method: row.requestMethod,
+                                    body: row.requestBody,
+                                    params: row.requestParams,
+                                  })}
+                                </pre>
+                              </div>
+                              <div>
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                  {t('pages.analytics.table.response')}
+                                </p>
+                                <pre className="max-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">
+                                  {safePrettyJson({
+                                    statusCode: row.httpStatusCode,
+                                    responseBody: row.responseBody,
+                                    analyticsData: row.parsedData || row.data,
+                                    analyticsDetails: row.parsedDetails || row.details,
+                                  })}
+                                </pre>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        </details>
                       ))}
                     </div>
                   )}

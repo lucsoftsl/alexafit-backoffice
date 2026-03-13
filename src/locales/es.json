@@ -442,6 +442,8 @@
         "title": "Detalles del Bloque",
         "subtitle": "Selecciona un punto del gráfico y confirma para inspeccionar sus filas de analítica.",
         "subtitleWithBucket": "{{count}} eventos en {{bucket}}",
+        "eventType": "Tipo de evento",
+        "allEventTypes": "Todos los tipos de eventos",
         "loadBefore": "Cargar Anteriores",
         "loadAfter": "Cargar Siguientes",
         "awaitingSelection": "Selecciona un punto del gráfico y confirma para ver los logs alrededor de ese momento.",
@@ -453,6 +455,8 @@
         "createdAt": "Creado",
         "userId": "ID de Usuario",
         "endpoint": "Endpoint",
+        "request": "Solicitud",
+        "response": "Respuesta",
         "details": "Detalles",
         "data": "Datos"
       },

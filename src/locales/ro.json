@@ -410,6 +410,8 @@
         "title": "Detalii Interval",
         "subtitle": "Selectează un punct din grafic și confirmă pentru a inspecta rândurile de analitice.",
         "subtitleWithBucket": "{{count}} evenimente în {{bucket}}",
+        "eventType": "Tip eveniment",
+        "allEventTypes": "Toate tipurile de evenimente",
         "loadBefore": "Încarcă Anterioare",
         "loadAfter": "Încarcă Următoare",
         "awaitingSelection": "Selectează un punct din grafic și confirmă pentru a vedea logurile din jurul acelui moment.",
@@ -421,6 +423,8 @@
         "createdAt": "Creat La",
         "userId": "ID Utilizator",
         "endpoint": "Endpoint",
+        "request": "Cerere",
+        "response": "Răspuns",
         "details": "Detalii",
         "data": "Date"
       },
