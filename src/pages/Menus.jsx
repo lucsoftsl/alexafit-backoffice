@@ -94,6 +94,11 @@ const normalizeMenuItemShape = item => {
     numberOfRecipeServings: item?.numberOfRecipeServings || 1
   }
 }
+const parseOptionalNumber = value => {
+  if (value === '' || value === null || value === undefined) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
 const getServingAmount = serving =>
   parseNumber(serving?.value ?? serving?.amount ?? 0)
 const STANDARD_INPUT_UNITS = new Set([
@@ -200,6 +205,7 @@ const Menus = () => {
   const [selectedTemplateForCopy, setSelectedTemplateForCopy] = useState(null)
   const [copyCountryCode, setCopyCountryCode] = useState('RO')
   const [copyingTemplate, setCopyingTemplate] = useState(false)
+  const [viewingItem, setViewingItem] = useState(null)
   const selectedUserForUnits = useMemo(
     () =>
       users.find(
@@ -789,8 +795,9 @@ const Menus = () => {
           initialDisplayValues[itemKey] = {
             selectedServingId: servingIdentifier,
             servingAmount:
-              parseNumber(item.changedServing.value) ||
-              parseNumber(item.changedServing.quantity)
+              parseOptionalNumber(item.changedServing.quantity) ??
+              parseOptionalNumber(item.changedServing.value) ??
+              ''
           }
         } else {
           // Use original serving info, or extract from serving array if not stored
@@ -1262,6 +1269,184 @@ const Menus = () => {
     })
   }, [templates, templateSearchTerm])
 
+  const renderItemPreviewModal = () => {
+    if (!viewingItem) return null
+
+    const previewServingOptions = buildServingOptionsForMenuItem(
+      viewingItem,
+      includeImperialServingOptions
+    )
+    const previewServing =
+      findDefaultServing(previewServingOptions) || previewServingOptions[0] || null
+    const previewAmount =
+      getDefaultAmountForSelectedServing(previewServing) ||
+      viewingItem?.originalServingAmount ||
+      100
+    const previewUnit =
+      previewServing?.unitName ||
+      previewServing?.unit ||
+      (viewingItem?.isLiquid ? 'ml' : 'g')
+    const previewValues = calculateDisplayValues(
+      viewingItem,
+      previewAmount,
+      parseNumber(viewingItem?.originalServingAmount) || 100,
+      previewUnit
+    )
+    const nutrients = safeNutrients(previewValues?.nutrients || {})
+    const ingredients = Array.isArray(viewingItem?.ingredients)
+      ? viewingItem.ingredients
+      : []
+    const ingredientNames = Array.isArray(viewingItem?.ingredientNames)
+      ? viewingItem.ingredientNames.filter(Boolean)
+      : []
+    const instructions = Array.isArray(viewingItem?.recipeSteps?.instructions)
+      ? viewingItem.recipeSteps.instructions
+      : []
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm">
+        <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h3 className="truncate text-2xl font-bold text-slate-900">
+                {viewingItem?.name || 'Unnamed'}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                {detectIsRecipe(viewingItem) ? 'Recipe' : 'Food'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewingItem(null)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-6 lg:grid-cols-[180px_minmax(0,1fr)]">
+            <div className="overflow-hidden rounded-3xl bg-slate-100">
+              {viewingItem?.photoUrl ? (
+                <img
+                  src={viewingItem.photoUrl}
+                  alt={viewingItem?.name || 'Menu item'}
+                  className="h-44 w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-44 w-full items-center justify-center text-4xl font-bold text-slate-400">
+                  {detectIsRecipe(viewingItem) ? 'R' : 'F'}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
+                  {t('pages.myMenus.calories')}: {Math.round(parseNumber(previewValues?.calories))}
+                </div>
+                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
+                  {t('pages.myMenus.proteins')}: {Math.round(nutrients.proteinsInGrams)} g
+                </div>
+                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
+                  {t('pages.myMenus.carbs')}: {Math.round(nutrients.carbohydratesInGrams)} g
+                </div>
+                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
+                  {t('pages.myMenus.fat')}: {Math.round(nutrients.fatInGrams)} g
+                </div>
+              </div>
+
+              {previewServing ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <span className="font-semibold text-slate-800">
+                    {t('pages.myMenus.servingOptions')}:
+                  </span>{' '}
+                  {previewAmount} {previewUnit}
+                </div>
+              ) : null}
+
+              {ingredients.length > 0 || ingredientNames.length > 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    {t('pages.recipes.ingredients')}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {ingredients.length > 0
+                      ? ingredients.map((ingredient, index) => (
+                          <div
+                            key={`${ingredient?.id || ingredient?.name || index}-ingredient`}
+                            className="rounded-xl bg-white px-3 py-2 text-sm text-slate-700"
+                          >
+                            <span className="font-medium text-slate-900">
+                              {ingredient?.name || 'Unnamed'}
+                            </span>
+                            {ingredient?.quantity ? (
+                              <span className="ml-2 text-slate-500">
+                                {ingredient.quantity} {ingredient?.unit || 'g'}
+                              </span>
+                            ) : null}
+                          </div>
+                        ))
+                      : ingredientNames.map((ingredientName, index) => (
+                          <div
+                            key={`${ingredientName}-${index}-ingredient-name`}
+                            className="rounded-xl bg-white px-3 py-2 text-sm text-slate-700"
+                          >
+                            <span className="font-medium text-slate-900">
+                              {ingredientName}
+                            </span>
+                          </div>
+                        ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {instructions.length > 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    {t('pages.myMenus.instructions')}
+                  </p>
+                  <ol className="mt-3 space-y-2 text-sm text-slate-700">
+                    {instructions.map((instruction, index) => (
+                      <li
+                        key={`${index}-${instruction}`}
+                        className="rounded-xl bg-white px-3 py-2"
+                      >
+                        <span className="mr-2 font-semibold text-slate-900">
+                          {index + 1}.
+                        </span>
+                        {instruction}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                await addItemToPlan(viewingItem)
+                setViewingItem(null)
+              }}
+              className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:shadow-lg"
+            >
+              {t('pages.myMenus.addItem')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewingItem(null)}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {t('common.close') || 'Close'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Pagination logic for users
   const getCurrentUsers = () => {
     const startIndex = (currentPage - 1) * usersPerPage
@@ -1507,7 +1692,8 @@ const Menus = () => {
                     return (
                       <div
                         key={idx}
-                        className="flex items-center justify-between px-4 py-3 transition hover:bg-white"
+                        onClick={() => setViewingItem(item)}
+                        className="flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-white"
                       >
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">
@@ -1521,7 +1707,10 @@ const Menus = () => {
                           </div>
                         </div>
                         <button
-                          onClick={() => addItemToPlan(item)}
+                          onClick={event => {
+                            event.stopPropagation()
+                            addItemToPlan(item)
+                          }}
                           className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:shadow-lg"
                         >
                           <PlusIcon className="h-4 w-4" /> Add
@@ -3114,6 +3303,8 @@ const Menus = () => {
           </div>
         </div>
       )}
+
+      {renderItemPreviewModal()}
 
       {/* Copy Template Modal */}
       {isCopyModalOpen && (

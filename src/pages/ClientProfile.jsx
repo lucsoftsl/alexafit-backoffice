@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import ClientProgress from '../components/ClientProgress'
 import { saveUserDataFromWelcomeScreen, getUserCheckins } from '../services/loggedinApi'
 import { PencilIcon, CheckIcon, XMarkIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import FormSelect from '../components/FormSelect'
+import { selectIsAdmin } from '../store/userSlice'
 
 // Module-scoped guard to persist across StrictMode remounts in dev
 const goalDataGuard = new Set()
@@ -26,6 +28,7 @@ const InfoRow = ({ label, value }) => (
 
 const ClientProfile = ({ client }) => {
   const { t } = useTranslation()
+  const isAdmin = useSelector(selectIsAdmin)
   const [editGoalMode, setEditGoalMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -167,17 +170,19 @@ const ClientProfile = ({ client }) => {
       <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">{t('pages.clientProfile.details')}</h2>
-          <button
-            onClick={() => setDetailsExpanded(!detailsExpanded)}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <span>{detailsExpanded ? t('pages.clientProfile.showLess') : t('pages.clientProfile.showMore')}</span>
-            {detailsExpanded ? (
-              <ChevronUpIcon className="w-5 h-5" />
-            ) : (
-              <ChevronDownIcon className="w-5 h-5" />
-            )}
-          </button>
+          {isAdmin ? (
+            <button
+              onClick={() => setDetailsExpanded(!detailsExpanded)}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <span>{detailsExpanded ? t('pages.clientProfile.showLess') : t('pages.clientProfile.showMore')}</span>
+              {detailsExpanded ? (
+                <ChevronUpIcon className="w-5 h-5" />
+              ) : (
+                <ChevronDownIcon className="w-5 h-5" />
+              )}
+            </button>
+          ) : null}
         </div>
         <div className="divide-y divide-gray-200">
           {/* Always visible fields */}
@@ -185,7 +190,7 @@ const ClientProfile = ({ client }) => {
           <InfoRow label={t('common.Email')} value={email} />
           
           {/* Collapsible fields */}
-          {detailsExpanded && (
+          {isAdmin && detailsExpanded && (
             <>
               <InfoRow label={t('pages.clientProfile.assignedDate')} value={assignedDate} />
               {client?.loginDetails?.phoneNumber && (

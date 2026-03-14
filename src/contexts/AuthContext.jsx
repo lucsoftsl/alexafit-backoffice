@@ -41,6 +41,62 @@ export const AuthProvider = ({ children }) => {
   const dispatch = useDispatch()
   const isRegisteringRef = useRef(false)
 
+  const provisionBackofficeUser = async ({
+    firebaseUser,
+    fullName = '',
+    email = '',
+    userData = {}
+  }) => {
+    const resolvedFullName =
+      String(fullName || firebaseUser?.displayName || '').trim() ||
+      String(email || firebaseUser?.email || '')
+        .split('@')[0]
+        .trim()
+
+    if (resolvedFullName && firebaseUser?.displayName !== resolvedFullName) {
+      await updateProfile(firebaseUser, {
+        displayName: resolvedFullName
+      })
+    }
+
+    const loginPayload = {
+      displayName: firebaseUser.displayName || resolvedFullName,
+      email: firebaseUser.email || email || null,
+      photoURL: firebaseUser.photoURL,
+      emailVerified: firebaseUser.emailVerified,
+      isAnonymous: firebaseUser.isAnonymous,
+      phoneNumber: firebaseUser.phoneNumber,
+      providerId:
+        firebaseUser.providerData?.[0]?.providerId || firebaseUser.providerId,
+      lastSignInTime: firebaseUser.metadata?.lastSignInTime,
+      creationTime: firebaseUser.metadata?.creationTime,
+      uid: firebaseUser.uid,
+      userId: firebaseUser.uid,
+      providerData: firebaseUser.providerData
+    }
+
+    await auth0Login({
+      user: loginPayload,
+      userId: firebaseUser.uid
+    })
+    await saveUserDataFromWelcomeScreen({
+      userId: firebaseUser.uid,
+      userData: {
+        ...userData,
+        name: resolvedFullName,
+        displayName: resolvedFullName
+      },
+      selectedDate: new Date().toISOString().split('T')[0]
+    })
+    await completeBackofficeRegistration({
+      userId: firebaseUser.uid,
+      fullName: resolvedFullName,
+      email: firebaseUser.email || email || null
+    })
+
+    return firebaseUser
+  }
+
   // Fetch backend user data
   const fetchUserData = async firebaseUser => {
     if (!firebaseUser) return
@@ -65,7 +121,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   // Register new user
-  const register = async ({ email, password, fullName }) => {
+  const register = async ({ email, password, fullName, userData = {} }) => {
     try {
       setError(null)
       isRegisteringRef.current = true
@@ -83,36 +139,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       const registeredUser = auth.currentUser || userCredential.user
-      const loginPayload = {
-        displayName: registeredUser.displayName || normalizedFullName,
-        email: registeredUser.email,
-        photoURL: registeredUser.photoURL,
-        emailVerified: registeredUser.emailVerified,
-        isAnonymous: registeredUser.isAnonymous,
-        phoneNumber: registeredUser.phoneNumber,
-        providerId: registeredUser.providerId,
-        lastSignInTime: registeredUser.metadata?.lastSignInTime,
-        creationTime: registeredUser.metadata?.creationTime,
-        uid: registeredUser.uid,
-        userId: registeredUser.uid,
-        providerData: registeredUser.providerData
-      }
-
-      await auth0Login({
-        user: loginPayload,
-        userId: registeredUser.uid
-      })
-      await saveUserDataFromWelcomeScreen({
-        userId: registeredUser.uid,
-        userData: {
-          name: normalizedFullName
-        },
-        selectedDate: new Date().toISOString().split('T')[0]
-      })
-      await completeBackofficeRegistration({
-        userId: registeredUser.uid,
+      await provisionBackofficeUser({
+        firebaseUser: registeredUser,
         fullName: normalizedFullName,
-        email: registeredUser.email
+        email,
+        userData
       })
 
       // Fetch backend user data after registration
@@ -145,17 +176,33 @@ export const AuthProvider = ({ children }) => {
   }
 
   // Sign in with Google
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async ({ signupData = null } = {}) => {
     try {
       setError(null)
+      if (signupData) {
+        isRegisteringRef.current = true
+        dispatch(setLoading(true))
+      }
       const provider = new GoogleAuthProvider()
       const result = await signInWithPopup(auth, provider)
+      if (signupData) {
+        await provisionBackofficeUser({
+          firebaseUser: result.user,
+          fullName: signupData?.fullName,
+          email: result.user?.email,
+          userData: signupData?.userData || {}
+        })
+      }
       // Fetch backend user data after Google sign-in
       await fetchUserData(result.user)
       return result.user
     } catch (err) {
       setError(err.message)
       throw err
+    } finally {
+      if (signupData) {
+        isRegisteringRef.current = false
+      }
     }
   }
 

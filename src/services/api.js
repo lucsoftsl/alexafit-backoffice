@@ -548,7 +548,8 @@ export const copyMenuTemplateToCountry = async ({
   menuTemplate,
   countryCode,
   userId,
-  createdByUserId = null
+  createdByUserId = null,
+  menuName = null
 }) => {
   try {
     const headers = await getHeaders()
@@ -561,7 +562,8 @@ export const copyMenuTemplateToCountry = async ({
           menuTemplate,
           countryCode,
           userId,
-          createdByUserId
+          createdByUserId,
+          menuName
         })
       }
     )

@@ -216,6 +216,38 @@ export async function deleteMenuTemplateByIdBO({
   })
 }
 
+export async function renameMenuContainerBO({
+  menuTemplateIds,
+  newContainerName,
+  createdByUserId
+}) {
+  return request('/foodsync/renameMenuContainerBO', {
+    method: 'POST',
+    body: { menuTemplateIds, newContainerName, createdByUserId }
+  })
+}
+
+export async function copyMenuContainerBO({
+  menuTemplateIds,
+  newContainerName,
+  createdByUserId
+}) {
+  return request('/foodsync/copyMenuContainerBO', {
+    method: 'POST',
+    body: { menuTemplateIds, newContainerName, createdByUserId }
+  })
+}
+
+export async function deleteMenuContainerBO({
+  menuTemplateIds,
+  createdByUserId
+}) {
+  return request('/foodsync/deleteMenuContainerBO', {
+    method: 'POST',
+    body: { menuTemplateIds, createdByUserId }
+  })
+}
+
 export async function deleteMenuTemplateItemByIdBO({
   menuTemplateId,
   itemType,
@@ -239,6 +271,36 @@ export async function assignMenuTemplateToUserBO({
   return request('/foodsync/assignMenuTemplateToUserBO', {
     method: 'POST',
     body: { userId, dateApplied, menuTemplateId, replaceExisting }
+  })
+}
+
+export async function assignMenuContainerToUserBO({
+  userId,
+  startDate,
+  menuTemplateIds,
+  replaceExisting = false,
+  createdByUserId
+}) {
+  return request('/foodsync/assignMenuContainerToUserBO', {
+    method: 'POST',
+    body: {
+      userId,
+      startDate,
+      menuTemplateIds,
+      replaceExisting,
+      createdByUserId
+    }
+  })
+}
+
+export async function reorderMenuContainerBO({
+  menuTemplateOrders,
+  containerName,
+  createdByUserId
+}) {
+  return request('/foodsync/reorderMenuContainerBO', {
+    method: 'POST',
+    body: { menuTemplateOrders, containerName, createdByUserId }
   })
 }
 
@@ -273,6 +335,27 @@ export async function assignClientToNutritionist({ nutritionistId, userId }) {
   return request('/nutritionist-users/assign', {
     method: 'POST',
     body: { nutritionistId, userId }
+  })
+}
+
+export async function createClientAndAssignToNutritionist({
+  nutritionistId,
+  fullName,
+  email,
+  password,
+  userData,
+  selectedDate
+}) {
+  return request('/nutritionist-users/create-and-assign', {
+    method: 'POST',
+    body: {
+      nutritionistId,
+      fullName,
+      email,
+      password,
+      userData,
+      selectedDate
+    }
   })
 }
 
@@ -340,6 +423,13 @@ export async function getUserNotes({ userId }) {
   return request('/foodsync/getUserNotes', {
     method: 'POST',
     body: { userId }
+  })
+}
+
+export async function getUserNotesByAuthor({ userId, fromUserId }) {
+  return request('/foodsync/getUserNotesByAuthor', {
+    method: 'POST',
+    body: { userId, fromUserId }
   })
 }
 

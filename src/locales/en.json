@@ -116,6 +116,16 @@
     "Unread": "Unread",
     "to": "to",
     "messages": "messages",
+    "countries": {
+      "DE": "Germany",
+      "ES": "Spain",
+      "FR": "France",
+      "HU": "Hungary",
+      "IT": "Italy",
+      "RO": "Romania",
+      "UK": "United Kingdom",
+      "US": "United States"
+    },
     "Shareable Summary": "Shareable Summary",
     "Summary copied to clipboard!": "Summary copied to clipboard!",
     "Copy Summary": "Copy Summary",
@@ -152,6 +162,7 @@
     "signInButton": "Sign in",
     "createAccountButton": "Create account",
     "continueWithGoogle": "Continue with Google",
+    "signUpWithGoogle": "Sign up with Google",
     "pleaseWait": "Please wait...",
     "orContinueWith": "Or continue with",
     "googleSignIn": "Google",
@@ -165,7 +176,26 @@
       "fillAllFields": "Please fill in all fields",
       "enterEmail": "Please enter your email address",
       "passwordsDoNotMatch": "Passwords do not match",
-      "passwordTooShort": "Password must be at least 6 characters"
+      "passwordTooShort": "Password must be at least 6 characters",
+      "passwordRequirements": "Password should contain at least 1 number, 1 lowercase, 1 uppercase and 1 special character, and be at least 5 characters long.",
+      "fullNameOrGoogleProfile": "Please enter your full name or continue with a Google account that already has one."
+    },
+    "signupStepper": {
+      "account": {
+        "title": "Account",
+        "subtitle": "Final step: enter your full name, email and password, or use Google, to create your backoffice account."
+      },
+      "profile": {
+        "title": "Profile",
+        "subtitle": "Optional: add the same client-profile fields now so your nutritionist account is more complete."
+      },
+      "measurements": {
+        "title": "Measurements",
+        "subtitle": "Optional: add body measurements and objective details now, or complete them later."
+      },
+      "optionalHint": "Steps 1 and 2 are optional. You can skip them and sign up on step 3.",
+      "next": "Continue",
+      "back": "Back"
     },
     "forgotPassword": {
       "link": "Forgot?",
@@ -404,6 +434,10 @@
         "appVersions": "App Version Breakdown",
         "endpoints": "Endpoint Breakdown",
         "topUsers": "Top Users",
+        "showAllUsers": "Show all",
+        "showLess": "Show less",
+        "userId": "User ID",
+        "deviceId": "Device ID",
         "events": "Events"
       },
       "details": {
@@ -688,7 +722,7 @@
         "total": "Total Clients",
         "active": "Active",
         "inactive": "Inactive",
-        "assigned7d": "Assigned (7d)"
+        "assigned": "Assigned"
       },
       "actions": {
         "refresh": "Refresh",
@@ -727,6 +761,82 @@
         "quickTipUserIdLocation": "The user ID can be found in the mobile app on the Profile page (top left), then scroll down to the About section.",
         "iosLink": "iOS App Store",
         "androidLink": "Android Play Store"
+      },
+      "createClient": {
+        "title": "Create User",
+        "subtitle": "Create a regular client account and assign it to yourself.",
+        "fields": {
+          "fullName": "Full Name",
+          "email": "Email",
+          "password": "Password",
+          "country": "Country",
+          "goal": "Goal",
+          "activity": "Activity Level",
+          "sex": "Sex",
+          "birthDate": "Birth Date",
+          "femininOption": "Feminine Option",
+          "measurementSystem": "Measurement System",
+          "system": "System",
+          "height": "Height",
+          "weight": "Weight",
+          "objectiveWeight": "Objective Weight"
+        },
+        "sections": {
+          "personalInformation": "Personal Information",
+          "demographicsLifestyle": "Demographics & Lifestyle",
+          "physicalMeasurements": "Physical Measurements"
+        },
+        "placeholders": {
+          "fullName": "Enter full name",
+          "email": "Enter email address",
+          "password": "Enter password",
+          "country": "Select country",
+          "searchCountry": "Search country...",
+          "heightMetric": "Enter height in cm",
+          "heightFeet": "Feet",
+          "heightInches": "Inches",
+          "weightMetric": "Enter weight in kg",
+          "weightImperial": "Enter weight in lbs",
+          "objectiveWeightMetric": "Enter objective weight in kg",
+          "objectiveWeightImperial": "Enter objective weight in lbs"
+        },
+        "options": {
+          "goal": {
+            "LOSE_WEIGHT": "Lose weight",
+            "MAINTAIN_WEIGHT": "Maintain weight",
+            "GAIN_WEIGHT": "Gain weight"
+          },
+          "activity": {
+            "NOT_ACTIVE": "Not active",
+            "LIGHTLY_ACTIVE": "Lightly active",
+            "ACTIVE": "Active",
+            "VERY_ACTIVE": "Very active"
+          },
+          "sex": {
+            "MALE": "Male",
+            "FEMALE": "Female",
+            "OTHER": "Other"
+          },
+          "feminin": {
+            "NONE": "None",
+            "PREGNANT": "Pregnant",
+            "BREASTFEEDING": "Breastfeeding"
+          },
+          "measurement": {
+            "METRIC": "Metric",
+            "IMPERIAL": "Imperial"
+          }
+        },
+        "noCountryFound": "No country found.",
+        "actions": {
+          "creating": "Creating user...",
+          "createAndAssign": "Create and Assign"
+        },
+        "errors": {
+          "requiredFields": "Please complete all required fields.",
+          "passwordRequirements": "Password should contain at least 1 number, 1 lowercase, 1 uppercase and 1 special character, and be at least 5 characters long.",
+          "failed": "Failed to create user"
+        }
       },
       "errors": {
         "refresh": "Failed to refresh clients. Please try again.",
@@ -887,15 +997,15 @@
       "noUsersFoundMatching": "No users found matching \"{{term}}\"",
       "noUsersToDisplay": "No users to display",
       "copyTemplate": {
-        "title": "Copy Menu Template",
-        "templateName": "Template Name",
+        "title": "Copy Menu",
+        "templateName": "Menu Name",
         "selectCountry": "Select Country",
-        "description": "This will create a new menu template translated and adapted for the selected country.",
-        "copy": "Copy Template",
+        "description": "This will create a new menu translated and adapted for the selected country.",
+        "copy": "Copy Menu",
         "copying": "Copying...",
-        "success": "Menu template copied successfully!",
-        "error": "Failed to copy template",
-        "selectTemplate": "Please select a template"
+        "success": "Menu copied successfully!",
+        "error": "Failed to copy menu",
+        "selectTemplate": "Please select a menu"
       },
       "selectTemplateAndUser": "Please select both a menu template and a user",
       "assignSuccess": "Menu template assigned successfully!",
@@ -941,28 +1051,54 @@
     },
     "myMenus": {
       "title": "My Menus",
+      "subtitle": "Manage and assign your nutrition menus efficiently.",
       "loading": "Loading menus...",
       "error": "Failed to load menus",
       "noMenus": "No menus created yet.",
       "create": "Create Menu",
       "menuStudio": "Menu Studio",
-      "addMenuTemplate": "Add Menu Template",
-      "templates": "Templates",
-      "savedMenuBlueprints": "Saved menu blueprints",
+      "addMenuTemplate": "Add Menu",
+      "addMenu": "Add Menu",
+      "addMeal": "Add Meal",
+      "instructions": "Instructions",
+      "exportPdf": "Export PDF",
+      "exportingPdf": "Exporting...",
+      "exportPdfError": "Failed to export PDF",
+      "templates": "Menus",
+      "menus": "Menus",
+      "totalMenus": "Total Menus",
+      "savedMenuBlueprints": "Saved menus",
+      "savedMenus": "Saved menus",
       "clients": "Clients",
-      "assignableProfiles": "Assignable profiles",
+      "activeClients": "Active Clients",
+      "assignableProfiles": "Assignable clients",
+      "assignedAcrossMenus": "Assigned across menus",
       "library": "Library",
-      "menuTemplates": "Menu Templates",
-      "searchTemplates": "Search templates...",
+      "menuTemplates": "Menus",
+      "searchTemplates": "Search menus...",
+      "searchMenus": "Search menus by name or ID...",
+      "filter": "Filter",
+      "filterAll": "All menus",
+      "filterAssigned": "Assigned",
+      "filterUnassigned": "Unassigned",
+      "selected": "Selected",
       "refreshTemplatesList": "Refresh templates list",
       "collapseTemplates": "Collapse templates",
       "expandTemplates": "Expand templates",
-      "noTemplates": "No menu templates yet. Create one above!",
-      "createMenuTemplate": "Create Menu Template",
-      "editMenuTemplate": "Edit Menu Template",
+      "noTemplates": "No menus yet. Create one above!",
+      "createMenuTemplate": "Create Menu",
+      "editMenuTemplate": "Edit Menu",
       "editingExisting": "Editing existing",
       "menuName": "Menu Name",
+      "dayMenuName": "Menu Name",
+      "dayMenuNamePlaceholder": "e.g., Day 1, Day 2, Recovery Day",
+      "menuContainerName": "Menu Builder",
+      "menuContainerNamePlaceholder": "e.g., 7-Day Cut Plan",
       "menuNamePlaceholder": "e.g., Keto Glow Plan, High Protein Sprint",
+      "newMenuName": "New Menu Name",
+      "newContainerName": "New Container Name",
+      "sourceMenu": "Source Menu",
+      "sourceContainer": "Source Container",
       "country": "Country",
       "assignableByUser": "Assignable by user",
       "quickTips": "Quick tips",
@@ -971,6 +1107,11 @@
       "tip3": "Enable user assignment when relevant.",
       "menuBuilder": "Menu Builder",
       "curateMeals": "Curate meals, tweak servings, and save as reusable templates.",
+      "totalMenu": "Total Menu",
+      "breakfast": "Breakfast",
+      "lunch": "Lunch",
+      "dinner": "Dinner",
+      "snack": "Snack",
       "searchFoodsRecipes": "Search foods or recipes...",
       "recipesOnly": "Recipes only",
       "search": "Search",
@@ -987,6 +1128,7 @@
       "proteins": "Proteins",
       "carbs": "Carbs",
       "fat": "Fat",
+      "save": "Save",
       "saving": "Saving...",
       "updateMenu": "Update Menu",
       "createMenu": "Create Menu",
@@ -1002,6 +1144,13 @@
       "unassignMenu": "Are you sure you want to unassign this menu from the client?",
       "deleteTemplate": "Are you sure you want to delete this menu template?",
       "deleteItem": "Remove this item from the menu?",
+      "noClientsAssigned": "No clients assigned",
+      "actions": "Actions",
+      "selectedMenu": "Selected Menu",
+      "editContainer": "Edit Container",
+      "copyContainer": "Copy Container",
+      "deleteContainer": "Delete Container",
+      "selectMenuHint": "Select a menu row to view and manage assigned clients.",
       "rowsPerPage": "Rows per page",
       "showing": "Showing",
       "of": "of",
@@ -1030,7 +1179,16 @@
       "refreshClientsList": "Refresh clients list",
       "edit": "Edit",
       "delete": "Delete",
-      "servingOptions": "Serving options"
+      "servingOptions": "Serving options",
+      "foodType": "Food",
+      "recipeType": "Recipe",
+      "unnamedItem": "Unnamed",
+      "menuItemAlt": "Menu item",
+      "assignContainerHint": "Assign the whole container from the selected start date. Each next menu will be applied one day later.",
+      "assignMenuHint": "Assign only the selected menu to the chosen date.",
+      "reviewAssignment": "Review Assignment",
+      "copyingMenu": "Copying menu...",
+      "copyingMenuHint": "Translating meals and matching items for the selected country."
     },
     "userProgress": {
       "all": "All",

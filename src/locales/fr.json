@@ -116,6 +116,16 @@
     "Unread": "Non lu",
     "to": "à",
     "messages": "messages",
+    "countries": {
+      "DE": "Allemagne",
+      "ES": "Espagne",
+      "FR": "France",
+      "HU": "Hongrie",
+      "IT": "Italie",
+      "RO": "Roumanie",
+      "UK": "Royaume-Uni",
+      "US": "États-Unis"
+    },
     "Shareable Summary": "Résumé partageable",
     "Summary copied to clipboard!": "Résumé copié dans le presse-papiers!",
     "Copy Summary": "Copier le résumé",
@@ -152,6 +162,7 @@
     "signInButton": "Se connecter",
     "createAccountButton": "Créer un compte",
     "continueWithGoogle": "Continuer avec Google",
+    "signUpWithGoogle": "S'inscrire avec Google",
     "pleaseWait": "Veuillez patienter...",
     "orContinueWith": "Ou continuez avec",
     "googleSignIn": "Google",
@@ -165,7 +176,26 @@
       "fillAllFields": "Veuillez remplir tous les champs",
       "enterEmail": "Veuillez saisir votre adresse e-mail",
       "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
-      "passwordTooShort": "Le mot de passe doit comporter au moins 6 caractères"
+      "passwordTooShort": "Le mot de passe doit comporter au moins 6 caractères",
+      "passwordRequirements": "Le mot de passe doit contenir au moins 1 chiffre, 1 minuscule, 1 majuscule et 1 caractère spécial, et comporter au moins 5 caractères.",
+      "fullNameOrGoogleProfile": "Veuillez saisir votre nom complet ou continuer avec un compte Google qui en possède déjà un."
+    },
+    "signupStepper": {
+      "account": {
+        "title": "Compte",
+        "subtitle": "Dernière étape : saisissez votre nom complet, votre e-mail et votre mot de passe, ou utilisez Google, pour créer votre compte back-office."
+      },
+      "profile": {
+        "title": "Profil",
+        "subtitle": "Optionnel : ajoutez dès maintenant les mêmes champs de profil que dans le formulaire client pour compléter votre compte."
+      },
+      "measurements": {
+        "title": "Mesures",
+        "subtitle": "Optionnel : ajoutez vos mensurations et votre objectif maintenant, ou complétez-les plus tard."
+      },
+      "optionalHint": "Les étapes 1 et 2 sont facultatives. Vous pouvez les ignorer et vous inscrire à l'étape 3.",
+      "next": "Continuer",
+      "back": "Retour"
     },
     "forgotPassword": {
       "link": "Oublié ?",
@@ -404,6 +434,10 @@
         "appVersions": "Répartition par Version de l'App",
         "endpoints": "Répartition par Endpoint",
         "topUsers": "Top Utilisateurs",
+        "showAllUsers": "Afficher tout",
+        "showLess": "Afficher moins",
+        "userId": "ID Utilisateur",
+        "deviceId": "ID Appareil",
         "events": "Événements"
       },
       "details": {
@@ -688,7 +722,7 @@
         "total": "Clients totaux",
         "active": "Actifs",
         "inactive": "Inactifs",
-        "assigned7d": "Assignés (7j)"
+        "assigned": "Assignés"
       },
       "actions": {
         "refresh": "Actualiser",
@@ -727,6 +761,82 @@
         "quickTipUserIdLocation": "L'identifiant utilisateur se trouve dans l'application mobile, sur la page Profil (en haut à gauche), puis en faisant défiler jusqu'à la section À propos.",
         "iosLink": "App Store iOS",
         "androidLink": "Google Play Android"
+      },
+      "createClient": {
+        "title": "Créer un utilisateur",
+        "subtitle": "Créez un compte client standard et assignez-le à vous-même.",
+        "fields": {
+          "fullName": "Nom complet",
+          "email": "Email",
+          "password": "Mot de passe",
+          "country": "Pays",
+          "goal": "Objectif",
+          "activity": "Niveau d'activité",
+          "sex": "Sexe",
+          "birthDate": "Date de naissance",
+          "femininOption": "Option féminine",
+          "measurementSystem": "Système de mesure",
+          "system": "Système",
+          "height": "Taille",
+          "weight": "Poids",
+          "objectiveWeight": "Poids cible"
+        },
+        "sections": {
+          "personalInformation": "Informations personnelles",
+          "demographicsLifestyle": "Démographie et mode de vie",
+          "physicalMeasurements": "Mesures physiques"
+        },
+        "placeholders": {
+          "fullName": "Saisissez le nom complet",
+          "email": "Saisissez l'email",
+          "password": "Saisissez le mot de passe",
+          "country": "Sélectionnez un pays",
+          "searchCountry": "Rechercher un pays...",
+          "heightMetric": "Saisissez la taille en cm",
+          "heightFeet": "Pieds",
+          "heightInches": "Pouces",
+          "weightMetric": "Saisissez le poids en kg",
+          "weightImperial": "Saisissez le poids en lbs",
+          "objectiveWeightMetric": "Saisissez le poids cible en kg",
+          "objectiveWeightImperial": "Saisissez le poids cible en lbs"
+        },
+        "options": {
+          "goal": {
+            "LOSE_WEIGHT": "Perdre du poids",
+            "MAINTAIN_WEIGHT": "Maintenir le poids",
+            "GAIN_WEIGHT": "Prendre du poids"
+          },
+          "activity": {
+            "NOT_ACTIVE": "Pas actif",
+            "LIGHTLY_ACTIVE": "Légèrement actif",
+            "ACTIVE": "Actif",
+            "VERY_ACTIVE": "Très actif"
+          },
+          "sex": {
+            "MALE": "Masculin",
+            "FEMALE": "Féminin",
+            "OTHER": "Autre"
+          },
+          "feminin": {
+            "NONE": "Aucune",
+            "PREGNANT": "Enceinte",
+            "BREASTFEEDING": "Allaitement"
+          },
+          "measurement": {
+            "METRIC": "Métrique",
+            "IMPERIAL": "Impérial"
+          }
+        },
+        "noCountryFound": "Aucun pays trouvé.",
+        "actions": {
+          "creating": "Création de l'utilisateur...",
+          "createAndAssign": "Créer et assigner"
+        },
+        "errors": {
+          "requiredFields": "Veuillez remplir tous les champs obligatoires.",
+          "passwordRequirements": "Le mot de passe doit contenir au moins 1 chiffre, 1 minuscule, 1 majuscule et 1 caractère spécial, et comporter au moins 5 caractères.",
+          "failed": "Échec de la création de l'utilisateur"
+        }
       },
       "errors": {
         "refresh": "Échec de l'actualisation des clients. Veuillez réessayer.",
@@ -887,15 +997,15 @@
       "noUsersFoundMatching": "Aucun utilisateur trouvé correspondant à \"{{term}}\"",
       "noUsersToDisplay": "Aucun utilisateur à afficher",
       "copyTemplate": {
-        "title": "Copier le Modèle de Menu",
-        "templateName": "Nom du Modèle",
+        "title": "Copier le menu",
+        "templateName": "Nom du menu",
         "selectCountry": "Sélectionner le Pays",
-        "description": "Cela créera un nouveau modèle de menu traduit et adapté pour le pays sélectionné.",
-        "copy": "Copier le Modèle",
+        "description": "Cela créera un nouveau menu traduit et adapté pour le pays sélectionné.",
+        "copy": "Copier le menu",
         "copying": "Copie en cours...",
-        "success": "Modèle de menu copié avec succès !",
-        "error": "Échec de la copie du modèle",
-        "selectTemplate": "Veuillez sélectionner un modèle"
+        "success": "Menu copié avec succès !",
+        "error": "Échec de la copie du menu",
+        "selectTemplate": "Veuillez sélectionner un menu"
       },
       "selectTemplateAndUser": "Veuillez sélectionner un modèle de menu et un utilisateur",
       "assignSuccess": "Modèle de menu attribué avec succès !",
@@ -941,28 +1051,54 @@
     },
     "myMenus": {
       "title": "Mes menus",
+      "subtitle": "Gérez et assignez vos menus nutritionnels efficacement.",
       "loading": "Chargement des menus…",
       "error": "Impossible de charger les menus",
       "noMenus": "Aucun menu créé pour l'instant.",
       "create": "Créer un menu",
       "menuStudio": "Studio de menus",
-      "addMenuTemplate": "Ajouter un modèle de menu",
-      "templates": "Modèles",
+  "addMenuTemplate": "Ajouter un menu",
+  "addMenu": "Ajouter un menu",
+  "addMeal": "Ajouter un repas",
+  "instructions": "Instructions",
+  "exportPdf": "Exporter en PDF",
+  "exportingPdf": "Export en cours...",
+  "exportPdfError": "Échec de l'export PDF",
+  "templates": "Menus",
+      "menus": "Menus",
+      "totalMenus": "Total des menus",
       "savedMenuBlueprints": "Menus enregistrés",
+      "savedMenus": "Menus enregistrés",
       "clients": "Clients",
-      "assignableProfiles": "Profils assignables",
+      "activeClients": "Clients actifs",
+      "assignableProfiles": "Clients assignables",
+      "assignedAcrossMenus": "Affectations sur les menus",
       "library": "Bibliothèque",
-      "menuTemplates": "Modèles de menus",
-      "searchTemplates": "Rechercher des modèles...",
+      "menuTemplates": "Menus",
+      "searchTemplates": "Rechercher des menus...",
+      "searchMenus": "Rechercher des menus par nom ou ID...",
+      "filter": "Filtrer",
+      "filterAll": "Tous les menus",
+      "filterAssigned": "Assignés",
+      "filterUnassigned": "Non assignés",
+      "selected": "Sélectionné",
       "refreshTemplatesList": "Actualiser la liste des modèles",
       "collapseTemplates": "Réduire les modèles",
       "expandTemplates": "Développer les modèles",
-      "noTemplates": "Aucun modèle de menu pour l'instant. Créez-en un ci-dessus !",
-      "createMenuTemplate": "Créer un modèle de menu",
-      "editMenuTemplate": "Modifier le modèle de menu",
+      "noTemplates": "Aucun menu pour l'instant. Créez-en un ci-dessus.",
+      "createMenuTemplate": "Créer un menu",
+      "editMenuTemplate": "Modifier le menu",
       "editingExisting": "Modification en cours",
       "menuName": "Nom du menu",
+      "dayMenuName": "Nom du menu",
+      "dayMenuNamePlaceholder": "ex. Jour 1, Jour 2, Jour récupération",
+      "menuContainerName": "Constructeur de menu",
+      "menuContainerNamePlaceholder": "ex. Plan sèche 7 jours",
       "menuNamePlaceholder": "p. ex., Plan Keto Glow, Sprint Riche en Protéines",
+      "newMenuName": "Nouveau nom du menu",
+      "newContainerName": "Nouveau nom du conteneur",
+      "sourceMenu": "Menu source",
+      "sourceContainer": "Conteneur source",
       "country": "Pays",
       "assignableByUser": "Assignable par l'utilisateur",
       "quickTips": "Conseils rapides",
@@ -971,6 +1107,11 @@
       "tip3": "Activez l'assignation d'utilisateur si pertinent.",
       "menuBuilder": "Générateur de menus",
       "curateMeals": "Conservez les repas, ajustez les portions et enregistrez sous forme de modèles réutilisables.",
+      "totalMenu": "Menu total",
+      "breakfast": "Petit-déjeuner",
+      "lunch": "Déjeuner",
+      "dinner": "Dîner",
+      "snack": "Collation",
       "searchFoodsRecipes": "Rechercher des aliments ou des recettes...",
       "recipesOnly": "Recettes uniquement",
       "search": "Rechercher",
@@ -986,8 +1127,9 @@
       "calories": "Calories",
       "proteins": "Protéines",
       "carbs": "Glucides",
-      "fat": "Graisse",
-      "saving": "Enregistrement...",
+  "fat": "Graisse",
+  "save": "Enregistrer",
+  "saving": "Enregistrement...",
       "updateMenu": "Mettre à jour le menu",
       "createMenu": "Créer le menu",
       "cancel": "Annuler",
@@ -1002,6 +1144,13 @@
       "unassignMenu": "Êtes-vous sûr de vouloir retirer l'assignation de ce menu du client ?",
       "deleteTemplate": "Êtes-vous sûr de vouloir supprimer ce modèle de menu ?",
       "deleteItem": "Supprimer cet élément du menu ?",
+      "noClientsAssigned": "Aucun client assigné",
+      "actions": "Actions",
+      "selectedMenu": "Menu sélectionné",
+      "editContainer": "Modifier le conteneur",
+      "copyContainer": "Copier le conteneur",
+      "deleteContainer": "Supprimer le conteneur",
+      "selectMenuHint": "Sélectionnez une ligne de menu pour voir et gérer les clients assignés.",
       "rowsPerPage": "Lignes par page",
       "showing": "Affichage",
       "of": "de",
@@ -1030,7 +1179,16 @@
       "refreshClientsList": "Actualiser la liste des clients",
       "edit": "Modifier",
       "delete": "Supprimer",
-      "servingOptions": "Options de portion"
+  "servingOptions": "Options de portion",
+  "foodType": "Aliment",
+  "recipeType": "Recette",
+  "unnamedItem": "Sans nom",
+  "menuItemAlt": "Élément du menu",
+  "assignContainerHint": "Assignez tout le générateur de menus à partir de la date de début sélectionnée. Chaque menu suivant sera appliqué un jour plus tard.",
+  "assignMenuHint": "Assignez uniquement le menu sélectionné à la date choisie.",
+  "reviewAssignment": "Vérifier l'assignation",
+  "copyingMenu": "Copie du menu...",
+      "copyingMenuHint": "Traduction des repas et association des éléments pour le pays sélectionné."
     },
     "userProgress": {
       "all": "Tous",

@@ -116,6 +116,16 @@
     "Unread": "Necitit",
     "to": "la",
     "messages": "mesaje",
+    "countries": {
+      "DE": "Germania",
+      "ES": "Spania",
+      "FR": "Franța",
+      "HU": "Ungaria",
+      "IT": "Italia",
+      "RO": "România",
+      "UK": "Regatul Unit",
+      "US": "Statele Unite"
+    },
     "Shareable Summary": "Rezumat Partajabil",
     "Summary copied to clipboard!": "Rezumatul a fost copiat în clipboard!",
     "Copy Summary": "Copiază rezumatul",
@@ -152,6 +162,7 @@
     "signInButton": "Conectare",
     "createAccountButton": "Creare cont",
     "continueWithGoogle": "Continuă cu Google",
+    "signUpWithGoogle": "Înregistrează-te cu Google",
     "pleaseWait": "Vă rugăm așteptați...",
     "orContinueWith": "Sau continuați cu",
     "googleSignIn": "Google",
@@ -165,7 +176,26 @@
       "fillAllFields": "Vă rugăm completați toate câmpurile",
       "enterEmail": "Vă rugăm introduceți adresa de e-mail",
       "passwordsDoNotMatch": "Parolele nu se potrivesc",
-      "passwordTooShort": "Parola trebuie să aibă cel puțin 6 caractere"
+      "passwordTooShort": "Parola trebuie să aibă cel puțin 6 caractere",
+      "passwordRequirements": "Parola trebuie să conțină cel puțin 1 cifră, 1 literă mică, 1 literă mare și 1 caracter special și să aibă cel puțin 5 caractere.",
+      "fullNameOrGoogleProfile": "Vă rugăm introduceți numele complet sau continuați cu un cont Google care are deja unul."
+    },
+    "signupStepper": {
+      "account": {
+        "title": "Cont",
+        "subtitle": "Pasul final: introdu numele complet, e-mailul și parola sau folosește Google pentru a crea contul tău de backoffice."
+      },
+      "profile": {
+        "title": "Profil",
+        "subtitle": "Opțional: completează acum aceleași câmpuri de profil ca în formularul de client, pentru un cont mai complet."
+      },
+      "measurements": {
+        "title": "Măsurători",
+        "subtitle": "Opțional: adaugă acum măsurători corporale și detalii despre obiectiv, sau completează-le mai târziu."
+      },
+      "optionalHint": "Pașii 1 și 2 sunt opționali. Îi poți sări și te poți înregistra la pasul 3.",
+      "next": "Continuă",
+      "back": "Înapoi"
     },
     "forgotPassword": {
       "link": "Ai uitat?",
@@ -404,6 +434,10 @@
         "appVersions": "Distribuție Versiuni Aplicație",
         "endpoints": "Distribuție Endpoint-uri",
         "topUsers": "Top Utilizatori",
+        "showAllUsers": "Afișează tot",
+        "showLess": "Afișează mai puțin",
+        "userId": "ID Utilizator",
+        "deviceId": "ID Dispozitiv",
         "events": "Evenimente"
       },
       "details": {
@@ -688,7 +722,7 @@
         "total": "Total clienți",
         "active": "Activ",
         "inactive": "Inactiv",
-        "assigned7d": "Asignat (7z)"
+        "assigned": "Asignat"
       },
       "actions": {
         "refresh": "Reîmprospătează",
@@ -727,6 +761,82 @@
         "quickTipUserIdLocation": "ID-ul utilizatorului poate fi găsit în aplicația mobilă pe pagina Profil (stânga sus), apoi derulează până la secțiunea Despre.",
         "iosLink": "iOS App Store",
         "androidLink": "Android Play Store"
+      },
+      "createClient": {
+        "title": "Creează utilizator",
+        "subtitle": "Creează un cont de client obișnuit și atribuie-l ție.",
+        "fields": {
+          "fullName": "Nume complet",
+          "email": "Email",
+          "password": "Parolă",
+          "country": "Țară",
+          "goal": "Obiectiv",
+          "activity": "Nivel de activitate",
+          "sex": "Sex",
+          "birthDate": "Data nașterii",
+          "femininOption": "Opțiune feminină",
+          "measurementSystem": "Sistem de măsurare",
+          "system": "Sistem",
+          "height": "Înălțime",
+          "weight": "Greutate",
+          "objectiveWeight": "Greutate obiectiv"
+        },
+        "sections": {
+          "personalInformation": "Informații personale",
+          "demographicsLifestyle": "Demografie și stil de viață",
+          "physicalMeasurements": "Măsurători fizice"
+        },
+        "placeholders": {
+          "fullName": "Introdu numele complet",
+          "email": "Introdu adresa de email",
+          "password": "Introdu parola",
+          "country": "Selectează țara",
+          "searchCountry": "Caută țara...",
+          "heightMetric": "Introdu înălțimea în cm",
+          "heightFeet": "Picioare",
+          "heightInches": "Inci",
+          "weightMetric": "Introdu greutatea în kg",
+          "weightImperial": "Introdu greutatea în lbs",
+          "objectiveWeightMetric": "Introdu greutatea obiectiv în kg",
+          "objectiveWeightImperial": "Introdu greutatea obiectiv în lbs"
+        },
+        "options": {
+          "goal": {
+            "LOSE_WEIGHT": "Slăbește",
+            "MAINTAIN_WEIGHT": "Menține greutatea",
+            "GAIN_WEIGHT": "Ia în greutate"
+          },
+          "activity": {
+            "NOT_ACTIVE": "Deloc activ",
+            "LIGHTLY_ACTIVE": "Ușor activ",
+            "ACTIVE": "Activ",
+            "VERY_ACTIVE": "Foarte activ"
+          },
+          "sex": {
+            "MALE": "Masculin",
+            "FEMALE": "Feminin",
+            "OTHER": "Altul"
+          },
+          "feminin": {
+            "NONE": "Niciuna",
+            "PREGNANT": "Însărcinată",
+            "BREASTFEEDING": "Alăptare"
+          },
+          "measurement": {
+            "METRIC": "Metric",
+            "IMPERIAL": "Imperial"
+          }
+        },
+        "noCountryFound": "Nu a fost găsită nicio țară.",
+        "actions": {
+          "creating": "Se creează utilizatorul...",
+          "createAndAssign": "Creează și atribuie"
+        },
+        "errors": {
+          "requiredFields": "Te rugăm să completezi toate câmpurile obligatorii.",
+          "passwordRequirements": "Parola trebuie să conțină cel puțin 1 cifră, 1 literă mică, 1 literă mare și 1 caracter special și să aibă cel puțin 5 caractere.",
+          "failed": "Crearea utilizatorului a eșuat"
+        }
       },
       "errors": {
         "refresh": "Eroare la reîmprospătarea clienților. Încercați din nou.",
@@ -887,15 +997,15 @@
       "noUsersFoundMatching": "Nu s-au găsit utilizatori care să corespundă \"{{term}}\"",
       "noUsersToDisplay": "Nu sunt utilizatori de afișat",
       "copyTemplate": {
-        "title": "Copiază Șablon Meniu",
-        "templateName": "Nume Șablon",
+        "title": "Copiază meniu",
+        "templateName": "Nume meniu",
         "selectCountry": "Selectează Țara",
-        "description": "Aceasta va crea un nou șablon de meniu tradus și adaptat pentru țara selectată.",
-        "copy": "Copiază Șablon",
+        "description": "Aceasta va crea un meniu nou tradus și adaptat pentru țara selectată.",
+        "copy": "Copiază meniu",
         "copying": "Se copiază...",
-        "success": "Șablonul de meniu a fost copiat cu succes!",
-        "error": "Eroare la copierea șablonului",
-        "selectTemplate": "Vă rugăm să selectați un șablon"
+        "success": "Meniul a fost copiat cu succes!",
+        "error": "Eroare la copierea meniului",
+        "selectTemplate": "Vă rugăm să selectați un meniu"
       },
       "selectTemplateAndUser": "Vă rugăm să selectați atât un șablon de meniu, cât și un utilizator",
       "assignSuccess": "Șablonul de meniu a fost atribuit cu succes!",
@@ -943,28 +1053,54 @@
     },
     "myMenus": {
       "title": "Meniurile mele",
+      "subtitle": "Gestionează și atribuie meniurile de nutriție eficient.",
       "loading": "Se încarcă meniuri…",
       "error": "Eroare la încărcarea meniurilor",
       "noMenus": "Niciun meniu creat încă.",
       "create": "Creează meniu",
       "menuStudio": "Studio de meniuri",
-      "addMenuTemplate": "Adaugă șablon meniu",
-      "templates": "Șabloane",
+  "addMenuTemplate": "Adaugă meniu",
+  "addMenu": "Adaugă meniu",
+  "addMeal": "Adaugă masă",
+  "instructions": "Instrucțiuni",
+  "exportPdf": "Exportă PDF",
+  "exportingPdf": "Se exportă...",
+  "exportPdfError": "Exportul PDF a eșuat",
+  "templates": "Meniuri",
+      "menus": "Meniuri",
+      "totalMenus": "Total meniuri",
       "savedMenuBlueprints": "Meniuri salvate",
+      "savedMenus": "Meniuri salvate",
       "clients": "Clienți",
-      "assignableProfiles": "Profiluri asignabile",
+      "activeClients": "Clienți activi",
+      "assignableProfiles": "Clienți asignabili",
+      "assignedAcrossMenus": "Asignări în meniuri",
       "library": "Bibliotecă",
-      "menuTemplates": "Șabloane de meniuri",
-      "searchTemplates": "Cauta șabloane...",
+      "menuTemplates": "Meniuri",
+      "searchTemplates": "Caută meniuri...",
+      "searchMenus": "Caută meniuri după nume sau ID...",
+      "filter": "Filtrează",
+      "filterAll": "Toate meniurile",
+      "filterAssigned": "Asignate",
+      "filterUnassigned": "Neasignate",
+      "selected": "Selectat",
       "refreshTemplatesList": "Reîmprospătează lista de șabloane",
       "collapseTemplates": "Restrânge șabloane",
       "expandTemplates": "Extinde șabloane",
-      "noTemplates": "Niciun șablon de meniu încă. Creează-l mai sus!",
-      "createMenuTemplate": "Creează șablon meniu",
-      "editMenuTemplate": "Editează șablon meniu",
+      "noTemplates": "Niciun meniu încă. Creează-l mai sus!",
+      "createMenuTemplate": "Creează meniu",
+      "editMenuTemplate": "Editează meniu",
       "editingExisting": "Se editează existentul",
       "menuName": "Numele meniului",
+      "dayMenuName": "Nume meniu",
+      "dayMenuNamePlaceholder": "de ex., Ziua 1, Ziua 2, Zi de recuperare",
+      "menuContainerName": "Builder meniu",
+      "menuContainerNamePlaceholder": "de ex., Plan de 7 zile pentru definire",
       "menuNamePlaceholder": "de ex., Plan Keto Glow, Sprint Bogat în Proteine",
+      "newMenuName": "Nume meniu nou",
+      "newContainerName": "Nume container nou",
+      "sourceMenu": "Meniu sursă",
+      "sourceContainer": "Container sursă",
       "country": "Țară",
       "assignableByUser": "Asignabil de utilizator",
       "quickTips": "Sfaturi rapide",
@@ -973,6 +1109,11 @@
       "tip3": "Activați asignarea utilizatorului dacă este relevant.",
       "menuBuilder": "Constructor de meniuri",
       "curateMeals": "Selectați mese, ajustați porțiile și salvați ca șabloane reutilizabile.",
+      "totalMenu": "Meniu total",
+      "breakfast": "Mic dejun",
+      "lunch": "Prânz",
+      "dinner": "Cină",
+      "snack": "Gustare",
       "searchFoodsRecipes": "Cauta alimente sau rețete...",
       "recipesOnly": "Doar rețete",
       "search": "Cauta",
@@ -988,8 +1129,9 @@
       "calories": "Calorii",
       "proteins": "Proteine",
       "carbs": "Carbohidrați",
-      "fat": "Grăsime",
-      "saving": "Se salvează...",
+  "fat": "Grăsime",
+  "save": "Salvează",
+  "saving": "Se salvează...",
       "updateMenu": "Actualizează meniu",
       "createMenu": "Creează meniu",
       "cancel": "Anulare",
@@ -1004,6 +1146,13 @@
       "unassignMenu": "Sunteți sigur că doriți să anulați asignarea acestui meniu de la client?",
       "deleteTemplate": "Sunteți sigur că doriți să ștergeți acest șablon de meniu?",
       "deleteItem": "Eliminate acest articol din meniu?",
+      "noClientsAssigned": "Niciun client asignat",
+      "actions": "Acțiuni",
+      "selectedMenu": "Meniu selectat",
+      "editContainer": "Editează containerul",
+      "copyContainer": "Copiază containerul",
+      "deleteContainer": "Șterge containerul",
+      "selectMenuHint": "Selectează un rând de meniu pentru a vedea și gestiona clienții asignați.",
       "rowsPerPage": "Linii pe pagină",
       "showing": "Se afișează",
       "of": "din",
@@ -1032,7 +1181,16 @@
       "refreshClientsList": "Reîmprospătează lista de clienți",
       "edit": "Editează",
       "delete": "Șterge",
-      "servingOptions": "Opțiuni porție"
+  "servingOptions": "Opțiuni porție",
+  "foodType": "Aliment",
+  "recipeType": "Rețetă",
+  "unnamedItem": "Fără nume",
+  "menuItemAlt": "Element meniu",
+  "assignContainerHint": "Atribuie întregul builder de meniuri de la data de început selectată. Fiecare meniu următor va fi aplicat cu o zi mai târziu.",
+  "assignMenuHint": "Atribuie doar meniul selectat pentru data aleasă.",
+  "reviewAssignment": "Verifică atribuirea",
+  "copyingMenu": "Se copiază meniul...",
+      "copyingMenuHint": "Traducem mesele și potrivim elementele pentru țara selectată."
     },
     "userProgress": {
       "all": "Toate",

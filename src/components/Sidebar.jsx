@@ -48,7 +48,7 @@ const Sidebar = ({
     { id: 'analytics', labelKey: 'sidebar.analytics', icon: ChartBarIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
     { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },
-    { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false },
+    { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false }
   ]
 
   // Filter menu items based on admin/nutritionist status
@@ -57,6 +57,16 @@ const Sidebar = ({
     if (item.nutritionistOnly && !(isNutritionist || isAdmin)) return false
     return true
   })
+  const normalizedMenuItems =
+    isNutritionist && !isAdmin
+      ? [
+          ...menuItems.filter(item =>
+            item.id !== 'myday' && item.id !== 'progress'
+          ),
+          ...menuItems.filter(item => item.id === 'myday'),
+          ...menuItems.filter(item => item.id === 'progress')
+        ]
+      : menuItems
 
   const clientMenuItems = [
     { id: 'profile', labelKey: 'sidebar.clientProfile', icon: UserCircleIcon },
@@ -164,20 +174,27 @@ const Sidebar = ({
           ) : (
             <nav className="mt-2 flex-1 overflow-y-auto">
               <div className="px-3 pb-4">
-                {menuItems.map((item) => {
+                {normalizedMenuItems.map((item) => {
                   const Icon = item.icon
                   const isActive = activePage === item.id
+                  const isNestedProgressItem =
+                    isNutritionist &&
+                    !isAdmin &&
+                    item.id === 'progress'
 
                   return (
                     <button
                       key={item.id}
                       onClick={() => handleNavigate(item.id)}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-colors duration-200 cursor-pointer ${isActive
-                        ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-colors duration-200 cursor-pointer ${
+                        isNestedProgressItem ? 'ml-4 w-[calc(100%-1rem)]' : ''
+                      } ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
                     >
-                      <Icon className="w-5 h-5 mr-3" />
+                      <Icon className={`w-5 h-5 mr-3 ${isNestedProgressItem ? 'text-gray-400' : ''}`} />
                       {t(item.labelKey)}
                     </button>
                   )

@@ -155,6 +155,19 @@ const formatEndpointLabel = value => {
   return endpoint
 }
 
+const parseAnalyticsUserIdentifier = value => {
+  const raw = String(value || '').trim()
+  const [userIdRaw, ...deviceIdParts] = raw.split('|')
+  const normalizedUserId = userIdRaw && userIdRaw !== 'undefined' ? userIdRaw : 'N/A'
+  const normalizedDeviceId = deviceIdParts.join('|').trim() || 'N/A'
+
+  return {
+    raw,
+    userId: normalizedUserId,
+    deviceId: normalizedDeviceId
+  }
+}
+
 const buildCountRows = (counts = {}, labelKey = 'label') =>
   Object.entries(counts)
     .map(([label, value]) => ({
@@ -234,6 +247,7 @@ const Analytics = () => {
   const [pendingBucketKey, setPendingBucketKey] = useState(null)
   const [confirmedBucketKey, setConfirmedBucketKey] = useState(null)
   const [selectedBucketKindFilter, setSelectedBucketKindFilter] = useState('ALL')
+  const [showAllTopUsers, setShowAllTopUsers] = useState(false)
   const [zoomRange, setZoomRange] = useState({ startIndex: 0, endIndex: 0 })
   const [dragSelection, setDragSelection] = useState({
     startKey: null,
@@ -422,8 +436,15 @@ const Analytics = () => {
       return acc
     }, {})
 
-    return buildCountRows(counts, 'userId').slice(0, 8)
+    return buildCountRows(counts, 'userId').map(row => ({
+      ...row,
+      ...parseAnalyticsUserIdentifier(row.userId)
+    }))
   }, [analyticsRows])
+  const visibleTopUserRows = useMemo(
+    () => (showAllTopUsers ? topUserRows : topUserRows.slice(0, 8)),
+    [showAllTopUsers, topUserRows]
+  )
 
   const selectedBucketRows = selectedBucket?.rows || []
   const selectedBucketKindOptions = useMemo(() => {
@@ -1034,19 +1055,35 @@ const Analytics = () => {
             <h2 className="text-lg font-semibold text-slate-900">
               {t('pages.analytics.breakdowns.topUsers')}
             </h2>
-            <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-              {t('pages.analytics.breakdowns.events')}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+                {t('pages.analytics.breakdowns.events')}
+              </span>
+              {topUserRows.length > 8 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTopUsers(prev => !prev)}
+                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                >
+                  {showAllTopUsers
+                    ? t('pages.analytics.breakdowns.showLess')
+                    : t('pages.analytics.breakdowns.showAllUsers')}
+                </button>
+              ) : null}
+            </div>
           </div>
           <div className="space-y-3">
-            {topUserRows.map(row => (
+            {visibleTopUserRows.map(row => (
               <div
-                key={row.userId}
+                key={row.raw || row.userId}
                 className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
               >
                 <div className="min-w-0 pr-4">
                   <p className="truncate text-sm font-semibold text-slate-900">
-                    {row.userId}
+                    {t('pages.analytics.breakdowns.userId')}: {row.userId}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">
+                    {t('pages.analytics.breakdowns.deviceId')}: {row.deviceId}
                   </p>
                 </div>
                 <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">

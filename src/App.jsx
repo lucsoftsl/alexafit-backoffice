@@ -33,7 +33,7 @@ import { ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon } from '@heroicons/reac
 import { useTranslation } from 'react-i18next'
 
 function App() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [activePage, setActivePage] = useState('dashboard')
   const [isSidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarVariant, setSidebarVariant] = useState('main')
@@ -46,13 +46,25 @@ function App() {
   const userLoading = useSelector(selectUserLoading)
   const userError = useSelector(selectUserError)
   const shouldUseNutritionistTopTabs = isNutritionist && !isAdmin
+  const languageOptions = [
+    { value: 'en', label: 'English' },
+    { value: 'fr', label: 'Français' },
+    { value: 'es', label: 'Español' },
+    { value: 'ro', label: 'Română' }
+  ]
 
   const nutritionistTopTabs = [
-    { id: 'myday', label: t('sidebar.myDay') },
     { id: 'myusers', label: t('sidebar.clients') },
     { id: 'mymenus', label: t('sidebar.myMenus') },
+    { id: 'myday', label: t('sidebar.myDay') }
+  ]
+  const nutritionistMyDaySubTabs = [
+    { id: 'myday', label: t('sidebar.myDay') },
     { id: 'progress', label: t('sidebar.progress') }
   ]
+  const isNutritionistMyDaySection =
+    shouldUseNutritionistTopTabs &&
+    (activePage === 'myday' || activePage === 'progress')
 
   const getUserDisplayName = () => {
     if (currentUser?.displayName) return currentUser.displayName
@@ -67,6 +79,17 @@ function App() {
       await logout()
     } catch (error) {
       console.error('Failed to logout:', error)
+    }
+  }
+
+  const handleLanguageChange = (event) => {
+    const nextLanguage = event.target.value
+    i18n.changeLanguage(nextLanguage)
+
+    try {
+      localStorage.setItem('lang', nextLanguage)
+    } catch (error) {
+      console.error('Failed to persist language:', error)
     }
   }
 
@@ -295,9 +318,23 @@ function App() {
               <p className="text-xs text-gray-500">Nutrition Guide</p>
             </div>
           </div>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
-            {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
-          </span>
+          <div className="flex items-center gap-2">
+            <select
+              value={i18n.language}
+              onChange={handleLanguageChange}
+              className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label={t('pages.settings.language')}
+            >
+              {languageOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
+              {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
+            </span>
+          </div>
         </header>
 
         {shouldUseNutritionistTopTabs && (
@@ -312,7 +349,10 @@ function App() {
                 </div>
                 <nav className="flex items-center gap-2">
                   {nutritionistTopTabs.map(tab => {
-                    const isActive = activePage === tab.id
+                    const isActive =
+                      tab.id === 'myday'
+                        ? activePage === 'myday' || activePage === 'progress'
+                        : activePage === tab.id
                     return (
                       <button
                         key={tab.id}
@@ -330,24 +370,60 @@ function App() {
                   })}
                 </nav>
               </div>
-              <button
-                type="button"
-                onClick={() => handleNavigate('settings')}
-                className="flex items-center gap-3 rounded-full border border-[#ebeef5] bg-[#fafbfe] px-3 py-2"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3e1d8] text-sm font-semibold text-[#1b2232]">
-                  {getUserInitial()}
-                </div>
-                <div className="text-left">
-                  <p className="max-w-[180px] truncate text-sm font-medium text-[#1b2232]">
-                    {getUserDisplayName()}
-                  </p>
-                  <p className="max-w-[180px] truncate text-xs text-[#7b8497]">
-                    {currentUser?.email || t('sidebar.backofficeAdmin')}
-                  </p>
-                </div>
-              </button>
+              <div className="flex items-center gap-3">
+                <select
+                  value={i18n.language}
+                  onChange={handleLanguageChange}
+                  className="rounded-full border border-[#ebeef5] bg-white px-3 py-2 text-sm font-medium text-[#566074] focus:outline-none focus:ring-2 focus:ring-[#7a56df]"
+                  aria-label={t('pages.settings.language')}
+                >
+                  {languageOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => handleNavigate('settings')}
+                  className="flex items-center gap-3 rounded-full border border-[#ebeef5] bg-[#fafbfe] px-3 py-2"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3e1d8] text-sm font-semibold text-[#1b2232]">
+                    {getUserInitial()}
+                  </div>
+                  <div className="text-left">
+                    <p className="max-w-[180px] truncate text-sm font-medium text-[#1b2232]">
+                      {getUserDisplayName()}
+                    </p>
+                    <p className="max-w-[180px] truncate text-xs text-[#7b8497]">
+                      {currentUser?.email || t('sidebar.backofficeAdmin')}
+                    </p>
+                  </div>
+                </button>
+              </div>
             </div>
+            {isNutritionistMyDaySection ? (
+              <div className="mx-auto flex max-w-[1400px] items-center gap-2 border-t border-[#f1f2f6] px-6 py-3">
+                {nutritionistMyDaySubTabs.map(tab => {
+                  const isActive = activePage === tab.id
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleNavigate(tab.id)}
+                      className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? 'bg-[#f1ecff] text-[#7a56df]'
+                          : 'text-[#566074] hover:bg-[#f7f7fb] hover:text-[#1b2232]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -355,7 +431,19 @@ function App() {
           <div className={`${shouldUseNutritionistTopTabs ? 'mx-auto max-w-[1400px] p-4 md:px-6 md:py-7' : 'p-4 md:p-6'}`}>
             {/* User info badge - desktop */}
             {!shouldUseNutritionistTopTabs && (
-              <div className="mb-4 hidden items-center gap-2 md:flex">
+              <div className="mb-4 hidden items-center justify-end gap-2 md:flex">
+                <select
+                  value={i18n.language}
+                  onChange={handleLanguageChange}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label={t('pages.settings.language')}
+                >
+                  {languageOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${isAdmin ? 'bg-green-100 text-green-800' : isNutritionist ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}`}>
                   {isAdmin ? 'Admin' : isNutritionist ? 'Nutritionist' : 'User'}
                 </span>

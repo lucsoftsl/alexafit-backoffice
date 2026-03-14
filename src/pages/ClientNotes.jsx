@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSelector } from 'react-redux'
 import {
   getUserNotes,
+  getUserNotesByAuthor,
   addClientNote,
   updateUserNote,
   deleteUserNote
 } from '../services/loggedinApi'
-import { selectUserData } from '../store/userSlice'
+import { selectIsAdmin, selectUserData } from '../store/userSlice'
 import {
   PlusIcon,
   PencilSquareIcon,
@@ -53,6 +54,7 @@ const getClientDisplayLabel = (client) => {
 export default function ClientNotes({ client }) {
   const { t } = useTranslation()
   const userData = useSelector(selectUserData)
+  const isAdmin = useSelector(selectIsAdmin)
   const nutritionistId = userData?.userId
   const userId = client?.userId
   const [notes, setNotes] = useState([])
@@ -77,12 +79,18 @@ export default function ClientNotes({ client }) {
     setLoading(true)
     setError(null)
     try {
-      const res = await getUserNotes({ userId })
+      const res = isAdmin
+        ? await getUserNotes({ userId })
+        : await getUserNotesByAuthor({ userId, fromUserId: nutritionistId })
       const list = res?.data || res?.notes || res?.items || res || []
       const filtered = Array.isArray(list)
-        ? list.filter(
-            (n) => n?.isFromNutritionist === true || n?.fromUserId === nutritionistId
-          )
+        ? list.filter((n) => {
+            if (isAdmin) {
+              return true
+            }
+
+            return n?.fromUserId === nutritionistId
+          })
         : []
       setNotes(filtered)
     } catch (err) {
@@ -96,7 +104,7 @@ export default function ClientNotes({ client }) {
   useEffect(() => {
     loadNotes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId])
+  }, [userId, nutritionistId, isAdmin])
 
   const openNew = () => {
     setEditing({ id: null })
