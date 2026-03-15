@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard'
 import MyDay from './pages/MyDay'
 import MyUsers from './pages/MyUsers'
 import MyMenus from './pages/MyMenus'
+import MyRecipes from './pages/MyRecipes'
+import FoodItems from './pages/FoodItems'
 import Users from './pages/Users'
 import Subscribers from './pages/Subscribers'
 import UnapprovedItems from './pages/UnapprovedItems'
@@ -46,6 +48,7 @@ function App() {
   const userLoading = useSelector(selectUserLoading)
   const userError = useSelector(selectUserError)
   const shouldUseNutritionistTopTabs = isNutritionist && !isAdmin
+  const currentYear = new Date().getFullYear()
   const languageOptions = [
     { value: 'en', label: 'English' },
     { value: 'fr', label: 'Français' },
@@ -56,7 +59,10 @@ function App() {
   const nutritionistTopTabs = [
     { id: 'myusers', label: t('sidebar.clients') },
     { id: 'mymenus', label: t('sidebar.myMenus') },
-    { id: 'myday', label: t('sidebar.myDay') }
+    { id: 'myrecipes', label: t('sidebar.myRecipes') },
+    { id: 'myfooditems', label: t('sidebar.myFoodItems') },
+    { id: 'myday', label: t('sidebar.myDay') },
+    { id: 'tutorials', label: t('sidebar.tutorials') }
   ]
   const nutritionistMyDaySubTabs = [
     { id: 'myday', label: t('sidebar.myDay') },
@@ -147,7 +153,7 @@ function App() {
     // Admin-only pages
     const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard']
     // Admin + Nutritionist pages
-    const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus']
+    const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems']
     // Nutritionist-only pages
     const nutritionistPages = ['myusers', 'client-profile', 'client-journal', 'client-meal-plans', 'client-notes']
     
@@ -218,6 +224,10 @@ function App() {
         return <Chat selectedUserId={selectedClient?.userId} />
       case 'mymenus':
         return <MyMenus />
+      case 'myrecipes':
+        return <MyRecipes />
+      case 'myfooditems':
+        return <FoodItems />
       case 'users':
         return <Users />
       case 'subscribers':
@@ -450,6 +460,30 @@ function App() {
               </div>
             )}
             {renderPage()}
+            <footer className="mt-10 border-t border-gray-200 pt-6">
+              <div className="flex flex-col gap-2 text-center text-sm text-[#8ca0bf] md:flex-row md:items-center md:justify-center md:gap-3">
+                <span>{`© ${currentYear} AlexaFit ${t('pages.app.footer.rightsReserved')}`}</span>
+                <div className="flex items-center justify-center gap-3">
+                  <a
+                    href="https://lucsoft-website.vercel.app/root/foodsync-terms.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition hover:text-[#5f78a0]"
+                  >
+                    {t('pages.app.footer.terms')}
+                  </a>
+                  <span className="text-[#c6d1e2]">|</span>
+                  <a
+                    href="https://lucsoft-website.vercel.app/root/foodsync-privacy.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="transition hover:text-[#5f78a0]"
+                  >
+                    {t('pages.app.footer.privacy')}
+                  </a>
+                </div>
+              </div>
+            </footer>
           </div>
         </main>
       </div>

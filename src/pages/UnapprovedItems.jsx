@@ -10,18 +10,20 @@ import {
 import { getUnapprovedItems, getUserByUserId, setItemVerifiedStatus, setItemsVerifiedStatus, deleteItem, deleteItems, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
+import { useSelectedCountry } from '../util/useSelectedCountry'
 
 import LZString from 'lz-string'
 
 const UnapprovedItems = () => {
   const { t } = useTranslation()
   const ADMIN_USER_ID = 'BACKOFFICE_ADMIN'
+  const [sharedCountry, setSharedCountry] = useSelectedCountry()
   const [foodItems, setFoodItems] = useState([])
   const [exerciseItems, setExerciseItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterCountryCode, setFilterCountryCode] = useState('')
+  const [filterCountryCode, setFilterCountryCode] = useState(sharedCountry)
   const [showOnlyAIGenerated, setShowOnlyAIGenerated] = useState(false)
   const [selectedFoodItemIds, setSelectedFoodItemIds] = useState([])
   const [selectedExerciseItemIds, setSelectedExerciseItemIds] = useState([])
@@ -87,6 +89,10 @@ const UnapprovedItems = () => {
     }
     loadUnapprovedItems()
   }, [])
+
+  useEffect(() => {
+    setFilterCountryCode(sharedCountry)
+  }, [sharedCountry])
 
   // Load verifiedItems from localStorage
   useEffect(() => {
@@ -886,7 +892,10 @@ const UnapprovedItems = () => {
             type="text"
             placeholder={t('pages.unapprovedItems.filterCountryPlaceholder')}
             value={filterCountryCode}
-            onChange={(e) => setFilterCountryCode(e.target.value)}
+            onChange={(e) => {
+              const nextCountry = setSharedCountry(e.target.value)
+              setFilterCountryCode(nextCountry)
+            }}
             className="input pl-10"
           />
         </div>

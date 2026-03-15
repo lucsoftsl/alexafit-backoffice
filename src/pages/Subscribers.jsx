@@ -4,10 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
-  PencilIcon,
-  TrashIcon,
   EyeIcon,
-  PlusIcon,
   CalendarIcon,
   CurrencyDollarIcon,
   ExclamationTriangleIcon
@@ -28,8 +25,17 @@ const Subscribers = () => {
   const [itemsPerPage, setItemsPerPage] = useState(25)
   const [selectedUser, setSelectedUser] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [sortField, setSortField] = useState('dateTimeCreated')
+  const [sortDirection, setSortDirection] = useState('desc')
   const hasLoadedRef = useRef(false)
   const isAdmin = useSelector(selectIsAdmin)
+
+  const normalizePlanType = planRaw => {
+    const plan = String(planRaw || '').trim().toLowerCase()
+    if (plan.includes('program')) return 'Program Plan'
+    if (plan.includes('pro')) return 'Pro Plan'
+    return 'No Plan'
+  }
 
   // Manual refresh function
   const refreshSubscribers = async () => {
@@ -185,11 +191,69 @@ const Subscribers = () => {
       
       const matchesSearch = userData.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            userData.email.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesPlan = filterPlan === 'all' || subscriptionData.plan.includes(filterPlan)
+      const matchesPlan =
+        filterPlan === 'all' || normalizePlanType(subscriptionData.plan) === filterPlan
       const matchesStatus = filterStatus === 'all' || subscriptionData.status === filterStatus
       return matchesSearch && matchesPlan && matchesStatus
     })
   }, [subscribers, searchTerm, filterPlan, filterStatus])
+
+  const sortedSubscribers = useMemo(() => {
+    const direction = sortDirection === 'asc' ? 1 : -1
+    return [...filteredSubscribers].sort((a, b) => {
+      const userDataA = formatUserData(a)
+      const userDataB = formatUserData(b)
+      const subscriptionDataA = formatSubscriptionStatus(a)
+      const subscriptionDataB = formatSubscriptionStatus(b)
+      const paymentDataA = formatPaymentData(a)
+      const paymentDataB = formatPaymentData(b)
+
+      switch (sortField) {
+        case 'name':
+          return userDataA.name.localeCompare(userDataB.name) * direction
+        case 'email':
+          return userDataA.email.localeCompare(userDataB.email) * direction
+        case 'plan':
+          return normalizePlanType(subscriptionDataA.plan).localeCompare(
+            normalizePlanType(subscriptionDataB.plan)
+          ) * direction
+        case 'status':
+          return String(subscriptionDataA.status || '').localeCompare(
+            String(subscriptionDataB.status || '')
+          ) * direction
+        case 'amount': {
+          const amountA = Number.parseFloat(String(paymentDataA.amount || '').replace(/[^\d.]/g, '')) || 0
+          const amountB = Number.parseFloat(String(paymentDataB.amount || '').replace(/[^\d.]/g, '')) || 0
+          return (amountA - amountB) * direction
+        }
+        case 'expiresAt': {
+          const timeA = subscriptionDataA.expiresAt && subscriptionDataA.expiresAt !== 'N/A'
+            ? new Date(subscriptionDataA.expiresAt).getTime()
+            : 0
+          const timeB = subscriptionDataB.expiresAt && subscriptionDataB.expiresAt !== 'N/A'
+            ? new Date(subscriptionDataB.expiresAt).getTime()
+            : 0
+          return (timeA - timeB) * direction
+        }
+        case 'dateTimeCreated':
+        default: {
+          const timeA = a?.dateTimeCreated ? new Date(a.dateTimeCreated).getTime() : 0
+          const timeB = b?.dateTimeCreated ? new Date(b.dateTimeCreated).getTime() : 0
+          return (timeA - timeB) * direction
+        }
+      }
+    })
+  }, [filteredSubscribers, sortDirection, sortField])
+
+  const handleSort = field => {
+    if (sortField === field) {
+      setSortDirection(current => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setSortField(field)
+    setSortDirection('asc')
+  }
 
   const getStatusBadge = (status) => {
     const statusStyles = {
@@ -207,12 +271,12 @@ const Subscribers = () => {
 
   const getPlanBadge = (plan) => {
     const planStyles = {
-      Premium: 'bg-purple-100 text-purple-800',
-      Basic: 'bg-blue-100 text-blue-800',
-      Free: 'bg-gray-100 text-gray-800'
+      'Program Plan': 'bg-blue-100 text-blue-800',
+      'Pro Plan': 'bg-purple-100 text-purple-800',
+      'No Plan': 'bg-gray-100 text-gray-800'
     }
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${planStyles[plan]}`}>
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${planStyles[plan] || planStyles['No Plan']}`}>
         {plan}
       </span>
     )
@@ -241,10 +305,10 @@ const Subscribers = () => {
   const paginatedSubscribers = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage
     const end = start + itemsPerPage
-    return filteredSubscribers.slice(start, end)
-  }, [filteredSubscribers, currentPage, itemsPerPage])
+    return sortedSubscribers.slice(start, end)
+  }, [sortedSubscribers, currentPage, itemsPerPage])
 
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredSubscribers.length / itemsPerPage)), [filteredSubscribers.length, itemsPerPage])
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(sortedSubscribers.length / itemsPerPage)), [sortedSubscribers.length, itemsPerPage])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -315,10 +379,6 @@ const Subscribers = () => {
             </svg>
             {loading ? 'Loading...' : 'Refresh'}
           </button>
-          <button className="btn-primary flex items-center">
-            <PlusIcon className="w-5 h-5 mr-2" />
-            Add Subscription
-          </button>
         </div>
       </div>
 
@@ -361,9 +421,9 @@ const Subscribers = () => {
               className="input w-32"
             >
               <option value="all">All Plans</option>
-              <option value="Premium">Premium</option>
-              <option value="Basic">Basic</option>
-              <option value="Free">Free</option>
+              <option value="Program Plan">Program Plan</option>
+              <option value="Pro Plan">Pro Plan</option>
+              <option value="No Plan">No Plan</option>
             </select>
             <select
               value={filterStatus}
@@ -381,7 +441,7 @@ const Subscribers = () => {
       </div>
 
       {/* Subscribers List & Table */}
-      <div className="card overflow-hidden">
+      <div className="card relative overflow-visible">
         {/* Mobile list */}
         <div className="md:hidden">
           <div className="space-y-4">
@@ -424,12 +484,6 @@ const Subscribers = () => {
                           title="View user details and nutrition"
                         >
                           <EyeIcon className="w-5 h-5" />
-                        </button>
-                        <button className="text-gray-600 hover:text-gray-900">
-                          <PencilIcon className="w-5 h-5" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-800">
-                          <TrashIcon className="w-5 h-5" />
                         </button>
                       </div>
                     </div>
@@ -486,22 +540,40 @@ const Subscribers = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    onClick={() => handleSort('name')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     Subscriber
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    onClick={() => handleSort('plan')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     Plan
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    onClick={() => handleSort('status')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    onClick={() => handleSort('amount')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    onClick={() => handleSort('dateTimeCreated')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     Start Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    onClick={() => handleSort('expiresAt')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     Next Billing
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -532,7 +604,7 @@ const Subscribers = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {getPlanBadge(subscriptionData.plan)}
+                        {getPlanBadge(normalizePlanType(subscriptionData.plan))}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(subscriptionData.status)}
@@ -560,12 +632,6 @@ const Subscribers = () => {
                             title="View user details and nutrition"
                           >
                             <EyeIcon className="w-4 h-4" />
-                          </button>
-                          <button className="text-gray-600 hover:text-gray-900">
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            <TrashIcon className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

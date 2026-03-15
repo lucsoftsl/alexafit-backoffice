@@ -7,8 +7,7 @@ import {
   ChartBarIcon,
   ArrowTrendingUpIcon,
   EyeIcon,
-  PencilIcon,
-  TrashIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import { fetchProgramSubscribers, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
@@ -22,9 +21,21 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterPlan, setFilterPlan] = useState('all')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [sortField, setSortField] = useState('dateTimeCreated')
+  const [sortDirection, setSortDirection] = useState('desc')
   const hasLoadedRef = useRef(false)
   const isAdmin = useSelector(selectIsAdmin)
   const { t } = useTranslation()
+
+  const normalizePlanType = planRaw => {
+    const plan = String(planRaw || '').trim().toLowerCase()
+    if (plan.includes('program')) return 'Program Plan'
+    if (plan.includes('pro')) return 'Pro Plan'
+    return 'No Plan'
+  }
 
   useEffect(() => {
     const loadSubscribers = async () => {
@@ -84,24 +95,79 @@ const Dashboard = () => {
   const filteredSubscribers = useMemo(() => {
     return subscribers.filter(subscriber => {
       const userData = formatUserData(subscriber)
-      return userData.name.toLowerCase().includes('') &&
-        userData.email.toLowerCase().includes('')
+      const subscriptionData = formatSubscriptionStatus(subscriber)
+      const matchesSearch =
+        userData.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        userData.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(subscriber?.userId || '').toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesPlan =
+        filterPlan === 'all' || normalizePlanType(subscriptionData.plan) === filterPlan
+      const matchesStatus =
+        filterStatus === 'all' || String(subscriptionData.status || '').toLowerCase() === filterStatus
+      return matchesSearch && matchesPlan && matchesStatus
     })
-  }, [subscribers])
+  }, [subscribers, searchTerm, filterPlan, filterStatus])
+
+  const sortedSubscribers = useMemo(() => {
+    const direction = sortDirection === 'asc' ? 1 : -1
+    return [...filteredSubscribers].sort((a, b) => {
+      const userDataA = formatUserData(a)
+      const userDataB = formatUserData(b)
+      const subscriptionDataA = formatSubscriptionStatus(a)
+      const subscriptionDataB = formatSubscriptionStatus(b)
+      const paymentDataA = formatPaymentData(a)
+      const paymentDataB = formatPaymentData(b)
+
+      switch (sortField) {
+        case 'name':
+          return userDataA.name.localeCompare(userDataB.name) * direction
+        case 'email':
+          return userDataA.email.localeCompare(userDataB.email) * direction
+        case 'plan':
+          return normalizePlanType(subscriptionDataA.plan).localeCompare(
+            normalizePlanType(subscriptionDataB.plan)
+          ) * direction
+        case 'status':
+          return String(subscriptionDataA.status || '').localeCompare(
+            String(subscriptionDataB.status || '')
+          ) * direction
+        case 'amount': {
+          const amountA = Number.parseFloat(String(paymentDataA.amount || '').replace(/[^\d.]/g, '')) || 0
+          const amountB = Number.parseFloat(String(paymentDataB.amount || '').replace(/[^\d.]/g, '')) || 0
+          return (amountA - amountB) * direction
+        }
+        case 'dateTimeCreated':
+        default: {
+          const timeA = a?.dateTimeCreated ? new Date(a.dateTimeCreated).getTime() : 0
+          const timeB = b?.dateTimeCreated ? new Date(b.dateTimeCreated).getTime() : 0
+          return (timeA - timeB) * direction
+        }
+      }
+    })
+  }, [filteredSubscribers, sortDirection, sortField])
+
+  const handleSort = field => {
+    if (sortField === field) {
+      setSortDirection(current => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+    setSortField(field)
+    setSortDirection('asc')
+  }
 
   const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(filteredSubscribers.length / itemsPerPage) || 1)
-  }, [filteredSubscribers.length, itemsPerPage])
+    return Math.max(1, Math.ceil(sortedSubscribers.length / itemsPerPage) || 1)
+  }, [sortedSubscribers.length, itemsPerPage])
 
   const paginatedSubscribers = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
-    return filteredSubscribers.slice(startIndex, endIndex)
-  }, [filteredSubscribers, currentPage, itemsPerPage])
+    return sortedSubscribers.slice(startIndex, endIndex)
+  }, [sortedSubscribers, currentPage, itemsPerPage])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [itemsPerPage, filteredSubscribers.length])
+  }, [itemsPerPage, filteredSubscribers.length, searchTerm, filterPlan, filterStatus])
 
   const stats = useMemo(() => {
     const today = new Date()
@@ -239,6 +305,41 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900">{t('pages.dashboard.subscribers')}</h2>
           <span className="text-sm text-gray-500">{filteredSubscribers.length} {t('subscribers')}</span>
         </div>
+        <div className="mb-6 flex flex-col gap-3 lg:flex-row">
+          <div className="relative flex-1">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              placeholder="Search subscribers by name, email, or ID..."
+              className="input pl-10"
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={filterPlan}
+              onChange={event => setFilterPlan(event.target.value)}
+              className="input w-40"
+            >
+              <option value="all">All Plans</option>
+              <option value="Program Plan">Program Plan</option>
+              <option value="Pro Plan">Pro Plan</option>
+              <option value="No Plan">No Plan</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={event => setFilterStatus(event.target.value)}
+              className="input w-36"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="paused">Paused</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+        </div>
         <div className="space-y-3 md:hidden">
           {paginatedSubscribers.map((subscriber) => {
             const userData = formatUserData(subscriber)
@@ -261,12 +362,6 @@ const Dashboard = () => {
                       className="text-blue-600 hover:text-blue-900"
                     >
                       <EyeIcon className="h-4 w-4" />
-                    </button>
-                    <button className="text-gray-600 hover:text-gray-900">
-                      <PencilIcon className="h-4 w-4" />
-                    </button>
-                    <button className="text-red-600 hover:text-red-900">
-                      <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -303,22 +398,37 @@ const Dashboard = () => {
         <div className="overflow-x-auto hidden md:block">
           <table className="min-w-[960px] divide-y divide-gray-200">
             <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('common.User')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('common.Contact')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('common.Subscription')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('common.Payment')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('common.Status')}
-                </th>
+                <tr>
+                  <th
+                    onClick={() => handleSort('name')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+                    {t('common.User')}
+                  </th>
+                  <th
+                    onClick={() => handleSort('email')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+                    {t('common.Contact')}
+                  </th>
+                  <th
+                    onClick={() => handleSort('plan')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+                    {t('common.Subscription')}
+                  </th>
+                  <th
+                    onClick={() => handleSort('amount')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+                    {t('common.Payment')}
+                  </th>
+                  <th
+                    onClick={() => handleSort('status')}
+                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
+                    {t('common.Status')}
+                  </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('common.Actions')}
                 </th>
@@ -346,7 +456,7 @@ const Dashboard = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm text-gray-900">{subscriptionData.plan}</div>
+                        <div className="text-sm text-gray-900">{normalizePlanType(subscriptionData.plan)}</div>
                         <div className="text-sm text-gray-500">{subscriptionData.status}</div>
                       </div>
                     </td>
@@ -373,12 +483,6 @@ const Dashboard = () => {
                         className="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer"
                       >
                         <EyeIcon className="h-4 w-4" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900 mr-3">
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <TrashIcon className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>

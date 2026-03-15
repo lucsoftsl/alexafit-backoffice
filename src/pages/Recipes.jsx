@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import {
@@ -9,20 +9,32 @@ import {
   PencilIcon,
   TrashIcon,
   ChevronUpIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  FunnelIcon,
+  CheckBadgeIcon,
+  GlobeAltIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline'
 import {
   getRecipesByCountryCode,
+  getNutritionistRecipesByCountryCode,
   searchFoodItems,
   getItemsByIds,
   addItem,
+  addNutritionistRecipe,
   updateItem,
+  updateNutritionistRecipe,
   deleteItem,
+  deleteNutritionistRecipe,
   addPhotoToItem,
-  saveImageToImgb
+  saveImageToImgb,
+  setItemVerifiedStatus
 } from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import { selectIsAdmin } from '../store/userSlice'
 import LZString from 'lz-string'
+import { getImagePreviewDataUrl, resizeImageFile } from '../util/resizeImageFile'
+import { useSelectedCountry } from '../util/useSelectedCountry'
 
 const AVAILABLE_COUNTRY_CODES = {
   ES: 'ES',
@@ -40,6 +52,7 @@ const DEFAULT_SERVING_OPTIONS = [
   { unitName: 'ml', value: 100 },
   { unitName: 'fl oz', value: 29.57 }
 ]
+const RECIPE_DRAFT_STORAGE_KEY = 'recipeDraft'
 const OZ_TO_GRAMS = 28.34
 const FL_OZ_TO_ML = 29.57
 const parseNumber = value => {
@@ -114,17 +127,71 @@ const getIngredientUnitOptions = ingredient => {
   return options
 }
 
-const Recipes = () => {
+const getAmountFromBaseUnit = (item, baseAmount, unit) => {
+  const normalizedUnit = (unit || 'g').toLowerCase().trim()
+  const amount = parseNumber(baseAmount)
+  const isLiquid = item?.isLiquid === true || item?.isLiquid === '1'
+
+  if (normalizedUnit === 'g' || normalizedUnit === 'gram' || normalizedUnit === 'grams') {
+    return amount
+  }
+  if (normalizedUnit === 'kg') return amount / 1000
+  if (normalizedUnit === 'oz') return amount / OZ_TO_GRAMS
+  if (normalizedUnit === 'ml' || normalizedUnit === 'milliliter' || normalizedUnit === 'millilitre') {
+    return amount
+  }
+  if (normalizedUnit === 'fl oz') return amount / FL_OZ_TO_ML
+  if (normalizedUnit === 'l') return amount / 1000
+
+  const customOptions = Array.isArray(item?.servingOptions) ? item.servingOptions : []
+  const defaults = DEFAULT_SERVING_OPTIONS.filter(option =>
+    isLiquid
+      ? option.unitName === 'ml' || option.unitName === 'fl oz'
+      : option.unitName === 'g' || option.unitName === 'oz'
+  )
+  const allOptions = [...customOptions]
+  defaults.forEach(defaultOption => {
+    if (!allOptions.some(o => o?.unitName === defaultOption.unitName)) {
+      allOptions.push(defaultOption)
+    }
+  })
+  const selectedOption = allOptions.find(option => {
+    const optionUnit = (option?.unitName || '').toLowerCase()
+    return optionUnit === normalizedUnit || optionUnit.includes(normalizedUnit)
+  })
+  if (!selectedOption) return amount
+  return amount / parseNumber(selectedOption.value || 1)
+}
+
+const Recipes = ({ mode = 'admin' }) => {
   const { t } = useTranslation()
+  const { currentUser } = useAuth()
+  const [sharedCountry, setSharedCountry] = useSelectedCountry()
+  const glassCardClass =
+    'relative overflow-hidden rounded-3xl border border-white/40 bg-white/75 backdrop-blur-xl shadow-[0_20px_80px_rgba(15,23,42,0.08)]'
+  const isNutritionistMode = mode === 'nutritionist'
   const [recipeItems, setRecipeItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterCountryCode, setFilterCountryCode] = useState('RO')
+  const [filterCountryCode, setFilterCountryCode] = useState(sharedCountry)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(25)
   const [sortColumn, setSortColumn] = useState(null)
   const [sortDirection, setSortDirection] = useState('asc')
+  const [columnFilters, setColumnFilters] = useState({
+    name: '',
+    type: 'all',
+    country: 'all',
+    caloriesMin: '',
+    caloriesMax: '',
+    servingsMin: '',
+    servingsMax: '',
+    public: 'all',
+    verified: 'all'
+  })
+  const [openColumnFilter, setOpenColumnFilter] = useState(null)
+  const columnFilterRef = useRef(null)
   const isAdmin = useSelector(selectIsAdmin)
 
   // For recipe creation/editing modal
@@ -132,7 +199,8 @@ const Recipes = () => {
   const [editingRecipeId, setEditingRecipeId] = useState(null)
   const [editingUserId, setEditingUserId] = useState(null)
   const [recipeName, setRecipeName] = useState('')
-  const [selectedCountryCode, setSelectedCountryCode] = useState('RO')
+  const [selectedCountryCode, setSelectedCountryCode] = useState(sharedCountry)
+  const [isRecipePublic, setIsRecipePublic] = useState(true)
 
   const [searchText, setSearchText] = useState('')
   const [searching, setSearching] = useState(false)
@@ -159,10 +227,68 @@ const Recipes = () => {
   const [selectedServingsView, setSelectedServingsView] = useState([])
   const [isServingsModalOpen, setIsServingsModalOpen] = useState(false)
 
+  const loadRecipeDraft = () => {
+    try {
+      const cachedDraft =
+        LZString.decompressFromUTF16(
+          localStorage.getItem(RECIPE_DRAFT_STORAGE_KEY)
+        ) || localStorage.getItem(RECIPE_DRAFT_STORAGE_KEY)
+
+      if (!cachedDraft) return false
+
+      const draft = JSON.parse(cachedDraft)
+      setRecipeName(draft.recipeName || '')
+      setSelectedCountryCode(draft.selectedCountryCode || sharedCountry)
+      setSelectedIngredients(
+        Array.isArray(draft.selectedIngredients) ? draft.selectedIngredients : []
+      )
+      setRecipeInstructions(draft.recipeInstructions || '')
+      setTotalTimeInMinutes(draft.totalTimeInMinutes || '')
+      setNumberOfRecipeServings(draft.numberOfRecipeServings || 1)
+      setIsRecipePublic(
+        draft.isRecipePublic === undefined ? true : Boolean(draft.isRecipePublic)
+      )
+      setSelectedPhoto(null)
+      setPhotoPreview(draft.photoPreview || null)
+      setExistingPhotoUrl(draft.existingPhotoUrl || null)
+      setSearchText('')
+      setSearchResults([])
+      return true
+    } catch (draftError) {
+      console.error('Failed to load recipe draft', draftError)
+      return false
+    }
+  }
+
+  const clearRecipeDraft = () => {
+    localStorage.removeItem(RECIPE_DRAFT_STORAGE_KEY)
+  }
+
+  const handleSaveRecipeDraft = () => {
+    try {
+      const draft = {
+        recipeName,
+        selectedCountryCode,
+        selectedIngredients,
+        recipeInstructions,
+        totalTimeInMinutes,
+        numberOfRecipeServings,
+        isRecipePublic,
+        photoPreview,
+        existingPhotoUrl
+      }
+      const compressed = LZString.compressToUTF16(JSON.stringify(draft))
+      localStorage.setItem(RECIPE_DRAFT_STORAGE_KEY, compressed)
+      alert(t('pages.recipes.draftSaved'))
+    } catch (draftError) {
+      console.error('Failed to save recipe draft', draftError)
+      alert(t('pages.recipes.draftSaveFailed'))
+    }
+  }
+
   useEffect(() => {
     const loadRecipes = async () => {
-      // Only load if admin
-      if (!isAdmin) {
+      if (!isAdmin && !isNutritionistMode) {
         setLoading(false)
         return
       }
@@ -172,7 +298,7 @@ const Recipes = () => {
         setError(null)
 
         // Check if data exists in localStorage first (cached by country code)
-        const cacheKey = `recipes_${filterCountryCode}`
+        const cacheKey = `recipes_${mode}_${filterCountryCode}`
         const cachedData =
           LZString.decompressFromUTF16(localStorage.getItem(cacheKey)) ||
           localStorage.getItem(cacheKey)
@@ -193,28 +319,54 @@ const Recipes = () => {
     }
     loadRecipes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterCountryCode, isAdmin])
+  }, [filterCountryCode, isAdmin, isNutritionistMode, mode])
+
+  useEffect(() => {
+    setFilterCountryCode(sharedCountry)
+    setSelectedCountryCode(sharedCountry)
+  }, [sharedCountry])
 
   // Reset to page 1 when switching country code or changing search term
   useEffect(() => {
     setCurrentPage(1)
   }, [filterCountryCode, searchTerm])
 
+  useEffect(() => {
+    if (!openColumnFilter) return undefined
+
+    const handleOutsideClick = event => {
+      if (!columnFilterRef.current?.contains(event.target)) {
+        setOpenColumnFilter(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('touchstart', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('touchstart', handleOutsideClick)
+    }
+  }, [openColumnFilter])
+
   const refreshData = async () => {
     setError(null)
     setRecipeItems([])
 
     // Clear cache for current country code
-    const cacheKey = `recipes_${filterCountryCode}`
+    const cacheKey = `recipes_${mode}_${filterCountryCode}`
     localStorage.removeItem(cacheKey)
 
     setLoading(true)
     try {
       console.log('Fetching from API...')
 
-      const data = await getRecipesByCountryCode({
-        countryCode: filterCountryCode
-      })
+      const data = isNutritionistMode
+        ? await getNutritionistRecipesByCountryCode({
+            countryCode: filterCountryCode
+          })
+        : await getRecipesByCountryCode({
+            countryCode: filterCountryCode
+          })
       const items = data || []
 
       // Cache the data by country code
@@ -257,6 +409,48 @@ const Recipes = () => {
       )
     }
 
+    filtered = filtered.filter(item => {
+      const matchesName =
+        !columnFilters.name.trim() ||
+        String(item?.name || '')
+          .toLowerCase()
+          .includes(columnFilters.name.toLowerCase())
+      const matchesType =
+        columnFilters.type === 'all' ||
+        String(item?.type || '').toLowerCase() === columnFilters.type.toLowerCase()
+      const matchesCountry =
+        columnFilters.country === 'all' ||
+        String(item?.countryCode || '').toUpperCase() === columnFilters.country
+      const calories = parseNumber(item?.caloriesPer100)
+      const servings = parseNumber(item?.numberOfRecipeServings)
+      const matchesCaloriesMin =
+        columnFilters.caloriesMin === '' || calories >= parseNumber(columnFilters.caloriesMin)
+      const matchesCaloriesMax =
+        columnFilters.caloriesMax === '' || calories <= parseNumber(columnFilters.caloriesMax)
+      const matchesServingsMin =
+        columnFilters.servingsMin === '' || servings >= parseNumber(columnFilters.servingsMin)
+      const matchesServingsMax =
+        columnFilters.servingsMax === '' || servings <= parseNumber(columnFilters.servingsMax)
+      const matchesPublic =
+        columnFilters.public === 'all' ||
+        String(Boolean(item?.isPublic)) === columnFilters.public
+      const matchesVerified =
+        columnFilters.verified === 'all' ||
+        String(Boolean(item?.isVerified)) === columnFilters.verified
+
+      return (
+        matchesName &&
+        matchesType &&
+        matchesCountry &&
+        matchesCaloriesMin &&
+        matchesCaloriesMax &&
+        matchesServingsMin &&
+        matchesServingsMax &&
+        matchesPublic &&
+        matchesVerified
+      )
+    })
+
     // Apply sorting
     if (sortColumn) {
       const sorted = [...filtered].sort((a, b) => {
@@ -271,6 +465,18 @@ const Recipes = () => {
           case 'calories':
             aValue = parseFloat(a.caloriesPer100) || 0
             bValue = parseFloat(b.caloriesPer100) || 0
+            return (aValue - bValue) * factor
+          case 'type':
+            aValue = (a.type || '').toLowerCase()
+            bValue = (b.type || '').toLowerCase()
+            return aValue.localeCompare(bValue) * factor
+          case 'country':
+            aValue = (a.countryCode || '').toLowerCase()
+            bValue = (b.countryCode || '').toLowerCase()
+            return aValue.localeCompare(bValue) * factor
+          case 'servings':
+            aValue = parseFloat(a.numberOfRecipeServings) || 0
+            bValue = parseFloat(b.numberOfRecipeServings) || 0
             return (aValue - bValue) * factor
           case 'isPublic':
             aValue = a.isPublic === true ? 1 : a.isPublic === false ? 0 : -1
@@ -292,7 +498,7 @@ const Recipes = () => {
     }
 
     return filtered
-  }, [recipeItems, searchTerm, sortColumn, sortDirection])
+  }, [recipeItems, searchTerm, sortColumn, sortDirection, columnFilters])
 
   // Pagination logic
   const getCurrentItems = () => {
@@ -328,7 +534,7 @@ const Recipes = () => {
       // Search with onlyRecipes = false
       const results = await searchFoodItems({
         searchText,
-        userId: ADMIN_USER_ID,
+        userId: currentUser?.uid || ADMIN_USER_ID,
         onlyRecipes: false,
         countryCode: selectedCountryCode
       })
@@ -419,7 +625,7 @@ const Recipes = () => {
   const updateIngredientWeight = (index, weight) => {
     const updated = [...selectedIngredients]
     const ingredient = updated[index]
-    const nextValue = weight === '' ? '' : parseNumber(weight)
+    const nextValue = weight === '' ? '' : weight
     ingredient.weight = nextValue
     ingredient.quantity = nextValue
 
@@ -428,7 +634,18 @@ const Recipes = () => {
 
   const updateIngredientUnit = (index, unit) => {
     const updated = [...selectedIngredients]
-    updated[index].unit = unit
+    const ingredient = updated[index]
+    const currentQuantity = ingredient.quantity ?? ingredient.weight
+    const currentBaseAmount = getAmountInBaseUnit(
+      ingredient,
+      currentQuantity,
+      ingredient.unit || 'g'
+    )
+
+    ingredient.unit = unit
+    const nextQuantity = getAmountFromBaseUnit(ingredient, currentBaseAmount, unit)
+    ingredient.quantity = Number(nextQuantity.toFixed(2))
+    ingredient.weight = Number(nextQuantity.toFixed(2))
     setSelectedIngredients(updated)
   }
 
@@ -533,21 +750,28 @@ const Recipes = () => {
     return [{ unitName: 'serving', value }]
   }
 
-  const handlePhotoSelect = e => {
-    const file = e.target.files[0]
-    if (file) {
-      setSelectedPhoto(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result)
-      }
-      reader.readAsDataURL(file)
+  const handlePhotoSelect = async e => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const resizedFile = await resizeImageFile(file, {
+        maxWidth: 300,
+        maxHeight: 400
+      })
+      setSelectedPhoto(resizedFile)
+      setPhotoPreview(await getImagePreviewDataUrl(resizedFile))
+    } catch (photoError) {
+      console.error('Failed to prepare recipe photo', photoError)
+    } finally {
+      e.target.value = ''
     }
   }
 
   const resetForm = () => {
     setRecipeName('')
-    setSelectedCountryCode('RO')
+    setSelectedCountryCode(sharedCountry)
+    setIsRecipePublic(true)
     setSelectedIngredients([])
     setRecipeInstructions('')
     setTotalTimeInMinutes('')
@@ -565,7 +789,6 @@ const Recipes = () => {
   const handleEditRecipe = async recipe => {
     try {
       setLoadingEdit(true)
-      // Fetch full recipe data by ID
       const recipeId = recipe.id || recipe.itemId || recipe._id
       if (!recipeId) {
         alert(t('pages.recipes.recipeIdNotFound'))
@@ -573,29 +796,37 @@ const Recipes = () => {
         return
       }
 
-      const resp = await getItemsByIds({ ids: [recipeId] })
-      const fullRecipe = resp?.data?.[0] || resp?.items?.[0]
+      const fetchedRecipe = isNutritionistMode
+        ? null
+        : await getItemsByIds({ ids: [recipeId] })
+      const resolvedRecipe =
+        (isNutritionistMode ? recipe : null) ||
+        fetchedRecipe?.data?.[0] ||
+        fetchedRecipe?.items?.[0]
 
-      if (!fullRecipe) {
+      if (!resolvedRecipe) {
         alert(t('pages.recipes.failedLoadRecipeData'))
         setLoadingEdit(false)
         return
       }
 
       setEditingRecipeId(recipeId)
-      setEditingUserId(fullRecipe.createdByUserId || ADMIN_USER_ID)
-      setRecipeName(fullRecipe.name || '')
-      setSelectedCountryCode(fullRecipe.countryCode || 'RO')
-      setRecipeInstructions(
-        fullRecipe.recipeSteps?.instructions?.join('\n') || ''
+      setEditingUserId(
+        resolvedRecipe.createdByUserId || currentUser?.uid || ADMIN_USER_ID
       )
-      setTotalTimeInMinutes(fullRecipe.totalTimeInMinutes?.toString() || '')
-      setNumberOfRecipeServings(fullRecipe.numberOfRecipeServings || 1)
-      setExistingPhotoUrl(fullRecipe.photoUrl || null)
-      setPhotoPreview(fullRecipe.photoUrl || null)
+      setRecipeName(resolvedRecipe.name || '')
+      setSelectedCountryCode(resolvedRecipe.countryCode || sharedCountry)
+      setIsRecipePublic(Boolean(resolvedRecipe.isPublic))
+      setRecipeInstructions(
+        resolvedRecipe.recipeSteps?.instructions?.join('\n') || ''
+      )
+      setTotalTimeInMinutes(resolvedRecipe.totalTimeInMinutes?.toString() || '')
+      setNumberOfRecipeServings(resolvedRecipe.numberOfRecipeServings || 1)
+      setExistingPhotoUrl(resolvedRecipe.photoUrl || null)
+      setPhotoPreview(resolvedRecipe.photoUrl || null)
 
       // Fetch full ingredient data for nutrient calculation
-      const ingredients = fullRecipe.ingredients || []
+      const ingredients = resolvedRecipe.ingredients || []
       if (ingredients.length > 0) {
         try {
           const ingredientIds = ingredients.map(ing => ing.id).filter(id => id)
@@ -683,11 +914,17 @@ const Recipes = () => {
 
     try {
       setDeleting(true)
-      await deleteItem({
-        itemId: recipe.id,
-        itemType: 'FOOD',
-        userId: recipe.createdByUserId || ADMIN_USER_ID
-      })
+      if (isNutritionistMode) {
+        await deleteNutritionistRecipe({
+          itemId: recipe.id
+        })
+      } else {
+        await deleteItem({
+          itemId: recipe.id,
+          itemType: 'FOOD',
+          userId: recipe.createdByUserId || ADMIN_USER_ID
+        })
+      }
       alert(t('pages.recipes.deleteSuccess'))
       await new Promise(resolve => setTimeout(resolve, 1500))
       refreshData()
@@ -696,6 +933,25 @@ const Recipes = () => {
       alert(t('pages.recipes.deleteFail'))
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const handleToggleRecipeVerification = async recipe => {
+    const shouldVerify = !Boolean(recipe?.isVerified)
+    try {
+      await setItemVerifiedStatus({
+        itemId: recipe.id,
+        verified: shouldVerify,
+        itemType: 'FOOD'
+      })
+      await refreshData()
+    } catch (verifyError) {
+      console.error('Failed to toggle recipe verification', verifyError)
+      alert(
+        shouldVerify
+          ? t('pages.recipes.verifyFail')
+          : t('pages.recipes.unverifyFail')
+      )
     }
   }
 
@@ -807,7 +1063,7 @@ const Recipes = () => {
         totalTimeInMinutes: parseInt(totalTimeInMinutes) || 0,
         caloriesPer100,
         name: recipeName.trim(),
-        isPublic: true,
+        isPublic: isNutritionistMode ? isRecipePublic : true,
         numberOfRecipeServings: parseInt(numberOfRecipeServings, 10) || 1,
         nutrientsPer100: {
           proteinsInGrams:
@@ -835,26 +1091,38 @@ const Recipes = () => {
       }
 
       if (editingRecipeId) {
-        // Update existing recipe
-        await updateItem({
-          userId: editingUserId,
-          itemId: editingRecipeId,
-          itemType: 'FOOD',
-          data: recipeData
-        })
+        if (isNutritionistMode) {
+          await updateNutritionistRecipe({
+            itemId: editingRecipeId,
+            data: recipeData
+          })
+        } else {
+          await updateItem({
+            userId: editingUserId,
+            itemId: editingRecipeId,
+            itemType: 'FOOD',
+            data: recipeData
+          })
+        }
         alert(t('pages.recipes.updateSuccess'))
       } else {
-        // Create new recipe
-        await addItem({
-          userId: ADMIN_USER_ID,
-          itemType: 'FOOD',
-          data: recipeData,
-          countryCode: selectedCountryCode
-        })
+        if (isNutritionistMode) {
+          await addNutritionistRecipe({
+            data: recipeData
+          })
+        } else {
+          await addItem({
+            userId: ADMIN_USER_ID,
+            itemType: 'FOOD',
+            data: recipeData,
+            countryCode: selectedCountryCode
+          })
+        }
         alert(t('pages.recipes.createSuccess'))
       }
 
       // Reset form
+      clearRecipeDraft()
       resetForm()
       setIsCreateModalOpen(false)
 
@@ -877,6 +1145,93 @@ const Recipes = () => {
   const naText = t('pages.recipes.na')
   const yesText = t('pages.recipes.yes')
   const noText = t('pages.recipes.no')
+  const pageTitle = isNutritionistMode
+    ? t('sidebar.myRecipes')
+    : t('pages.recipes.title')
+  const getRecipeCreatorLabel = recipe =>
+    recipe?.createdByUserId || t('sidebar.backofficeAdmin')
+  const uniqueRecipeTypes = useMemo(
+    () =>
+      [...new Set(recipeItems.map(item => String(item?.type || '').trim()).filter(Boolean))].sort(
+        (a, b) => a.localeCompare(b)
+      ),
+    [recipeItems]
+  )
+  const recipeStats = useMemo(
+    () => [
+      {
+        title: t('pages.recipes.totalRecipes'),
+        value: recipeItems.length,
+        icon: DocumentTextIcon,
+        iconClass: 'bg-rose-50 text-rose-600'
+      },
+      {
+        title: t('pages.recipes.unverified'),
+        value: recipeItems.filter(item => !Boolean(item?.isVerified)).length,
+        icon: CheckBadgeIcon,
+        iconClass: 'bg-amber-50 text-amber-600',
+        onClick: () =>
+          setColumnFilters(current => ({
+            ...current,
+            verified: current.verified === 'false' ? 'all' : 'false'
+          })),
+        isActive: columnFilters.verified === 'false'
+      },
+      {
+        title: t('pages.recipes.publicLabel'),
+        value: recipeItems.filter(item => Boolean(item?.isPublic)).length,
+        icon: GlobeAltIcon,
+        iconClass: 'bg-orange-50 text-orange-600'
+      },
+      {
+        title: t('pages.recipes.country'),
+        value: [...new Set(recipeItems.map(item => item?.countryCode).filter(Boolean))].length,
+        icon: FunnelIcon,
+        iconClass: 'bg-blue-50 text-blue-600'
+      }
+    ],
+    [columnFilters.verified, recipeItems, t]
+  )
+
+  const renderColumnHeader = (column, label, filterContent = null) => (
+    <div className="relative flex items-center gap-2" ref={openColumnFilter === column ? columnFilterRef : null}>
+      <button
+        type="button"
+        onClick={() => handleSort(column)}
+        className="inline-flex items-center gap-1 font-semibold text-slate-500"
+      >
+        <span>{label}</span>
+        {sortColumn === column &&
+          (sortDirection === 'asc' ? (
+            <ChevronUpIcon className="h-4 w-4" />
+          ) : (
+            <ChevronDownIcon className="h-4 w-4" />
+          ))}
+      </button>
+      {filterContent ? (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              setOpenColumnFilter(current => (current === column ? null : column))
+            }
+            className={`rounded-full p-1 transition ${
+              openColumnFilter === column || (columnFilters[column] && columnFilters[column] !== 'all')
+                ? 'bg-slate-200 text-slate-700'
+                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+            }`}
+          >
+            <FunnelIcon className="h-3.5 w-3.5" />
+          </button>
+          {openColumnFilter === column ? (
+            <div className="absolute left-0 top-full z-20 mt-2 min-w-56 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+              {filterContent}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  )
 
   if (loading) {
     return (
@@ -884,7 +1239,7 @@ const Recipes = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {t('pages.recipes.title')}
+              {pageTitle}
             </h1>
             <p className="text-gray-600 mt-2">
               {t('pages.recipes.manageRecipes')}
@@ -915,113 +1270,126 @@ const Recipes = () => {
         </div>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {t('pages.recipes.title')}
-          </h1>
-          <p className="text-gray-600 mt-2">{t('pages.recipes.manageRecipes')}</p>
-        </div>
-        <div className="flex flex-col gap-2 items-center justify-center sm:justify-end">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-700 whitespace-nowrap">
-              {t('pages.recipes.country')}:
-            </label>
-            <select
-              value={filterCountryCode}
-              onChange={e => {
-                setFilterCountryCode(e.target.value)
-              }}
-              className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {Object.entries(AVAILABLE_COUNTRY_CODES).map(([key, value]) => (
-                <option key={key} value={value}>
-                  {value.toUpperCase()}
-                </option>
-              ))}
-            </select>
+      <div className={`p-6 sm:p-8 ${glassCardClass}`}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-center sm:text-left">
+            <h1 className="text-3xl font-bold text-gray-900">
+              {pageTitle}
+            </h1>
+            <p className="text-gray-600 mt-2">{t('pages.recipes.manageRecipes')}</p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={refreshData}
-              className="btn-secondary flex items-center"
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex flex-col items-end gap-2 self-stretch sm:self-auto">
+            <div className="flex items-center justify-end gap-2 self-end">
+              <label className="text-sm text-gray-700 whitespace-nowrap">
+                {t('pages.recipes.country')}:
+              </label>
+              <select
+                value={filterCountryCode}
+                onChange={e => {
+                  const nextCountry = setSharedCountry(e.target.value)
+                  setFilterCountryCode(nextCountry)
+                }}
+                className="rounded-2xl border border-white/70 bg-white/90 px-3 py-2 text-sm font-medium text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              {t('pages.recipes.refreshData')}
-            </button>
-            <button
-              onClick={() => {
-                resetForm()
-                setIsCreateModalOpen(true)
-              }}
-              className="btn-primary flex items-center"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" />
-              {t('pages.recipes.create')}
-            </button>
+                {Object.entries(AVAILABLE_COUNTRY_CODES).map(([key, value]) => (
+                  <option key={key} value={value}>
+                    {value.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 self-end">
+              <button
+                onClick={refreshData}
+                className="inline-flex items-center rounded-2xl border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-white"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {t('pages.recipes.refreshData')}
+              </button>
+              <button
+                onClick={() => {
+                  resetForm()
+                  loadRecipeDraft()
+                  setIsCreateModalOpen(true)
+                }}
+                className="inline-flex items-center rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl"
+              >
+                <PlusIcon className="w-4 h-4 mr-2" />
+                {t('pages.recipes.create')}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-8 w-8 text-orange-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">
-                {t('pages.recipes.totalRecipes')}
-              </p>
-              <p className="text-2xl font-semibold text-gray-900">
-                {recipeItems.length}
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {recipeStats.map(stat => {
+          const Icon = stat.icon
+          return (
+            <button
+              key={stat.title}
+              type="button"
+              onClick={stat.onClick}
+              className={`rounded-3xl border bg-white p-6 text-left shadow-sm transition ${
+                stat.onClick
+                  ? stat.isActive
+                    ? 'border-amber-300 ring-2 ring-amber-100'
+                    : 'border-slate-200 hover:border-slate-300'
+                  : 'border-slate-200 cursor-default'
+              }`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${stat.iconClass}`}>
+                  <Icon className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    {stat.title}
+                  </p>
+                  <p className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+                    {stat.value}
+                  </p>
+                </div>
+              </div>
+            </button>
+          )
+        })}
       </div>
 
       {/* Search */}
-      <div className="card p-6">
-        <div className="relative">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative flex-1">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
             placeholder={t('pages.recipes.searchByName')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="input pl-10"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white"
           />
+        </div>
+          <div className="text-sm text-slate-500">
+            {filteredRecipes.length} {t('pages.recipes.totalRecipes').toLowerCase()}
+          </div>
         </div>
       </div>
 
       {/* Recipes List & Table */}
-      <div className="card overflow-hidden">
+      <div className="relative overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm">
         {/* Mobile card list */}
         <div className="md:hidden">
           <div className="space-y-4">
@@ -1033,7 +1401,8 @@ const Recipes = () => {
             {getCurrentItems().map(item => (
               <div
                 key={item.id}
-                className="border border-gray-200 rounded-lg p-4 shadow-sm"
+                className="cursor-pointer border border-gray-200 rounded-lg p-4 shadow-sm transition hover:border-violet-200 hover:bg-violet-50/30"
+                onClick={() => handleEditRecipe(item)}
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-3">
@@ -1069,34 +1438,49 @@ const Recipes = () => {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
+                      {isAdmin && !isNutritionistMode ? (
+                        <button
+                          onClick={event => {
+                            event.stopPropagation()
+                            handleToggleRecipeVerification(item)
+                          }}
+                          className={
+                            item.isVerified
+                              ? 'text-amber-600 hover:text-amber-800'
+                              : 'text-emerald-600 hover:text-emerald-800'
+                          }
+                          title={
+                            item.isVerified
+                              ? t('pages.recipes.unverify')
+                              : t('pages.recipes.verify')
+                          }
+                        >
+                          <CheckBadgeIcon className="w-5 h-5" />
+                        </button>
+                      ) : null}
                       <button
-                        onClick={() => handleEditRecipe(item)}
-                        disabled={loadingEdit}
-                        className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                        title={t('pages.recipes.editRecipe')}
-                      >
-                        <PencilIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteRecipe(item)}
+                        onClick={event => {
+                          event.stopPropagation()
+                          handleDeleteRecipe(item)
+                        }}
                         disabled={deleting}
                         className="text-red-600 hover:text-red-800 disabled:opacity-50"
                         title={t('pages.recipes.deleteRecipe')}
                       >
                         <TrashIcon className="w-5 h-5" />
                       </button>
-                      <button
-                        onClick={() => handleAddPhotoToRecipe(item)}
-                        disabled={uploadingPhoto}
-                        className="text-green-600 hover:text-green-800 disabled:opacity-50"
-                        title={t('pages.recipes.addPhoto')}
-                      >
-                        <PhotoIcon className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-3 text-sm text-gray-700">
+                    {isAdmin && !isNutritionistMode ? (
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium">
+                          {t('pages.recipes.createdBy')}:
+                        </span>
+                        <span>{getRecipeCreatorLabel(item)}</span>
+                      </div>
+                    ) : null}
                     <div className="flex items-center gap-1">
                       <span className="font-medium">
                         {t('pages.recipes.caloriesPer100g')}:
@@ -1132,7 +1516,10 @@ const Recipes = () => {
                   <div className="flex flex-wrap items-center gap-2">
                     {item.photoUrl ? (
                       <button
-                        onClick={() => handleShowImage(item.photoUrl)}
+                        onClick={event => {
+                          event.stopPropagation()
+                          handleShowImage(item.photoUrl)
+                        }}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
                       >
                         {t('pages.recipes.viewPhoto')}
@@ -1143,7 +1530,10 @@ const Recipes = () => {
                       </span>
                     )}
                     <button
-                      onClick={() => handleShowServings(item?.servingOptions)}
+                      onClick={event => {
+                        event.stopPropagation()
+                        handleShowServings(item?.servingOptions)
+                      }}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
                     >
                       {t('pages.recipes.viewServings')}
@@ -1210,81 +1600,187 @@ const Recipes = () => {
         </div>
 
         {/* Desktop table */}
-        <div className="hidden md:block">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+        <div className="hidden md:block overflow-visible">
+            <table className="w-full divide-y divide-gray-200">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('pages.recipes.actions')}
-                  </th>
-                  <th
-                    onClick={() => handleSort('name')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      {t('pages.recipes.name')}
-                      {sortColumn === 'name' &&
-                        (sortDirection === 'asc' ? (
-                          <ChevronUpIcon className="w-4 h-4" />
-                        ) : (
-                          <ChevronDownIcon className="w-4 h-4" />
-                        ))}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('pages.recipes.type')}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('pages.recipes.country')}
-                  </th>
-                  <th
-                    onClick={() => handleSort('calories')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      {t('pages.recipes.caloriesHeader')}
-                      {sortColumn === 'calories' &&
-                        (sortDirection === 'asc' ? (
-                          <ChevronUpIcon className="w-4 h-4" />
-                        ) : (
-                          <ChevronDownIcon className="w-4 h-4" />
-                        ))}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('pages.recipes.servings')}
-                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('pages.recipes.photo')}
                   </th>
                   <th
-                    onClick={() => handleSort('isPublic')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
-                    <div className="flex items-center gap-1">
-                      {t('pages.recipes.publicLabel')}
-                      {sortColumn === 'isPublic' &&
-                        (sortDirection === 'asc' ? (
-                          <ChevronUpIcon className="w-4 h-4" />
-                        ) : (
-                          <ChevronDownIcon className="w-4 h-4" />
-                        ))}
-                    </div>
+                    {renderColumnHeader(
+                      'name',
+                      t('pages.recipes.name'),
+                      <input
+                        type="text"
+                        value={columnFilters.name}
+                        onChange={event =>
+                          setColumnFilters(current => ({
+                            ...current,
+                            name: event.target.value
+                          }))
+                        }
+                        placeholder={t('pages.recipes.searchByName')}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                      />
+                    )}
                   </th>
-                  <th
-                    onClick={() => handleSort('isVerified')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      {t('pages.recipes.verifiedLabel')}
-                      {sortColumn === 'isVerified' &&
-                        (sortDirection === 'asc' ? (
-                          <ChevronUpIcon className="w-4 h-4" />
-                        ) : (
-                          <ChevronDownIcon className="w-4 h-4" />
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {renderColumnHeader(
+                      'type',
+                      t('pages.recipes.type'),
+                      <select
+                        value={columnFilters.type}
+                        onChange={event =>
+                          setColumnFilters(current => ({
+                            ...current,
+                            type: event.target.value
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                      >
+                        <option value="all">All</option>
+                        {uniqueRecipeTypes.map(type => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
                         ))}
-                    </div>
+                      </select>
+                    )}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {renderColumnHeader(
+                      'country',
+                      t('pages.recipes.country'),
+                      <select
+                        value={columnFilters.country}
+                        onChange={event =>
+                          setColumnFilters(current => ({
+                            ...current,
+                            country: event.target.value
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                      >
+                        <option value="all">All</option>
+                        {Object.values(AVAILABLE_COUNTRY_CODES).map(code => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </th>
+                  {isAdmin && !isNutritionistMode ? (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('pages.recipes.createdBy')}
+                    </th>
+                  ) : null}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {renderColumnHeader(
+                      'calories',
+                      t('pages.recipes.caloriesHeader'),
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="number"
+                          value={columnFilters.caloriesMin}
+                          onChange={event =>
+                            setColumnFilters(current => ({
+                              ...current,
+                              caloriesMin: event.target.value
+                            }))
+                          }
+                          placeholder="Min"
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                        />
+                        <input
+                          type="number"
+                          value={columnFilters.caloriesMax}
+                          onChange={event =>
+                            setColumnFilters(current => ({
+                              ...current,
+                              caloriesMax: event.target.value
+                            }))
+                          }
+                          placeholder="Max"
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                        />
+                      </div>
+                    )}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {renderColumnHeader(
+                      'servings',
+                      t('pages.recipes.servings'),
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="number"
+                          value={columnFilters.servingsMin}
+                          onChange={event =>
+                            setColumnFilters(current => ({
+                              ...current,
+                              servingsMin: event.target.value
+                            }))
+                          }
+                          placeholder="Min"
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                        />
+                        <input
+                          type="number"
+                          value={columnFilters.servingsMax}
+                          onChange={event =>
+                            setColumnFilters(current => ({
+                              ...current,
+                              servingsMax: event.target.value
+                            }))
+                          }
+                          placeholder="Max"
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                        />
+                      </div>
+                    )}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {renderColumnHeader(
+                      'isPublic',
+                      t('pages.recipes.publicLabel'),
+                      <select
+                        value={columnFilters.public}
+                        onChange={event =>
+                          setColumnFilters(current => ({
+                            ...current,
+                            public: event.target.value
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                      >
+                        <option value="all">All</option>
+                        <option value="true">{yesText}</option>
+                        <option value="false">{noText}</option>
+                      </select>
+                    )}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {renderColumnHeader(
+                      'isVerified',
+                      t('pages.recipes.verifiedLabel'),
+                      <select
+                        value={columnFilters.verified}
+                        onChange={event =>
+                          setColumnFilters(current => ({
+                            ...current,
+                            verified: event.target.value
+                          }))
+                        }
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400"
+                      >
+                        <option value="all">All</option>
+                        <option value="true">{yesText}</option>
+                        <option value="false">{noText}</option>
+                      </select>
+                    )}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     {t('pages.recipes.created')}
@@ -1300,41 +1796,41 @@ const Recipes = () => {
                           <ChevronUpIcon className="w-4 h-4" />
                         ) : (
                           <ChevronDownIcon className="w-4 h-4" />
-                        ))}
+                      ))}
                     </div>
+                  </th>
+                  <th className="w-[1%] whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('pages.recipes.actions')}
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {getCurrentItems().map(item => (
-                  <tr key={item.id} className="hover:bg-gray-50">
+                  <tr
+                    key={item.id}
+                    className="cursor-pointer transition-colors hover:bg-violet-50/40"
+                    onClick={() => handleEditRecipe(item)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                      {item.photoUrl ? (
                         <button
-                          onClick={() => handleEditRecipe(item)}
-                        disabled={loadingEdit}
-                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        title={t('pages.recipes.editRecipe')}
-                      >
-                          <PencilIcon className="w-4 h-4" />
+                          onClick={event => {
+                            event.stopPropagation()
+                            handleShowImage(item.photoUrl)
+                          }}
+                          className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm"
+                        >
+                          <img
+                            src={item.photoUrl}
+                            alt={item.name || naText}
+                            className="h-14 w-14 object-cover"
+                          />
                         </button>
-                        <button
-                          onClick={() => handleDeleteRecipe(item)}
-                        disabled={deleting}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50 cursor-pointer"
-                        title={t('pages.recipes.deleteRecipe')}
-                      >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleAddPhotoToRecipe(item)}
-                        disabled={uploadingPhoto}
-                        className="text-green-600 hover:text-green-900 disabled:opacity-50 cursor-pointer"
-                        title={t('pages.recipes.addPhoto')}
-                      >
-                          <PhotoIcon className="w-4 h-4" />
-                        </button>
-                      </div>
+                      ) : (
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+                          <PhotoIcon className="h-6 w-6" />
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div
@@ -1345,13 +1841,23 @@ const Recipes = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700">
                         {item.type || naText}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.countryCode || naText}
                     </td>
+                    {isAdmin && !isNutritionistMode ? (
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <div
+                          className="max-w-[220px] truncate"
+                          title={getRecipeCreatorLabel(item)}
+                        >
+                          {getRecipeCreatorLabel(item)}
+                        </div>
+                      </td>
+                    ) : null}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.caloriesPer100 || item.caloriesPer100 === 0
                         ? `${item.caloriesPer100} cal/100g`
@@ -1361,25 +1867,14 @@ const Recipes = () => {
                       <div className="flex items-center gap-3">
                         <span>{item.numberOfRecipeServings || naText}</span>
                         <button
-                          onClick={() => handleShowServings(item?.servingOptions)}
+                          onClick={event => {
+                            event.stopPropagation()
+                            handleShowServings(item?.servingOptions)
+                          }}
                           className="text-blue-600 hover:text-blue-900 underline cursor-pointer text-sm"
                         >
                           {t('pages.recipes.servings')}
                         </button>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        {item.photoUrl ? (
-                          <button
-                            onClick={() => handleShowImage(item.photoUrl)}
-                            className="text-blue-600 hover:text-blue-900 underline cursor-pointer"
-                          >
-                            {t('pages.recipes.view')}
-                          </button>
-                        ) : (
-                          <span className="text-sm text-gray-500">{naText}</span>
-                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1394,11 +1889,33 @@ const Recipes = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                      >
-                        {item.isVerified ? yesText : noText}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${item.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                        >
+                          {item.isVerified ? yesText : noText}
+                        </span>
+                        {isAdmin && !isNutritionistMode ? (
+                          <button
+                            onClick={event => {
+                              event.stopPropagation()
+                              handleToggleRecipeVerification(item)
+                            }}
+                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                              item.isVerified
+                                ? 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                                : 'border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                            }`}
+                          >
+                            <CheckBadgeIcon className="h-4 w-4" />
+                            <span>
+                              {item.isVerified
+                                ? t('pages.recipes.unverify')
+                                : t('pages.recipes.verify')}
+                            </span>
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.dateTimeCreated
@@ -1410,11 +1927,25 @@ const Recipes = () => {
                         ? new Date(item.dateTimeUpdated).toLocaleDateString()
                         : naText}
                     </td>
+                    <td className="w-[1%] px-3 py-4 whitespace-nowrap align-top">
+                      <div className="ml-auto flex max-w-[220px] flex-wrap items-center justify-end gap-1.5">
+                        <button
+                          onClick={event => {
+                            event.stopPropagation()
+                            handleDeleteRecipe(item)
+                          }}
+                          disabled={deleting}
+                          className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 p-2 text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
+                          title={t('pages.recipes.deleteRecipe')}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
 
           {/* Pagination Controls */}
           <div className="bg-white px-4 py-3 hidden md:flex flex-wrap items-center gap-4 md:gap-6 border-t border-gray-200">
@@ -1480,288 +2011,29 @@ const Recipes = () => {
 
       {/* Create Recipe Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto m-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {editingRecipeId
-                  ? t('pages.recipes.editRecipe')
-                  : t('pages.recipes.create')}
-              </h2>
-              <button
-                onClick={() => {
-                  resetForm()
-                  setIsCreateModalOpen(false)
-                }}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Recipe Name */}
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 px-4 py-6">
+          <div className="mx-auto w-full max-w-7xl rounded-[32px] border border-slate-200 bg-[#fcfbff] p-6 shadow-2xl md:p-8">
+            <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-start md:justify-between">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.recipeName')}
-                </label>
-                <input
-                  type="text"
-                  value={recipeName}
-                  onChange={e => setRecipeName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  placeholder={t('pages.recipes.enterRecipeName')}
-                />
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {t('pages.recipes.title')}
+                </p>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
+                  {editingRecipeId
+                    ? t('pages.recipes.editRecipe')
+                    : t('pages.recipes.create')}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-500">
+                  {t('pages.recipes.manageRecipes')}
+                </p>
               </div>
-
-              {/* Country Code */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.countryCode')}
-                </label>
-                <select
-                  value={selectedCountryCode}
-                  onChange={e => setSelectedCountryCode(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                >
-                  {Object.entries(AVAILABLE_COUNTRY_CODES).map(
-                    ([key, value]) => (
-                      <option key={key} value={value}>
-                        {value.toUpperCase()}
-                      </option>
-                    )
-                  )}
-                </select>
-              </div>
-
-              {/* Number of Servings */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.numberOfServings')}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={numberOfRecipeServings}
-                  onChange={e => setNumberOfRecipeServings(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
-              </div>
-
-              {/* Total Time */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.totalTimeMinutes')}
-                </label>
-                <input
-                  value={totalTimeInMinutes}
-                  onChange={e => setTotalTimeInMinutes(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
-              </div>
-
-              {/* Photo Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.recipePhoto')}
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    className="hidden"
-                    id="photo-upload"
-                  />
-                  <label
-                    htmlFor="photo-upload"
-                    className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md flex items-center gap-2"
-                  >
-                    <PhotoIcon className="w-5 h-5" />
-                    {selectedPhoto
-                      ? t('pages.recipes.changePhoto')
-                      : t('pages.recipes.uploadPhoto')}
-                  </label>
-                  {photoPreview && (
-                    <img
-                      src={photoPreview}
-                      alt={t('pages.recipes.preview')}
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                  )}
-                  {uploadingPhoto && (
-                    <span className="text-sm text-gray-500">
-                      {t('pages.recipes.uploading')}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Search Ingredients */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.searchIngredients')}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={searchText}
-                    onChange={e => setSearchText(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleSearch()
-                    }}
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2"
-                    placeholder={t('pages.recipes.searchFoodItems')}
-                  />
-                  <button
-                    onClick={handleSearch}
-                    disabled={searching || !searchText.trim()}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {searching
-                      ? t('pages.recipes.searching')
-                      : t('pages.recipes.search')}
-                  </button>
-                </div>
-                {searchResults.length > 0 && (
-                  <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md divide-y">
-                    {searchResults.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="p-2 flex items-center justify-between hover:bg-gray-50"
-                      >
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {item?.name || item?.title || t('pages.recipes.unnamed')}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {item?.caloriesPer100
-                              ? `${item.caloriesPer100} cal/100g`
-                              : ''}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => addIngredientToRecipe(item)}
-                          className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 text-sm"
-                        >
-                          {t('pages.recipes.add')}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Selected Ingredients */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.selectedIngredients')}
-                </label>
-                <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3">
-                  {selectedIngredients.length === 0 ? (
-                    <div className="text-sm text-gray-500">
-                      {t('pages.recipes.noIngredientsYet')}
-                    </div>
-                  ) : (
-                    selectedIngredients.map((ing, index) => {
-                      const unitOptions = getIngredientUnitOptions(ing)
-                      return (
-                        <div key={index} className="p-3 bg-gray-50 rounded-md">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="font-medium text-gray-900">
-                              {ing.name}
-                            </div>
-                            <button
-                              onClick={() => removeIngredient(index)}
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <XMarkIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              step="any"
-                              min="0"
-                              value={ing.weight}
-                              onChange={e =>
-                                updateIngredientWeight(index, e.target.value)
-                              }
-                              className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm"
-                              placeholder={t('pages.recipes.quantity')}
-                            />
-                            <select
-                              value={ing.unit}
-                              onChange={e =>
-                                updateIngredientUnit(index, e.target.value)
-                              }
-                              className="border border-gray-300 rounded-md px-2 py-1 text-sm"
-                            >
-                              {unitOptions.length === 0 ? (
-                                <option value={ing.unit || 'g'}>
-                                  {ing.unit || 'g'}
-                                </option>
-                              ) : (
-                                unitOptions.map(unit => (
-                                  <option key={unit} value={unit}>
-                                    {unit}
-                                  </option>
-                                ))
-                              )}
-                            </select>
-                            <div className="text-xs text-gray-600">
-                              {ingredientCalories[index] || 0} cal
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-                {selectedIngredients.length > 0 && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                    <div className="font-medium text-gray-900">
-                      {t('pages.recipes.totalNutrients')}:
-                    </div>
-                    <div className="text-gray-700">
-                      {t('pages.recipes.calories')}: {Math.round(selectedIngredientsTotals.totalCalories)} |
-                      {' '}{t('pages.recipes.protein')}: {Math.round(selectedIngredientsTotals.totalProtein)}g
-                      {' '}| {t('pages.recipes.carbs')}: {Math.round(selectedIngredientsTotals.totalCarbs)}
-                      g | {t('pages.recipes.fat')}: {Math.round(selectedIngredientsTotals.totalFat)}g
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Recipe Instructions */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('pages.recipes.recipeInstructionsOnePerLine')}
-                </label>
-                <textarea
-                  value={recipeInstructions}
-                  onChange={e => setRecipeInstructions(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  rows="4"
-                  placeholder={t('pages.recipes.enterRecipeInstructions')}
-                />
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="p-3 rounded border border-red-200 bg-red-50 text-red-800 text-sm">
-                  {error}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
+              <div className="flex items-center gap-3 self-start">
                 <button
                   onClick={() => {
                     resetForm()
                     setIsCreateModalOpen(false)
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                 >
                   {t('pages.recipes.cancel')}
                 </button>
@@ -1772,7 +2044,7 @@ const Recipes = () => {
                     !recipeName.trim() ||
                     selectedIngredients.length === 0
                   }
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submitting
                     ? editingRecipeId
@@ -1782,7 +2054,379 @@ const Recipes = () => {
                       ? t('pages.recipes.updateRecipe')
                       : t('pages.recipes.create')}
                 </button>
+                <button
+                  onClick={() => {
+                    resetForm()
+                    setIsCreateModalOpen(false)
+                  }}
+                  className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
               </div>
+            </div>
+
+            <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+              <div className="space-y-6">
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.55fr)_320px]">
+                  <div className="space-y-6">
+                    <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                      <div className="mb-4 flex items-center gap-2">
+                        <PhotoIcon className="h-5 w-5 text-violet-500" />
+                        <h3 className="text-lg font-semibold text-slate-950">
+                          {t('pages.recipes.recipePhoto')}
+                        </h3>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoSelect}
+                        className="hidden"
+                        id="photo-upload"
+                      />
+                      <label
+                        htmlFor="photo-upload"
+                        className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                      >
+                        <PhotoIcon className="w-5 h-5" />
+                        {selectedPhoto || photoPreview || existingPhotoUrl
+                          ? t('pages.recipes.change')
+                          : t('pages.recipes.uploadPhoto')}
+                      </label>
+                      {uploadingPhoto ? (
+                        <p className="mt-3 text-sm text-slate-500">
+                          {t('pages.recipes.uploading')}
+                        </p>
+                      ) : null}
+                      <label
+                        htmlFor="photo-upload"
+                        className="mt-4 block cursor-pointer overflow-hidden rounded-[28px] border border-slate-200 shadow-sm transition hover:border-violet-300"
+                      >
+                        {photoPreview ? (
+                          <img
+                            src={photoPreview}
+                            alt={t('pages.recipes.preview')}
+                            className="h-[320px] w-full bg-white object-contain"
+                          />
+                        ) : (
+                          <div className="flex h-[320px] items-center justify-center bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 text-slate-400">
+                            <PhotoIcon className="h-16 w-16" />
+                          </div>
+                        )}
+                      </label>
+                    </div>
+
+                    {isNutritionistMode ? (
+                      <label className="flex items-center gap-3 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm font-medium text-slate-700 shadow-sm">
+                        <input
+                          type="checkbox"
+                          checked={isRecipePublic}
+                          onChange={event =>
+                            setIsRecipePublic(event.target.checked)
+                          }
+                          className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                        />
+                        <span>{t('pages.recipes.publicLabel')}</span>
+                      </label>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="mb-5 flex items-center gap-2">
+                      <DocumentTextIcon className="h-5 w-5 text-violet-500" />
+                      <h3 className="text-lg font-semibold text-slate-950">
+                        {t('pages.recipes.recipeInformation')}
+                      </h3>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div>
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          {t('pages.recipes.recipeName')}
+                        </label>
+                        <input
+                          type="text"
+                          value={recipeName}
+                          onChange={e => setRecipeName(e.target.value)}
+                          className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white"
+                          placeholder={t('pages.recipes.enterRecipeName')}
+                        />
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="flex flex-col">
+                          <label className="mb-2 flex min-h-[2.75rem] items-end text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            {t('pages.recipes.countryCode')}
+                          </label>
+                          <select
+                            value={selectedCountryCode}
+                            onChange={e => {
+                              const nextCountry = setSharedCountry(e.target.value)
+                              setSelectedCountryCode(nextCountry)
+                            }}
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white"
+                          >
+                            {Object.entries(AVAILABLE_COUNTRY_CODES).map(
+                              ([key, value]) => (
+                                <option key={key} value={value}>
+                                  {value.toUpperCase()}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </div>
+                        <div className="flex flex-col">
+                          <label className="mb-2 flex min-h-[2.75rem] items-end text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            {t('pages.recipes.numberOfServings')}
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={numberOfRecipeServings}
+                            onChange={e => setNumberOfRecipeServings(e.target.value)}
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white"
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <label className="mb-2 flex min-h-[2.75rem] items-end text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            {t('pages.recipes.totalTimeMinutes')}
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={totalTimeInMinutes}
+                            onChange={e => setTotalTimeInMinutes(e.target.value)}
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          {t('pages.recipes.recipeInstructionsOnePerLine')}
+                        </label>
+                        <textarea
+                          value={recipeInstructions}
+                          onChange={e => setRecipeInstructions(e.target.value)}
+                          className="min-h-[220px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white"
+                          rows="8"
+                          placeholder={t('pages.recipes.enterRecipeInstructions')}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="rounded-[28px] border border-violet-200 bg-violet-50/70 p-6 shadow-sm">
+                      <div className="mb-4 flex items-center gap-2">
+                        <DocumentTextIcon className="h-5 w-5 text-violet-500" />
+                        <h3 className="text-lg font-semibold text-slate-950">
+                          {t('pages.recipes.totalNutrients')}
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl bg-white p-4 text-center shadow-sm">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            {t('pages.recipes.calories')}
+                          </div>
+                          <div className="mt-2 text-3xl font-bold text-violet-600">
+                            {Math.round(selectedIngredientsTotals.totalCalories)}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl bg-white p-4 text-center shadow-sm">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            {t('pages.recipes.protein')}
+                          </div>
+                          <div className="mt-2 text-3xl font-bold text-slate-900">
+                            {Math.round(selectedIngredientsTotals.totalProtein)}g
+                          </div>
+                        </div>
+                        <div className="rounded-2xl bg-white p-4 text-center shadow-sm">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            {t('pages.recipes.carbs')}
+                          </div>
+                          <div className="mt-2 text-3xl font-bold text-slate-900">
+                            {Math.round(selectedIngredientsTotals.totalCarbs)}g
+                          </div>
+                        </div>
+                        <div className="rounded-2xl bg-white p-4 text-center shadow-sm">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                            {t('pages.recipes.fat')}
+                          </div>
+                          <div className="mt-2 text-3xl font-bold text-slate-900">
+                            {Math.round(selectedIngredientsTotals.totalFat)}g
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <DocumentTextIcon className="h-5 w-5 text-violet-500" />
+                      <h3 className="text-lg font-semibold text-slate-950">
+                        {t('pages.recipes.selectedIngredients')}
+                      </h3>
+                    </div>
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      {selectedIngredients.length}
+                    </span>
+                  </div>
+
+                  <div className="mb-4 flex gap-2">
+                    <input
+                      type="text"
+                      value={searchText}
+                      onChange={e => setSearchText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSearch()
+                      }}
+                      className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-300 focus:bg-white"
+                      placeholder={t('pages.recipes.searchFoodItems')}
+                    />
+                    <button
+                      onClick={handleSearch}
+                      disabled={searching || !searchText.trim()}
+                      className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {searching
+                        ? t('pages.recipes.searching')
+                        : t('pages.recipes.search')}
+                    </button>
+                  </div>
+
+                  {searchResults.length > 0 ? (
+                    <div className="mb-5 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50/60">
+                      {searchResults.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 last:border-b-0"
+                        >
+                          <div>
+                            <div className="text-sm font-semibold text-slate-900">
+                              {item?.name || item?.title || t('pages.recipes.unnamed')}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              {item?.caloriesPer100
+                                ? `${item.caloriesPer100} cal/100g`
+                                : ''}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => addIngredientToRecipe(item)}
+                            className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
+                          >
+                            {t('pages.recipes.add')}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-3">
+                    {selectedIngredients.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                        {t('pages.recipes.noIngredientsYet')}
+                      </div>
+                    ) : (
+                      selectedIngredients.map((ing, index) => {
+                        const unitOptions = getIngredientUnitOptions(ing)
+                        return (
+                          <div key={index} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-sm font-semibold text-slate-900">
+                                  {ing.name}
+                                </div>
+                                <div className="mt-1 text-xs text-slate-500">
+                                  {Math.round(ingredientCalories[index] || 0)} cal
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => removeIngredient(index)}
+                                className="rounded-full p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                              >
+                                <XMarkIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-2">
+                              <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                value={ing.weight}
+                                onChange={e =>
+                                  updateIngredientWeight(index, e.target.value)
+                                }
+                                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-300"
+                                placeholder={t('pages.recipes.quantity')}
+                              />
+                              <select
+                                value={ing.unit}
+                                onChange={e =>
+                                  updateIngredientUnit(index, e.target.value)
+                                }
+                                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-violet-300"
+                              >
+                                {unitOptions.length === 0 ? (
+                                  <option value={ing.unit || 'g'}>
+                                    {ing.unit || 'g'}
+                                  </option>
+                                ) : (
+                                  unitOptions.map(unit => (
+                                    <option key={unit} value={unit}>
+                                      {unit}
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-end">
+              {!editingRecipeId ? (
+                <button
+                  onClick={handleSaveRecipeDraft}
+                  className="rounded-2xl px-5 py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                >
+                  {t('pages.recipes.saveAsDraft')}
+                </button>
+              ) : null}
+              <button
+                onClick={handleCreateRecipe}
+                disabled={
+                  submitting ||
+                  !recipeName.trim() ||
+                  selectedIngredients.length === 0
+                }
+                className="rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting
+                  ? editingRecipeId
+                    ? t('pages.recipes.updating')
+                    : t('pages.recipes.creating')
+                  : editingRecipeId
+                    ? t('pages.recipes.updateRecipe')
+                    : t('pages.recipes.publishRecipe')}
+              </button>
             </div>
           </div>
         </div>
@@ -1896,63 +2540,66 @@ const Recipes = () => {
 
       {/* Servings Modal */}
       {isServingsModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                {t('pages.recipes.servingOptions')}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6">
+          <div className="w-full max-w-3xl rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl md:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {t('pages.recipes.servings')}
+                </p>
+                <h3 className="mt-2 text-2xl font-bold text-slate-950">
+                  {t('pages.recipes.servingOptions')}
+                </h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  {t('pages.recipes.viewServings')}
+                </p>
+              </div>
               <button
                 onClick={() => {
                   setIsServingsModalOpen(false)
                   setSelectedServingsView([])
                 }}
-                className="text-gray-400 hover:text-gray-500"
+                className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
             {selectedServingsView.length === 0 ? (
-              <div className="text-sm text-gray-600">
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-sm text-slate-600">
                 {t('pages.recipes.noServingOptions')}
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('pages.recipes.unit')}
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('pages.recipes.value')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {selectedServingsView.map((serving, index) => (
-                      <tr key={`${serving?.unitName || 'unit'}-${index}`}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {serving?.unitName || naText}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {serving?.value || serving?.value === 0
-                            ? serving.value
-                            : naText}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {selectedServingsView.map((serving, index) => (
+                  <div
+                    key={`${serving?.unitName || 'unit'}-${index}`}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm"
+                  >
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {t('pages.recipes.unit')}
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-slate-950">
+                      {serving?.unitName || naText}
+                    </div>
+                    <div className="mt-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {t('pages.recipes.value')}
+                    </div>
+                    <div className="mt-2 text-2xl font-bold text-slate-950">
+                      {serving?.value || serving?.value === 0
+                        ? serving.value
+                        : naText}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
-            <div className="mt-4">
+            <div className="mt-6 flex justify-end">
               <button
                 onClick={() => {
                   setIsServingsModalOpen(false)
                   setSelectedServingsView([])
                 }}
-                className="btn-primary"
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 {t('pages.recipes.close')}
               </button>

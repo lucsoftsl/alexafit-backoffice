@@ -2873,12 +2873,8 @@ const MyMenus = () => {
             <div className="relative">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    {t('pages.myMenus.library')}
-                  </p>
                   <h2 className="text-2xl font-semibold text-gray-900">
-                    {t('pages.myMenus.menus')} (
-                    {groupedTemplates.length})
+                    {t('pages.myMenus.menus')}
                   </h2>
                 </div>
                 <div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center">
@@ -2984,7 +2980,7 @@ const MyMenus = () => {
                           return (
                             <div
                               key={container.key}
-                              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+                              className="relative overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm"
                             >
                               <div className="flex flex-col gap-4 border-b border-slate-200 px-6 py-5 md:flex-row md:items-center md:justify-between">
                                 <button

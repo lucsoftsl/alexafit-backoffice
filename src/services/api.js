@@ -10,6 +10,7 @@ import {
 // API service for fetching program subscribers
 
 const API_AUTH = 'c29aWGZHd0o6ZT54LXVUZi1GOGohaVFyVHFy'
+const nutritionistRecipesByCountryInFlight = new Map()
 
 // Helper function to get headers with Firebase auth token
 const getHeaders = async (includeAuthToken = true) => {
@@ -280,6 +281,202 @@ export const getRecipesByCountryCode = async ({ countryCode }) => {
     return data?.data || []
   } catch (error) {
     console.error('Error getting recipes by country code:', error)
+    throw error
+  }
+}
+
+export const getNutritionistRecipesByCountryCode = async ({ countryCode }) => {
+  const cacheKey = String(countryCode || 'RO').toUpperCase()
+  if (nutritionistRecipesByCountryInFlight.has(cacheKey)) {
+    return nutritionistRecipesByCountryInFlight.get(cacheKey)
+  }
+
+  const requestPromise = (async () => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-recipes/by-country?countryCode=${encodeURIComponent(cacheKey)}`,
+      {
+        method: 'GET',
+        headers
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data?.data || []
+  } catch (error) {
+    console.error('Error getting nutritionist recipes by country code:', error)
+    throw error
+  } finally {
+    nutritionistRecipesByCountryInFlight.delete(cacheKey)
+  }
+  })()
+
+  nutritionistRecipesByCountryInFlight.set(cacheKey, requestPromise)
+  return requestPromise
+}
+
+export const addNutritionistRecipe = async ({ data }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-recipes/add`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ data })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error adding nutritionist recipe:', error)
+    throw error
+  }
+}
+
+export const updateNutritionistRecipe = async ({ itemId, data }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-recipes/update`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ itemId, data })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error updating nutritionist recipe:', error)
+    throw error
+  }
+}
+
+export const deleteNutritionistRecipe = async ({ itemId }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-recipes/delete`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ itemId })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error deleting nutritionist recipe:', error)
+    throw error
+  }
+}
+
+export const getNutritionistFoodItemsByCountryCode = async ({ countryCode }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-food-items/by-country?countryCode=${encodeURIComponent(countryCode)}`,
+      {
+        method: 'GET',
+        headers
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data?.data || []
+  } catch (error) {
+    console.error('Error getting nutritionist food items by country code:', error)
+    throw error
+  }
+}
+
+export const addNutritionistFoodItem = async ({ data }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-food-items/add`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ data })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error adding nutritionist food item:', error)
+    throw error
+  }
+}
+
+export const updateNutritionistFoodItem = async ({ itemId, data }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-food-items/update`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ itemId, data })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error updating nutritionist food item:', error)
+    throw error
+  }
+}
+
+export const deleteNutritionistFoodItem = async ({ itemId }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/nutritionist-food-items/delete`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ itemId })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error deleting nutritionist food item:', error)
     throw error
   }
 }

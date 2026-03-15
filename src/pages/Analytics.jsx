@@ -467,6 +467,7 @@ const Analytics = () => {
     dragSelection.startKey &&
     dragSelection.endKey &&
     dragSelection.startKey !== dragSelection.endKey
+  const isDraggingTimeline = Boolean(dragSelection.startKey)
 
   useEffect(() => {
     setSelectedBucketKindFilter('ALL')
@@ -806,7 +807,11 @@ const Analytics = () => {
             ) : null}
           </div>
 
-          <div className="h-80 min-w-0">
+          <div
+            className={`h-80 min-w-0 transition-opacity ${
+              isDraggingTimeline ? 'opacity-80' : 'opacity-100'
+            }`}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={timelineBuckets}
@@ -837,6 +842,7 @@ const Analytics = () => {
                 />
                 <Tooltip
                   content={props => renderTimelineTooltip(props, lookbackWindow)}
+                  wrapperStyle={{ pointerEvents: 'none' }}
                 />
                 {ANALYTICS_SERIES_KEYS.map(kind => (
                   <Area
