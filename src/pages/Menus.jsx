@@ -314,6 +314,8 @@ const Menus = () => {
   const [copyCountryCode, setCopyCountryCode] = useState('RO')
   const [copyingTemplate, setCopyingTemplate] = useState(false)
   const [viewingItem, setViewingItem] = useState(null)
+  const [viewingItemServingId, setViewingItemServingId] = useState('')
+  const [viewingItemAmount, setViewingItemAmount] = useState('')
   const selectedUserForUnits = useMemo(
     () =>
       users.find(
@@ -328,6 +330,53 @@ const Menus = () => {
   )
   // Template builder should always expose both metric and imperial options.
   const includeImperialServingOptions = true
+
+  const getInitialServingSelection = item => {
+    const servingOptions = buildServingOptionsForMenuItem(
+      item,
+      includeImperialServingOptions
+    )
+    let selectedServing =
+      findServingByIdentifier(
+        servingOptions,
+        item?.changedServing?.servingOption
+          ? getServingIdentifier(item.changedServing.servingOption)
+          : item?.originalServingId
+      ) || null
+
+    if (detectIsRecipe(item)) {
+      const portionServing = findPortionServing(servingOptions)
+      if (portionServing) selectedServing = portionServing
+    }
+
+    if (!selectedServing) {
+      selectedServing = findDefaultServing(servingOptions) || servingOptions[0]
+    }
+
+    const changedQuantity = parseOptionalNumber(item?.changedServing?.quantity)
+    const changedValue = parseOptionalNumber(item?.changedServing?.value)
+    const initialAmount =
+      changedQuantity ??
+      changedValue ??
+      getDefaultAmountForSelectedServing(selectedServing)
+
+    return {
+      selectedServingId: getServingIdentifier(selectedServing) || '',
+      amount: initialAmount
+    }
+  }
+
+  useEffect(() => {
+    if (!viewingItem) {
+      setViewingItemServingId('')
+      setViewingItemAmount('')
+      return
+    }
+
+    const initialSelection = getInitialServingSelection(viewingItem)
+    setViewingItemServingId(initialSelection.selectedServingId)
+    setViewingItemAmount(String(initialSelection.amount || ''))
+  }, [viewingItem])
   const roundServingAmountByUnitSystem = value => {
     const n = parseNumber(value)
     const decimals = isImperial ? 2 : 1
@@ -514,7 +563,7 @@ const Menus = () => {
     }
   }
 
-  const addItemToPlan = async item => {
+  const addItemToPlan = async (item, selectionOverride = null) => {
     try {
       let enriched = normalizeMenuItemShape(item)
       // Store original serving info - try to get from serving array or default
@@ -681,6 +730,14 @@ const Menus = () => {
 
         initialServingId = getServingIdentifier(initialServing) || initialServingId
         initialServingAmount = getDefaultAmountForSelectedServing(initialServing)
+      }
+
+      if (selectionOverride?.servingOption) {
+        initialServingId =
+          getServingIdentifier(selectionOverride.servingOption) ||
+          initialServingId
+        initialServingAmount =
+          parseOptionalNumber(selectionOverride.amount) ?? initialServingAmount
       }
 
       setDisplayValues(prev => ({
@@ -1493,10 +1550,14 @@ const Menus = () => {
       includeImperialServingOptions
     )
     const previewServing =
-      findDefaultServing(previewServingOptions) || previewServingOptions[0] || null
+      findServingByIdentifier(previewServingOptions, viewingItemServingId) ||
+      findDefaultServing(previewServingOptions) ||
+      previewServingOptions[0] ||
+      null
     const previewAmount =
-      getDefaultAmountForSelectedServing(previewServing) ||
-      viewingItem?.originalServingAmount ||
+      parseOptionalNumber(viewingItemAmount) ??
+      getDefaultAmountForSelectedServing(previewServing) ??
+      viewingItem?.originalServingAmount ??
       100
     const previewUnit =
       previewServing?.unitName ||
@@ -1561,22 +1622,68 @@ const Menus = () => {
                   {t('pages.myMenus.calories')}: {Math.round(parseNumber(previewValues?.calories))}
                 </div>
                 <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                  {t('pages.myMenus.proteins')}: {Math.round(nutrients.proteinsInGrams)} g
+                  {t('pages.myMenus.proteins')}: {roundMacro(nutrients.proteinsInGrams)} g
                 </div>
                 <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                  {t('pages.myMenus.carbs')}: {Math.round(nutrients.carbohydratesInGrams)} g
+                  {t('pages.myMenus.carbs')}: {roundMacro(nutrients.carbohydratesInGrams)} g
                 </div>
                 <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                  {t('pages.myMenus.fat')}: {Math.round(nutrients.fatInGrams)} g
+                  {t('pages.myMenus.fat')}: {roundMacro(nutrients.fatInGrams)} g
                 </div>
               </div>
 
-              {previewServing ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                  <span className="font-semibold text-slate-800">
-                    {t('pages.myMenus.servingOptions')}:
-                  </span>{' '}
-                  {previewAmount} {previewUnit}
+              {previewServingOptions.length > 0 ? (
+                <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_140px_auto] md:items-end">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {t('pages.myMenus.servingOptions')}
+                    </label>
+                    <select
+                      value={viewingItemServingId}
+                      onChange={event => {
+                        const nextServing =
+                          findServingByIdentifier(
+                            previewServingOptions,
+                            event.target.value
+                          ) || previewServingOptions[0]
+                        setViewingItemServingId(event.target.value)
+                        setViewingItemAmount(
+                          String(
+                            getDefaultAmountForSelectedServing(nextServing) || ''
+                          )
+                        )
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    >
+                      {previewServingOptions.map(option => {
+                        const optionId = getServingIdentifier(option)
+                        return (
+                          <option key={optionId} value={optionId}>
+                            {option?.unitName ||
+                              option?.unit ||
+                              option?.name ||
+                              'g'}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {t('pages.myMenus.quantity')}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={viewingItemAmount}
+                      onChange={event => setViewingItemAmount(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                  </div>
+                  <div className="pb-3 text-sm font-medium text-slate-600">
+                    {previewUnit}
+                  </div>
                 </div>
               ) : null}
 
@@ -1643,7 +1750,10 @@ const Menus = () => {
             <button
               type="button"
               onClick={async () => {
-                await addItemToPlan(viewingItem)
+                await addItemToPlan(viewingItem, {
+                  servingOption: previewServing,
+                  amount: previewAmount
+                })
                 setViewingItem(null)
               }}
               className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:shadow-lg"
@@ -2267,13 +2377,13 @@ const Menus = () => {
                                 Calories: {adjustedCalories}
                               </div>
                               <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>
-                                Proteins: {Math.round(Number(adjustedNutrients?.proteinsInGrams) || 0)} g
+                                Proteins: {roundMacro(Number(adjustedNutrients?.proteinsInGrams) || 0)} g
                               </div>
                               <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>
-                                Carbs: {Math.round(Number(adjustedNutrients?.carbohydratesInGrams) || 0)} g
+                                Carbs: {roundMacro(Number(adjustedNutrients?.carbohydratesInGrams) || 0)} g
                               </div>
                               <div className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}>
-                                Fat: {Math.round(Number(adjustedNutrients?.fatInGrams) || 0)} g
+                                Fat: {roundMacro(Number(adjustedNutrients?.fatInGrams) || 0)} g
                               </div>
                             </div>
                           </div>
@@ -2357,7 +2467,7 @@ const Menus = () => {
                       : t('pages.menus.creating') || 'Creating...'
                     : editingTemplateId
                       ? t('pages.menus.updateTemplate') || 'Update Template'
-                      : t('pages.menus.createTemplate') || 'Create Template'}
+                      : t('common.create')}
                 </button>
               </div>
             </div>
@@ -2478,7 +2588,7 @@ const Menus = () => {
                           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
                         >
                           <PlusIcon className="h-4 w-4" />
-                          {t('pages.myMenus.addMenu')}
+                          {t('pages.myMenus.addDay')}
                         </button>
                       </div>
 

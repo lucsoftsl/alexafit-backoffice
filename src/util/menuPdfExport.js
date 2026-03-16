@@ -364,7 +364,12 @@ const sanitizeFilename = value =>
     .replace(/\s+/g, ' ')
 
 export const exportMenuBuilderToPdf = async ({ container, t }) => {
-  const menus = Array.isArray(container?.menus) ? container.menus : []
+  const menus = (Array.isArray(container?.menus) ? container.menus : []).filter(
+    menu =>
+      MENU_MEAL_SECTIONS.some(
+        section => Array.isArray(menu?.[section.id]) && menu[section.id].length > 0
+      )
+  )
   if (!menus.length) return
 
   const doc = new jsPDF({

@@ -238,6 +238,25 @@ export async function copyMenuContainerBO({
   })
 }
 
+export async function copyMenuContainerToCountryBO({
+  menuTemplateIds,
+  newContainerName,
+  countryCode,
+  userId,
+  createdByUserId
+}) {
+  return request('/foodsync/copyMenuContainerToCountryBO', {
+    method: 'POST',
+    body: {
+      menuTemplateIds,
+      newContainerName,
+      countryCode,
+      userId,
+      createdByUserId
+    }
+  })
+}
+
 export async function deleteMenuContainerBO({
   menuTemplateIds,
   createdByUserId

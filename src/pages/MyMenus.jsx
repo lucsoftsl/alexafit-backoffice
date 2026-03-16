@@ -28,6 +28,7 @@ import {
   deleteMenuTemplateByIdBO,
   renameMenuContainerBO,
   copyMenuContainerBO,
+  copyMenuContainerToCountryBO,
   deleteMenuContainerBO,
   deleteMenuTemplateItemByIdBO,
   assignMenuTemplateToUserBO,
@@ -66,6 +67,7 @@ const mealTypeOptions = [
 ]
 const MENU_NAME_SEPARATOR = ':::'
 const MENU_ORDER_SEPARATOR = '==='
+const MENU_STUDIO_DRAFTS_STORAGE_KEY = 'alexafit_menu_studio_drafts_v1'
 
 const glassCardClass =
   'relative overflow-hidden rounded-3xl border border-white/40 bg-white/70 backdrop-blur-xl shadow-[0_20px_80px_rgba(15,23,42,0.08)]'
@@ -565,6 +567,18 @@ const MyMenus = () => {
   const [exportingContainerPdf, setExportingContainerPdf] = useState(false)
   const [copyContainerName, setCopyContainerName] = useState('')
   const [copyingContainer, setCopyingContainer] = useState(false)
+  const [isCopyContainerToCountryModalOpen, setIsCopyContainerToCountryModalOpen] =
+    useState(false)
+  const [selectedContainerForCountryCopy, setSelectedContainerForCountryCopy] =
+    useState(null)
+  const [copyContainerToCountryName, setCopyContainerToCountryName] =
+    useState('')
+  const [copyContainerToCountryCode, setCopyContainerToCountryCode] =
+    useState('RO')
+  const [copyingContainerToCountry, setCopyingContainerToCountry] =
+    useState(false)
+  const [deletingContainerKey, setDeletingContainerKey] = useState(null)
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null)
   const [draggedContainerMenuId, setDraggedContainerMenuId] = useState(null)
   const [reorderingContainer, setReorderingContainer] = useState(false)
   const [isAssignContainerPreviewOpen, setIsAssignContainerPreviewOpen] =
@@ -577,6 +591,9 @@ const MyMenus = () => {
   const [studioEditingItemKey, setStudioEditingItemKey] = useState(null)
   const [studioDraftValues, setStudioDraftValues] = useState({})
   const [savingStudioMenu, setSavingStudioMenu] = useState(false)
+  const [viewingItemServingId, setViewingItemServingId] = useState('')
+  const [viewingItemAmount, setViewingItemAmount] = useState('')
+  const [menuStudioDrafts, setMenuStudioDrafts] = useState({})
   const userData = useSelector(selectUserData)
   const isAdmin = useSelector(selectIsAdmin)
   const { currentUser } = useAuth()
@@ -604,6 +621,61 @@ const MyMenus = () => {
       )
     )
 
+  const getInitialServingSelection = item => {
+    const servingOptions = buildServingOptionsForMenuItem(
+      item,
+      includeImperialServingOptions
+    )
+    let selectedServing =
+      findServingByIdentifier(
+        servingOptions,
+        item?.changedServing?.servingOption
+          ? getServingIdentifier(item.changedServing.servingOption)
+          : item?.originalServingId
+      ) || null
+
+    if (detectIsRecipe(item)) {
+      const portionServing = findPortionServing(servingOptions)
+      if (portionServing) selectedServing = portionServing
+    }
+
+    if (!selectedServing) {
+      selectedServing = findDefaultServing(servingOptions) || servingOptions[0]
+    }
+
+    const changedQuantity = parseOptionalNumber(item?.changedServing?.quantity)
+    const changedValue = parseOptionalNumber(item?.changedServing?.value)
+    const initialAmount =
+      changedQuantity ??
+      changedValue ??
+      getDefaultAmountForSelectedServing(selectedServing)
+
+    return {
+      servingOptions,
+      selectedServing,
+      selectedServingId: getServingIdentifier(selectedServing) || '',
+      amount: initialAmount
+    }
+  }
+
+  const stageStudioMenuChanges = updatedMenu => {
+    if (!updatedMenu?.id) return
+    setMenuStudioDrafts(prev => ({
+      ...prev,
+      [updatedMenu.id]: updatedMenu
+    }))
+    setError(null)
+  }
+
+  const clearStudioMenuDraft = menuId => {
+    if (!menuId) return
+    setMenuStudioDrafts(prev => {
+      const next = { ...prev }
+      delete next[menuId]
+      return next
+    })
+  }
+
   const persistStudioMenuChanges = async updatedMenu => {
     setSavingStudioMenu(true)
     try {
@@ -618,6 +690,7 @@ const MyMenus = () => {
         createdByUserId: nutritionistId
       })
       updateTemplateInState(updatedMenu)
+      clearStudioMenuDraft(updatedMenu.id)
       setError(null)
     } catch (e) {
       console.error('Failed to update studio menu', e)
@@ -645,12 +718,15 @@ const MyMenus = () => {
       const data = await getAllMenuTemplatesByUser({
         createdByUserId: nutritionistId
       })
-      setTemplates(
-        Array.isArray(data?.data) ? data.data : data?.templates || []
-      )
+      const nextTemplates = Array.isArray(data?.data)
+        ? data.data
+        : data?.templates || []
+      setTemplates(nextTemplates)
+      return nextTemplates
     } catch (e) {
       console.error('Failed to load menu templates', e)
       setError(t('pages.myMenus.failedLoadTemplates'))
+      return []
     } finally {
       setLoadingTemplates(false)
     }
@@ -754,6 +830,46 @@ const MyMenus = () => {
     }
   }, [nutritionistId])
 
+  useEffect(() => {
+    try {
+      const rawDrafts = localStorage.getItem(MENU_STUDIO_DRAFTS_STORAGE_KEY)
+      if (!rawDrafts) return
+      const parsedDrafts = JSON.parse(rawDrafts)
+      if (parsedDrafts && typeof parsedDrafts === 'object') {
+        setMenuStudioDrafts(parsedDrafts)
+      }
+    } catch (error) {
+      console.error('Failed to load menu studio drafts', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      if (Object.keys(menuStudioDrafts).length === 0) {
+        localStorage.removeItem(MENU_STUDIO_DRAFTS_STORAGE_KEY)
+        return
+      }
+      localStorage.setItem(
+        MENU_STUDIO_DRAFTS_STORAGE_KEY,
+        JSON.stringify(menuStudioDrafts)
+      )
+    } catch (error) {
+      console.error('Failed to persist menu studio drafts', error)
+    }
+  }, [menuStudioDrafts])
+
+  useEffect(() => {
+    if (!viewingItem) {
+      setViewingItemServingId('')
+      setViewingItemAmount('')
+      return
+    }
+
+    const initialSelection = getInitialServingSelection(viewingItem)
+    setViewingItemServingId(initialSelection.selectedServingId)
+    setViewingItemAmount(String(initialSelection.amount || ''))
+  }, [viewingItem])
+
   const handleSearch = async e => {
     e.preventDefault()
     if (!searchText.trim()) return
@@ -777,7 +893,7 @@ const MyMenus = () => {
     }
   }
 
-  const addItemToPlan = async item => {
+  const addItemToPlan = async (item, selectionOverride = null) => {
     try {
       let enriched = normalizeMenuItemShape(item)
       // Store original serving info - try to get from serving array or default
@@ -959,6 +1075,14 @@ const MyMenus = () => {
           getServingIdentifier(initialServing) || initialServingId
         initialServingAmount =
           getDefaultAmountForSelectedServing(initialServing)
+      }
+
+      if (selectionOverride?.servingOption) {
+        initialServingId =
+          getServingIdentifier(selectionOverride.servingOption) ||
+          initialServingId
+        initialServingAmount =
+          parseOptionalNumber(selectionOverride.amount) ?? initialServingAmount
       }
 
       setDisplayValues(prev => ({
@@ -1167,17 +1291,47 @@ const MyMenus = () => {
     }
   }
 
-  const handleStudioAddItem = async (mealKey, item) => {
+  const handleStudioAddItem = async (mealKey, item, selectionOverride = null) => {
     if (!selectedMenuInContainer) return
 
     try {
       const enrichedItem = await prepareItemForMenuPlan(item)
+      if (selectionOverride?.servingOption) {
+        const normalizedServingOption = {
+          unitName:
+            selectionOverride.servingOption?.unitName ||
+            selectionOverride.servingOption?.unit ||
+            'g',
+          value: parseNumber(
+            selectionOverride.servingOption?.value ??
+              selectionOverride.servingOption?.amount ??
+              100
+          )
+        }
+        const normalizedQuantity =
+          parseOptionalNumber(selectionOverride.amount) ??
+          getDefaultAmountForSelectedServing(normalizedServingOption)
+
+        enrichedItem.changedServing = {
+          value: String(
+            getChangedServingBaseValue(
+              normalizedQuantity,
+              normalizedServingOption.unitName,
+              normalizedServingOption,
+              enrichedItem?.isLiquid
+            )
+          ),
+          quantity: normalizedQuantity,
+          unit: normalizedServingOption.unitName,
+          servingOption: normalizedServingOption
+        }
+      }
       const updatedMenu = {
         ...selectedMenuInContainer,
         [mealKey]: [...(selectedMenuInContainer?.[mealKey] || []), enrichedItem]
       }
 
-      await persistStudioMenuChanges(updatedMenu)
+      stageStudioMenuChanges(updatedMenu)
       setStudioEditingItemKey(
         getStudioItemKey(mealKey, (updatedMenu?.[mealKey] || []).length - 1)
       )
@@ -1189,27 +1343,23 @@ const MyMenus = () => {
     }
   }
 
-  const handleStudioDeleteItem = async (mealKey, index) => {
+  const handleStudioDeleteItem = (mealKey, index) => {
     if (!selectedMenuInContainer) return
     if (!window.confirm(t('pages.myMenus.confirmDeleteItem'))) return
 
-    try {
-      const updatedMenu = {
-        ...selectedMenuInContainer,
-        [mealKey]: (selectedMenuInContainer?.[mealKey] || []).filter(
-          (_, itemIndex) => itemIndex !== index
-        )
-      }
-      await persistStudioMenuChanges(updatedMenu)
-      if (studioEditingItemKey === getStudioItemKey(mealKey, index)) {
-        setStudioEditingItemKey(null)
-      }
-    } catch (e) {
-      console.error('Failed to delete studio item', e)
+    const updatedMenu = {
+      ...selectedMenuInContainer,
+      [mealKey]: (selectedMenuInContainer?.[mealKey] || []).filter(
+        (_, itemIndex) => itemIndex !== index
+      )
+    }
+    stageStudioMenuChanges(updatedMenu)
+    if (studioEditingItemKey === getStudioItemKey(mealKey, index)) {
+      setStudioEditingItemKey(null)
     }
   }
 
-  const handleStudioItemChange = async (mealKey, index, updater) => {
+  const handleStudioItemChange = (mealKey, index, updater) => {
     if (!selectedMenuInContainer) return
 
     const currentItems = selectedMenuInContainer?.[mealKey] || []
@@ -1226,7 +1376,7 @@ const MyMenus = () => {
       [mealKey]: updatedItems
     }
 
-    await persistStudioMenuChanges(updatedMenu)
+    stageStudioMenuChanges(updatedMenu)
   }
 
   const openStudioItemEditor = (
@@ -1407,7 +1557,31 @@ const MyMenus = () => {
 
       resetBuilder()
       setError(null)
-      await loadTemplates()
+      const refreshedTemplates = await loadTemplates()
+      if (!editingTemplateId) {
+        const createdMenus = refreshedTemplates
+          .filter(
+            template =>
+              splitMenuName(template?.name || '').containerName
+                .trim()
+                .toLowerCase() === trimmedContainerName.toLowerCase()
+          )
+          .sort((left, right) => {
+            const leftOrder = splitMenuName(left?.name || '').order ?? 0
+            const rightOrder = splitMenuName(right?.name || '').order ?? 0
+            return leftOrder - rightOrder
+          })
+
+        if (createdMenus.length > 0) {
+          const selectedCreatedMenu = addingToExistingContainer
+            ? createdMenus[createdMenus.length - 1]
+            : createdMenus[0]
+
+          setSelectedContainerKey(`container:${trimmedContainerName.toLowerCase()}`)
+          setSelectedContainerMenuId(selectedCreatedMenu?.id || null)
+          setSelectedContainerModalOpen(true)
+        }
+      }
       setShowBuilderModal(false)
     } catch (e) {
       console.error('Failed to save template', e)
@@ -1421,6 +1595,7 @@ const MyMenus = () => {
     if (!window.confirm(t('pages.myMenus.confirmDeleteTemplate'))) return
 
     try {
+      setDeletingTemplateId(templateId)
       await deleteMenuTemplateByIdBO({
         menuTemplateId: templateId,
         createdByUserId: nutritionistId
@@ -1429,6 +1604,8 @@ const MyMenus = () => {
     } catch (e) {
       console.error('Failed to delete template', e)
       setError(t('pages.myMenus.failedDeleteTemplate'))
+    } finally {
+      setDeletingTemplateId(null)
     }
   }
 
@@ -1496,11 +1673,59 @@ const MyMenus = () => {
     }
   }
 
+  const handleOpenCopyContainerToCountryModal = container => {
+    setSelectedContainerForCountryCopy(container)
+    setCopyContainerToCountryName(container?.containerName || '')
+    setCopyContainerToCountryCode('RO')
+    setIsCopyContainerToCountryModalOpen(true)
+  }
+
+  const handleCopyContainerToCountryConfirm = async () => {
+    if (!selectedContainerForCountryCopy || !copyContainerToCountryName.trim()) {
+      return
+    }
+
+    if (!copyContainerToCountryCode) {
+      alert(
+        t('pages.menus.copyTemplate.selectCountry') || 'Please select a country'
+      )
+      return
+    }
+
+    try {
+      setCopyingContainerToCountry(true)
+      await copyMenuContainerToCountryBO({
+        menuTemplateIds: selectedContainerForCountryCopy.menus.map(
+          menu => menu.id
+        ),
+        newContainerName: copyContainerToCountryName.trim(),
+        countryCode: copyContainerToCountryCode,
+        userId: currentUser?.uid,
+        createdByUserId: nutritionistId
+      })
+      await loadTemplates()
+      setSelectedContainerModalOpen(false)
+      setIsCopyContainerToCountryModalOpen(false)
+      setSelectedContainerForCountryCopy(null)
+      setCopyContainerToCountryName('')
+      setCopyContainerToCountryCode('RO')
+    } catch (e) {
+      console.error('Failed to copy container to country', e)
+      alert(
+        t('pages.menus.copyTemplate.error') ||
+          `Failed to copy container: ${e.message}`
+      )
+    } finally {
+      setCopyingContainerToCountry(false)
+    }
+  }
+
   const handleDeleteContainer = async container => {
     if (!container) return
     if (!window.confirm(t('pages.myMenus.confirmDeleteTemplate'))) return
 
     try {
+      setDeletingContainerKey(container.key)
       await deleteMenuContainerBO({
         menuTemplateIds: container.menus.map(menu => menu.id),
         createdByUserId: nutritionistId
@@ -1510,6 +1735,8 @@ const MyMenus = () => {
     } catch (e) {
       console.error('Failed to delete container', e)
       setError(t('pages.myMenus.failedDeleteTemplate'))
+    } finally {
+      setDeletingContainerKey(null)
     }
   }
 
@@ -2137,13 +2364,19 @@ const MyMenus = () => {
 
   const selectedMenuInContainer = useMemo(() => {
     const currentMenus = selectedContainer?.menus || []
-
-    return (
+    const selectedMenu =
       currentMenus.find(menu => menu?.id === selectedContainerMenuId) ||
       currentMenus[0] ||
       null
-    )
-  }, [selectedContainer, selectedContainerMenuId])
+
+    if (!selectedMenu?.id) return selectedMenu
+
+    return menuStudioDrafts[selectedMenu.id] || selectedMenu
+  }, [selectedContainer, selectedContainerMenuId, menuStudioDrafts])
+
+  const selectedMenuHasDraft = Boolean(
+    selectedMenuInContainer?.id && menuStudioDrafts[selectedMenuInContainer.id]
+  )
 
   const totalAssignedClients = useMemo(() => {
     const uniqueClientIds = new Set()
@@ -2245,6 +2478,11 @@ const MyMenus = () => {
           },
     [selectedMenuInContainer]
   )
+
+  const handleSaveSelectedMenuDraft = async () => {
+    if (!selectedMenuInContainer?.id || !selectedMenuHasDraft) return
+    await persistStudioMenuChanges(selectedMenuInContainer)
+  }
 
   const builderTotals = useMemo(() => {
     const perMeal = mealTypeOptions.reduce((acc, meal) => {
@@ -2729,7 +2967,8 @@ const MyMenus = () => {
               return (
                 <div
                   key={`${mealSection}-${item?.id || item?.name || index}`}
-                  className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm transition hover:border-slate-300 hover:bg-white"
+                  onClick={() => setViewingItem(item)}
+                  className="flex min-w-0 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm transition hover:border-slate-300 hover:bg-white"
                 >
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-200 text-xs font-semibold text-slate-500">
                     {item?.photoUrl ? (
@@ -2753,7 +2992,8 @@ const MyMenus = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={event => {
+                        event.stopPropagation()
                         openStudioItemEditor(
                           mealSection,
                           index,
@@ -2761,7 +3001,7 @@ const MyMenus = () => {
                           selectedServing,
                           currentAmount
                         )
-                      }
+                      }}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-blue-700 transition hover:bg-blue-100"
                       title={t('pages.myMenus.edit')}
                     >
@@ -2769,7 +3009,10 @@ const MyMenus = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleStudioDeleteItem(mealSection, index)}
+                      onClick={event => {
+                        event.stopPropagation()
+                        handleStudioDeleteItem(mealSection, index)
+                      }}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
                       title={t('pages.myMenus.delete')}
                     >
@@ -2793,12 +3036,14 @@ const MyMenus = () => {
       includeImperialServingOptions
     )
     const previewServing =
+      findServingByIdentifier(previewServingOptions, viewingItemServingId) ||
       findDefaultServing(previewServingOptions) ||
       previewServingOptions[0] ||
       null
     const previewAmount =
-      getDefaultAmountForSelectedServing(previewServing) ||
-      viewingItem?.originalServingAmount ||
+      parseOptionalNumber(viewingItemAmount) ??
+      getDefaultAmountForSelectedServing(previewServing) ??
+      viewingItem?.originalServingAmount ??
       100
     const previewUnit =
       previewServing?.unitName ||
@@ -2876,27 +3121,73 @@ const MyMenus = () => {
                   className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
                 >
                   {t('pages.myMenus.proteins')}:{' '}
-                  {Math.round(nutrients.proteinsInGrams)} g
+                  {roundMacro(nutrients.proteinsInGrams)} g
                 </div>
                 <div
                   className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
                 >
                   {t('pages.myMenus.carbs')}:{' '}
-                  {Math.round(nutrients.carbohydratesInGrams)} g
+                  {roundMacro(nutrients.carbohydratesInGrams)} g
                 </div>
                 <div
                   className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
                 >
-                  {t('pages.myMenus.fat')}: {Math.round(nutrients.fatInGrams)} g
+                  {t('pages.myMenus.fat')}: {roundMacro(nutrients.fatInGrams)} g
                 </div>
               </div>
 
-              {previewServing ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                  <span className="font-semibold text-slate-800">
-                    {t('pages.myMenus.servingOptions')}:
-                  </span>{' '}
-                  {previewAmount} {previewUnit}
+              {previewServingOptions.length > 0 ? (
+                <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_140px_auto] md:items-end">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {t('pages.myMenus.servingOptions')}
+                    </label>
+                    <select
+                      value={viewingItemServingId}
+                      onChange={event => {
+                        const nextServing =
+                          findServingByIdentifier(
+                            previewServingOptions,
+                            event.target.value
+                          ) || previewServingOptions[0]
+                        setViewingItemServingId(event.target.value)
+                        setViewingItemAmount(
+                          String(
+                            getDefaultAmountForSelectedServing(nextServing) || ''
+                          )
+                        )
+                      }}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    >
+                      {previewServingOptions.map(option => {
+                        const optionId = getServingIdentifier(option)
+                        return (
+                          <option key={optionId} value={optionId}>
+                            {option?.unitName ||
+                              option?.unit ||
+                              option?.name ||
+                              'g'}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {t('pages.myMenus.quantity')}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={viewingItemAmount}
+                      onChange={event => setViewingItemAmount(event.target.value)}
+                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                  </div>
+                  <div className="pb-3 text-sm font-medium text-slate-600">
+                    {previewUnit}
+                  </div>
                 </div>
               ) : null}
 
@@ -2966,9 +3257,15 @@ const MyMenus = () => {
                 type="button"
                 onClick={async () => {
                   if (previewAddMode === 'studio' && studioActiveMealType) {
-                    await handleStudioAddItem(studioActiveMealType, viewingItem)
+                    await handleStudioAddItem(studioActiveMealType, viewingItem, {
+                      servingOption: previewServing,
+                      amount: previewAmount
+                    })
                   } else if (previewAddMode === 'builder') {
-                    await addItemToPlan(viewingItem)
+                    await addItemToPlan(viewingItem, {
+                      servingOption: previewServing,
+                      amount: previewAmount
+                    })
                   }
                   setViewingItem(null)
                 }}
@@ -3173,6 +3470,12 @@ const MyMenus = () => {
                       <div className="space-y-6">
                         {paginatedContainers.map(container => {
                           const assignedUsers = container?.assignedUsers || []
+                          const isContainerDeleting =
+                            deletingContainerKey === container.key
+                          const isContainerActionBusy =
+                            isContainerDeleting ||
+                            renamingContainer ||
+                            copyingContainer
 
                           return (
                             <div
@@ -3204,16 +3507,18 @@ const MyMenus = () => {
                                     onClick={() =>
                                       openBuilderForContainer(container)
                                     }
+                                    disabled={isContainerActionBusy}
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-                                    title={t('pages.myMenus.addMenu')}
+                                    title={t('pages.myMenus.addDay')}
                                   >
                                     <PlusIcon className="h-4 w-4" />
-                                    {t('pages.myMenus.addMenu')}
+                                    {t('pages.myMenus.addDay')}
                                   </button>
                                   <button
                                     onClick={() =>
                                       handleOpenRenameContainerModal(container)
                                     }
+                                    disabled={isContainerActionBusy}
                                     className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 transition hover:bg-blue-50"
                                     title={
                                       t('pages.myMenus.editContainer') ||
@@ -3226,6 +3531,7 @@ const MyMenus = () => {
                                     onClick={() =>
                                       handleOpenCopyContainerModal(container)
                                     }
+                                    disabled={isContainerActionBusy}
                                     className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 transition hover:bg-violet-50"
                                     title={
                                       t('pages.myMenus.copyContainer') ||
@@ -3234,17 +3540,40 @@ const MyMenus = () => {
                                   >
                                     <DocumentDuplicateIcon className="w-4 h-4" />
                                   </button>
+                                  {isAdmin ? (
+                                    <button
+                                      onClick={() =>
+                                        handleOpenCopyContainerToCountryModal(
+                                          container
+                                        )
+                                      }
+                                      disabled={isContainerActionBusy}
+                                      className="inline-flex h-10 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 transition hover:bg-emerald-50"
+                                      title={
+                                        t('pages.myMenus.copyContainerToCountry') ||
+                                        'Copy Container to Country'
+                                      }
+                                    >
+                                      <GlobeAltIcon className="w-4 h-4" />
+                                      <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                  ) : null}
                                   <button
                                     onClick={() =>
                                       handleDeleteContainer(container)
                                     }
+                                    disabled={isContainerActionBusy}
                                     className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 transition hover:bg-red-50"
                                     title={
                                       t('pages.myMenus.deleteContainer') ||
                                       'Delete Container'
                                     }
                                   >
-                                    <TrashIcon className="w-4 h-4" />
+                                    {isContainerDeleting ? (
+                                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <TrashIcon className="w-4 h-4" />
+                                    )}
                                   </button>
                                 </div>
                               </div>
@@ -3414,33 +3743,42 @@ const MyMenus = () => {
                                               >
                                                 <PencilIcon className="w-4 h-4" />
                                               </button>
-                                              <button
-                                                onClick={event => {
-                                                  event.stopPropagation()
-                                                  handleOpenCopyModal(menu)
-                                                }}
-                                                className="inline-flex h-10 min-w-12 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 transition hover:bg-emerald-50"
-                                                title={
-                                                  t(
-                                                    'pages.menus.copyToCountry'
-                                                  ) || 'Copy to Country'
-                                                }
-                                              >
-                                                <GlobeAltIcon className="w-4 h-4" />
-                                                <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                                              </button>
+                                              {isAdmin ? (
+                                                <button
+                                                  onClick={event => {
+                                                    event.stopPropagation()
+                                                    handleOpenCopyModal(menu)
+                                                  }}
+                                                  className="inline-flex h-10 min-w-12 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 transition hover:bg-emerald-50"
+                                                  title={
+                                                    t(
+                                                      'pages.menus.copyToCountry'
+                                                    ) || 'Copy to Country'
+                                                  }
+                                                >
+                                                  <GlobeAltIcon className="w-4 h-4" />
+                                                  <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                                                </button>
+                                              ) : null}
                                               <button
                                                 onClick={event => {
                                                   event.stopPropagation()
                                                   handleDeleteTemplate(menu.id)
                                                 }}
+                                                disabled={
+                                                  deletingTemplateId === menu.id
+                                                }
                                                 className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 transition hover:bg-red-50"
                                                 title={
                                                   t('pages.myMenus.delete') ||
                                                   'Delete'
                                                 }
                                               >
-                                                <TrashIcon className="w-4 h-4" />
+                                                {deletingTemplateId === menu.id ? (
+                                                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                  <TrashIcon className="w-4 h-4" />
+                                                )}
                                               </button>
                                             </div>
                                           </td>
@@ -3702,7 +4040,9 @@ const MyMenus = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-white/70 bg-white/75 p-4 md:grid-cols-5">
+                    {editingTemplateId ? (
+                      <>
+                        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-white/70 bg-white/75 p-4 md:grid-cols-5">
                       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:col-span-1">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                           {t('pages.myMenus.totalMenu')}
@@ -3740,10 +4080,10 @@ const MyMenus = () => {
                           </div>
                         )
                       })}
-                    </div>
+                        </div>
 
-                    {/* Search for items */}
-                    <form onSubmit={handleSearch} className="space-y-3">
+                        {/* Search for items */}
+                        <form onSubmit={handleSearch} className="space-y-3">
                       <div className="flex flex-col gap-3 md:flex-row md:items-center">
                         <div className="relative flex-1">
                           <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -3774,10 +4114,10 @@ const MyMenus = () => {
                             : t('pages.myMenus.search')}
                         </button>
                       </div>
-                    </form>
+                        </form>
 
-                    {/* Meal type selector */}
-                    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/70 bg-white/70 p-2 backdrop-blur">
+                        {/* Meal type selector */}
+                        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/70 bg-white/70 p-2 backdrop-blur">
                       {mealTypeOptions.map(meal => (
                         <button
                           key={meal.id}
@@ -3791,10 +4131,10 @@ const MyMenus = () => {
                           {meal.label}
                         </button>
                       ))}
-                    </div>
+                        </div>
 
-                    {/* Search results */}
-                    {searchResults.length > 0 && (
+                        {/* Search results */}
+                        {searchResults.length > 0 && (
                       <div className="max-h-64 overflow-y-auto rounded-2xl border border-white/70 bg-white/80 backdrop-blur divide-y divide-white/70">
                         {searchResults.map((item, idx) => {
                           const isRecipeItem = detectIsRecipe(item)
@@ -3824,7 +4164,8 @@ const MyMenus = () => {
                           return (
                             <div
                               key={idx}
-                              className="flex items-center justify-between px-4 py-3 transition hover:bg-white"
+                              onClick={() => setViewingItem(item)}
+                              className="flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-white"
                             >
                               <div className="min-w-0">
                                 <div className="text-sm font-semibold text-gray-900 truncate">
@@ -3839,7 +4180,10 @@ const MyMenus = () => {
                               </div>
                               <button
                                 type="button"
-                                onClick={() => addItemToPlan(item)}
+                                onClick={event => {
+                                  event.stopPropagation()
+                                  addItemToPlan(item)
+                                }}
                                 className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:shadow-lg"
                               >
                                 <PlusIcon className="h-4 w-4" />{' '}
@@ -3849,10 +4193,10 @@ const MyMenus = () => {
                           )
                         })}
                       </div>
-                    )}
+                        )}
 
-                    {/* Current meal items */}
-                    {plans[activeMealType]?.length > 0 && (
+                        {/* Current meal items */}
+                        {plans[activeMealType]?.length > 0 && (
                       <div className="space-y-3 rounded-2xl border border-white/70 bg-white/80 p-4 backdrop-blur">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-semibold text-gray-800">
@@ -4130,7 +4474,7 @@ const MyMenus = () => {
                                   className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
                                 >
                                   {t('pages.myMenus.proteins')}:{' '}
-                                  {Math.round(
+                                  {roundMacro(
                                     Number(
                                       adjustedNutrients?.proteinsInGrams
                                     ) || 0
@@ -4141,7 +4485,7 @@ const MyMenus = () => {
                                   className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
                                 >
                                   {t('pages.myMenus.carbs')}:{' '}
-                                  {Math.round(
+                                  {roundMacro(
                                     Number(
                                       adjustedNutrients?.carbohydratesInGrams
                                     ) || 0
@@ -4152,7 +4496,7 @@ const MyMenus = () => {
                                   className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
                                 >
                                   {t('pages.myMenus.fat')}:{' '}
-                                  {Math.round(
+                                  {roundMacro(
                                     Number(adjustedNutrients?.fatInGrams) || 0
                                   )}{' '}
                                   g
@@ -4162,7 +4506,9 @@ const MyMenus = () => {
                           )
                         })}
                       </div>
-                    )}
+                        )}
+                      </>
+                    ) : null}
 
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                       <button
@@ -4179,7 +4525,7 @@ const MyMenus = () => {
                           ? t('pages.myMenus.saving')
                           : editingTemplateId
                             ? t('pages.myMenus.updateMenu')
-                            : t('pages.myMenus.createMenu')}
+                            : t('common.create')}
                       </button>
                       <button
                         onClick={() => {
@@ -4536,6 +4882,126 @@ const MyMenus = () => {
           </div>
         ) : null}
 
+        {isCopyContainerToCountryModalOpen && selectedContainerForCountryCopy ? (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className={`${glassCardClass} max-w-md w-full p-6`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {t('pages.myMenus.copyContainerToCountry') ||
+                    'Copy Container to Country'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsCopyContainerToCountryModalOpen(false)
+                    setSelectedContainerForCountryCopy(null)
+                    setCopyContainerToCountryName('')
+                    setCopyContainerToCountryCode('RO')
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('pages.myMenus.sourceContainer') || 'Source Container'}
+                  </label>
+                  <div className="p-3 bg-white/40 border border-white/30 rounded-md text-gray-900">
+                    {selectedContainerForCountryCopy.containerName}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('pages.myMenus.newContainerName') ||
+                      'New Container Name'}
+                  </label>
+                  <input
+                    type="text"
+                    value={copyContainerToCountryName}
+                    onChange={event =>
+                      setCopyContainerToCountryName(event.target.value)
+                    }
+                    className="w-full rounded-xl border border-white/30 bg-white/70 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('pages.menus.copyTemplate.selectCountry') ||
+                      'Select Country'}
+                  </label>
+                  <select
+                    value={copyContainerToCountryCode}
+                    onChange={event =>
+                      setCopyContainerToCountryCode(event.target.value)
+                    }
+                    className="w-full border border-white/30 bg-white/40 backdrop-blur-sm rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="RO">Romania (RO)</option>
+                    <option value="US">United States (US)</option>
+                    <option value="IT">Italy (IT)</option>
+                    <option value="ES">Spain (ES)</option>
+                    <option value="UK">United Kingdom (UK)</option>
+                    <option value="DE">Germany (DE)</option>
+                    <option value="FR">France (FR)</option>
+                    <option value="HU">Hungary (HU)</option>
+                  </select>
+                </div>
+
+                <div className="p-3 bg-blue-50/50 border border-blue-200/30 rounded-md text-sm text-blue-900">
+                  {t('pages.myMenus.copyingMenuHint')}
+                </div>
+              </div>
+
+              {copyingContainerToCountry ? (
+                <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-5 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+                    <ArrowPathIcon className="h-6 w-6 animate-spin text-emerald-600" />
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-slate-900">
+                    {t('pages.myMenus.copyingMenu')}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {t('pages.myMenus.copyingMenuHint')}
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setIsCopyContainerToCountryModalOpen(false)
+                    setSelectedContainerForCountryCopy(null)
+                    setCopyContainerToCountryName('')
+                    setCopyContainerToCountryCode('RO')
+                  }}
+                  className="flex-1 px-4 py-2 border border-white/30 bg-white/40 backdrop-blur-sm rounded-md text-gray-800 hover:bg-white/60"
+                  disabled={copyingContainerToCountry}
+                >
+                  {t('common.cancel') || 'Cancel'}
+                </button>
+                <button
+                  onClick={handleCopyContainerToCountryConfirm}
+                  disabled={
+                    copyingContainerToCountry ||
+                    !copyContainerToCountryName.trim() ||
+                    !copyContainerToCountryCode
+                  }
+                  className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {copyingContainerToCountry
+                    ? t('pages.menus.copyTemplate.copying') || 'Copying...'
+                    : t('pages.myMenus.copyContainerToCountry') ||
+                      'Copy Container to Country'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {isAssignContainerPreviewOpen && selectedContainer ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
             <div
@@ -4637,6 +5103,16 @@ const MyMenus = () => {
 
         {selectedContainerModalOpen && selectedContainer ? (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            {(() => {
+              const isSelectedContainerDeleting =
+                deletingContainerKey === selectedContainer.key
+              const isSelectedContainerActionBusy =
+                isSelectedContainerDeleting ||
+                renamingContainer ||
+                copyingContainer ||
+                exportingContainerPdf
+
+              return (
             <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-4">
                 <button
@@ -4659,7 +5135,7 @@ const MyMenus = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleExportContainerPdf(selectedContainer)}
-                  disabled={exportingContainerPdf}
+                  disabled={isSelectedContainerActionBusy}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 disabled:opacity-60"
                   title={t('pages.myMenus.exportPdf')}
                 >
@@ -4670,15 +5146,33 @@ const MyMenus = () => {
                 </button>
                 <button
                   onClick={() => openBuilderForContainer(selectedContainer)}
+                  disabled={isSelectedContainerActionBusy}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
                 >
                   <PlusIcon className="h-4 w-4" />
-                  {t('pages.myMenus.addMenu')}
+                  {t('pages.myMenus.addDay')}
                 </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() =>
+                      handleOpenCopyContainerToCountryModal(selectedContainer)
+                    }
+                    disabled={isSelectedContainerActionBusy}
+                    className="inline-flex h-11 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50"
+                    title={
+                      t('pages.myMenus.copyContainerToCountry') ||
+                      'Copy Container to Country'
+                    }
+                  >
+                    <GlobeAltIcon className="w-4 h-4" />
+                    <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                  </button>
+                ) : null}
                 <button
                   onClick={() =>
                     handleOpenCopyContainerModal(selectedContainer)
                   }
+                  disabled={isSelectedContainerActionBusy}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
                   title={t('pages.myMenus.copyContainer') || 'Copy Container'}
                 >
@@ -4688,6 +5182,7 @@ const MyMenus = () => {
                   onClick={() =>
                     handleOpenRenameContainerModal(selectedContainer)
                   }
+                  disabled={isSelectedContainerActionBusy}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
                   title={t('pages.myMenus.editContainer') || 'Edit Container'}
                 >
@@ -4697,20 +5192,27 @@ const MyMenus = () => {
                   onClick={async () => {
                     await handleDeleteContainer(selectedContainer)
                   }}
+                  disabled={isSelectedContainerActionBusy}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50"
                   title={
                     t('pages.myMenus.deleteContainer') || 'Delete Container'
                   }
                 >
-                  <TrashIcon className="w-4 h-4" />
+                  {isSelectedContainerDeleting ? (
+                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <TrashIcon className="w-4 h-4" />
+                  )}
                 </button>
               </div>
             </div>
+              )
+            })()}
 
             <div className="mt-5 flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-slate-50 p-2">
               {selectedContainer.menus.map(menu => (
+                <div key={menu.id} className="relative">
                 <button
-                  key={menu.id}
                   type="button"
                   draggable
                   onClick={() => setSelectedContainerMenuId(menu.id)}
@@ -4733,6 +5235,10 @@ const MyMenus = () => {
                 >
                   {menu.parsedMenuName}
                 </button>
+                {menuStudioDrafts[menu.id] ? (
+                  <span className="pointer-events-none absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_4px_rgba(251,191,36,0.18)]" />
+                ) : null}
+                </div>
               ))}
             </div>
 
@@ -4782,6 +5288,13 @@ const MyMenus = () => {
               <div className="space-y-5">
                 {selectedMenuInContainer ? (
                   <>
+                    {(() => {
+                      const isSelectedMenuDeleting =
+                        deletingTemplateId === selectedMenuInContainer.id
+                      const isSelectedMenuActionBusy =
+                        isSelectedMenuDeleting || savingStudioMenu
+
+                      return (
                     <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
                       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div>
@@ -4798,9 +5311,25 @@ const MyMenus = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
+                            onClick={handleSaveSelectedMenuDraft}
+                            disabled={!selectedMenuHasDraft || savingStudioMenu}
+                            className={`inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none ${
+                              selectedMenuHasDraft
+                                ? 'animate-pulse bg-gradient-to-r from-amber-500 to-orange-500'
+                                : 'bg-slate-200'
+                            }`}
+                            title={t('common.save')}
+                          >
+                            <DocumentTextIcon className="h-4 w-4" />
+                            {savingStudioMenu
+                              ? t('pages.myMenus.saving')
+                              : t('common.save')}
+                          </button>
+                          <button
                             onClick={() =>
                               handleOpenDuplicateModal(selectedMenuInContainer)
                             }
+                            disabled={isSelectedMenuActionBusy}
                             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
                             title={t('pages.menus.duplicate') || 'Duplicate'}
                           >
@@ -4812,36 +5341,47 @@ const MyMenus = () => {
                                 selectedMenuInContainer
                               )
                             }
+                            disabled={isSelectedMenuActionBusy}
                             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
                             title={t('pages.myMenus.edit') || 'Edit'}
                           >
                             <PencilIcon className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() =>
-                              handleOpenCopyModal(selectedMenuInContainer)
-                            }
-                            className="inline-flex h-11 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50"
-                            title={
-                              t('pages.menus.copyToCountry') ||
-                              'Copy to Country'
-                            }
-                          >
-                            <GlobeAltIcon className="w-4 h-4" />
-                            <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                          </button>
+                          {isAdmin ? (
+                            <button
+                              onClick={() =>
+                                handleOpenCopyModal(selectedMenuInContainer)
+                              }
+                              disabled={isSelectedMenuActionBusy}
+                              className="inline-flex h-11 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50"
+                              title={
+                                t('pages.menus.copyToCountry') ||
+                                'Copy to Country'
+                              }
+                            >
+                              <GlobeAltIcon className="w-4 h-4" />
+                              <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+                            </button>
+                          ) : null}
                           <button
                             onClick={() =>
                               handleDeleteTemplate(selectedMenuInContainer.id)
                             }
+                            disabled={isSelectedMenuActionBusy}
                             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50"
                             title={t('pages.myMenus.delete') || 'Delete'}
                           >
-                            <TrashIcon className="w-4 h-4" />
+                            {isSelectedMenuDeleting ? (
+                              <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <TrashIcon className="w-4 h-4" />
+                            )}
                           </button>
                         </div>
                       </div>
                     </div>
+                      )
+                    })()}
 
                     {renderContainerStudioMealSection(
                       'breakfastPlan',
