@@ -840,6 +840,67 @@ export const getUsers = async () => {
   }
 }
 
+export const getUserRewardsSummary = async () => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/getUserRewardsSummary`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({})
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Error getting user rewards summary:', error)
+    throw error
+  }
+}
+
+export const getUserPurchaseRequests = async ({ userId }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/getUserPurchaseRequests`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error getting user purchase requests:', error)
+    throw error
+  }
+}
+
+export const updateUserPurchaseStatus = async ({ purchaseId, status }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/updateUserPurchaseStatus`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ purchaseId, status })
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error updating user purchase status:', error)
+    throw error
+  }
+}
+
 export const getUserMessages = async ({ userId }) => {
   try {
     const headers = await getHeaders()
