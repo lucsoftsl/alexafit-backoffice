@@ -101,6 +101,22 @@ const splitMenuName = name => {
     hasContainer: true
   }
 }
+const buildStoredMenuName = (containerName, menuName, order = null) => {
+  const normalizedContainerName = String(containerName || '').trim()
+  const normalizedMenuName = String(menuName || '').trim()
+  const normalizedOrder = parsePositiveOrder(order)
+
+  if (!normalizedContainerName) {
+    return normalizedMenuName
+  }
+
+  const menuNameWithOrder =
+    normalizedOrder !== null
+      ? `${normalizedMenuName} ${MENU_ORDER_SEPARATOR} ${normalizedOrder}`
+      : normalizedMenuName
+
+  return `${normalizedContainerName} ${MENU_NAME_SEPARATOR} ${menuNameWithOrder}`
+}
 const getFallbackMenuOrder = (menu, fallbackIndex = 0) => {
   const parsed = splitMenuName(menu?.name || '')
   if (parsed.order !== null) {
@@ -113,6 +129,29 @@ const getFallbackMenuOrder = (menu, fallbackIndex = 0) => {
   }
 
   return fallbackIndex + 1
+}
+const getNextContainerMenuOrder = container =>
+  (container?.menus || []).reduce((maxOrder, menu, index) => {
+    const parsedOrder = splitMenuName(menu?.name || '').order
+    return Math.max(maxOrder, parsedOrder ?? index + 1)
+  }, 0) + 1
+const getNextContainerMenuLabel = (container, dayLabel = 'Day') => {
+  const normalizedDayLabel = String(dayLabel || 'Day').trim() || 'Day'
+  const existingMenuNames = new Set(
+    (container?.menus || []).map(menu =>
+      splitMenuName(menu?.name || '').menuName.trim().toLowerCase()
+    )
+  )
+
+  let nextOrder = getNextContainerMenuOrder(container)
+  let candidateName = `${normalizedDayLabel} ${nextOrder}`
+
+  while (existingMenuNames.has(candidateName.toLowerCase())) {
+    nextOrder += 1
+    candidateName = `${normalizedDayLabel} ${nextOrder}`
+  }
+
+  return candidateName
 }
 const parseNutrients = nutrients => {
   if (!nutrients) return {}
@@ -213,7 +252,11 @@ const Menus = () => {
     'relative rounded-2xl border border-white/15 bg-white/5 backdrop-blur-md'
 
   const [expanded, setExpanded] = useState(true)
+  const [menuContainerName, setMenuContainerName] = useState('')
   const [menuName, setMenuName] = useState('')
+  const [numberOfDays, setNumberOfDays] = useState('1')
+  const [addingToExistingContainer, setAddingToExistingContainer] =
+    useState(false)
   const [countryCode, setCountryCode] = useState('RO')
   const [activeMealType, setActiveMealType] = useState('breakfastPlan')
   const [plans, setPlans] = useState(defaultPlans)
@@ -255,6 +298,11 @@ const Menus = () => {
   const [usersExpanded, setUsersExpanded] = useState(true)
   const [templateCreatorFilter, setTemplateCreatorFilter] = useState('ALL')
   const [isTemplateFilterOpen, setIsTemplateFilterOpen] = useState(false)
+  const isEditingContainerMenu = Boolean(
+    editingTemplateId && menuContainerName.trim()
+  )
+  const isContainerScopedBuilder =
+    addingToExistingContainer || isEditingContainerMenu
 
   // Pagination for templates
   const [templatesPage, setTemplatesPage] = useState(1)
@@ -749,11 +797,30 @@ const Menus = () => {
         })
       }
 
+      if (!menuContainerName.trim()) {
+        setError(t('pages.myMenus.pleaseEnterMenuName'))
+        setSubmitting(false)
+        return
+      }
+
       if (editingTemplateId) {
+        const editingTemplate = templates.find(
+          template =>
+            (template?.id || template?._id || template?.menuTemplateId) ===
+            editingTemplateId
+        )
+        const editingTemplateOrder = editingTemplate
+          ? splitMenuName(editingTemplate?.name || '').order
+          : null
+
         // Update existing template
         const payload = {
           menuTemplateId: editingTemplateId,
-          name: menuName.trim(),
+          name: buildStoredMenuName(
+            menuContainerName.trim(),
+            menuName.trim(),
+            editingTemplateOrder
+          ),
           breakfastPlan: preparePlanWithChangedServing(
             plans.breakfastPlan,
             'breakfastPlan'
@@ -774,33 +841,43 @@ const Menus = () => {
         }
         await updateMenuTemplate(payload)
       } else {
-        // Create new template
-        const payload = {
-          name: menuName.trim(),
-          breakfastPlan: preparePlanWithChangedServing(
-            plans.breakfastPlan,
-            'breakfastPlan'
-          ),
-          lunchPlan: preparePlanWithChangedServing(
-            plans.lunchPlan,
-            'lunchPlan'
-          ),
-          dinnerPlan: preparePlanWithChangedServing(
-            plans.dinnerPlan,
-            'dinnerPlan'
-          ),
-          snackPlan: preparePlanWithChangedServing(
-            plans.snackPlan,
-            'snackPlan'
-          ),
-          isAssignableByUser,
-          createdByUserId: currentUser?.uid
+        const targetGroup = groupedTemplates.find(
+          group =>
+            group.containerName.toLowerCase() ===
+            menuContainerName.trim().toLowerCase()
+        )
+        const startingOrder = getNextContainerMenuOrder(targetGroup)
+        const normalizedDays = addingToExistingContainer
+          ? 1
+          : Math.max(
+              1,
+              Math.min(14, Number.parseInt(String(numberOfDays || 1), 10) || 1)
+            )
+
+        for (let index = 0; index < normalizedDays; index += 1) {
+          await addMenuTemplate({
+            name: buildStoredMenuName(
+              menuContainerName.trim(),
+              addingToExistingContainer
+                ? menuName.trim()
+                : `${t('pages.myMenus.dayLabel')} ${index + 1}`,
+              startingOrder + index
+            ),
+            breakfastPlan: [],
+            lunchPlan: [],
+            dinnerPlan: [],
+            snackPlan: [],
+            isAssignableByUser,
+            createdByUserId: currentUser?.uid
+          })
         }
-        await addMenuTemplate(payload)
       }
 
       // Reset form
+      setMenuContainerName('')
       setMenuName('')
+      setNumberOfDays('1')
+      setAddingToExistingContainer(false)
       setPlans(defaultPlans)
       setDisplayValues({})
       setEditingTemplateId(null)
@@ -828,7 +905,13 @@ const Menus = () => {
     }
 
     setEditingTemplateId(id)
-    setMenuName(template?.name || '')
+    const { containerName, menuName: parsedMenuName } = splitMenuName(
+      template?.name || ''
+    )
+    setMenuContainerName(containerName)
+    setMenuName(parsedMenuName || '')
+    setNumberOfDays('1')
+    setAddingToExistingContainer(false)
     setIsAssignableByUser(template?.isAssignableByUser || false)
 
     const loadedPlans = {
@@ -943,12 +1026,33 @@ const Menus = () => {
 
   const handleCancelEdit = () => {
     setEditingTemplateId(null)
+    setMenuContainerName('')
     setMenuName('')
+    setNumberOfDays('1')
+    setAddingToExistingContainer(false)
     setPlans(defaultPlans)
     setDisplayValues({})
     setCurrentPage(1) // Reset to first page
     setSelectedUserId(null) // Clear selected user
     setUserSearchTerm('') // Clear search term
+  }
+
+  const handleAddMenuToContainer = container => {
+    setEditingTemplateId(null)
+    setMenuContainerName(container?.containerName || '')
+    setMenuName(
+      getNextContainerMenuLabel(container, t('pages.myMenus.dayLabel'))
+    )
+    setNumberOfDays('1')
+    setAddingToExistingContainer(true)
+    setPlans(defaultPlans)
+    setDisplayValues({})
+    setError(null)
+    setExpanded(true)
+    setCurrentPage(1)
+    setSelectedUserId(null)
+    setUserSearchTerm('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleDeleteTemplate = async templateId => {
@@ -1658,18 +1762,79 @@ const Menus = () => {
           <div className="mt-6 space-y-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="md:col-span-2 space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
-                    Template Name
-                  </label>
-                  <input
-                    type="text"
-                    value={menuName}
-                    onChange={e => setMenuName(e.target.value)}
-                    className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    placeholder="e.g., High Protein - Weekday"
-                  />
-                </div>
+                {isContainerScopedBuilder ? (
+                  <div className="rounded-xl border border-white/60 bg-white/60 px-4 py-3 text-sm text-gray-700 shadow-inner">
+                    {isEditingContainerMenu
+                      ? t('pages.myMenus.editingMenuInContainer', {
+                          containerName: menuContainerName
+                        })
+                      : t('pages.myMenus.addingMenuToContainer', {
+                          containerName: menuContainerName
+                        })}
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                      {t('pages.myMenus.name')}
+                    </label>
+                    <input
+                      type="text"
+                      value={menuContainerName}
+                      onChange={e => setMenuContainerName(e.target.value)}
+                      className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder={t(
+                        'pages.myMenus.menuContainerNamePlaceholder'
+                      )}
+                    />
+                  </div>
+                )}
+
+                {isContainerScopedBuilder ? (
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                      {t('pages.myMenus.dayMenuName')}
+                    </label>
+                    <input
+                      type="text"
+                      value={menuName}
+                      onChange={e => setMenuName(e.target.value)}
+                      className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      placeholder={t('pages.myMenus.dayMenuNamePlaceholder')}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                      {t('pages.myMenus.numberOfDays')}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="14"
+                      value={numberOfDays}
+                      onChange={e => {
+                        const nextValue = e.target.value
+                        if (nextValue === '') {
+                          setNumberOfDays('')
+                          return
+                        }
+
+                        const parsedValue = Number.parseInt(nextValue, 10)
+                        if (!Number.isFinite(parsedValue)) {
+                          return
+                        }
+
+                        setNumberOfDays(
+                          String(Math.max(1, Math.min(14, parsedValue)))
+                        )
+                      }}
+                      className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                    <p className="mt-2 text-xs text-gray-500">
+                      {t('pages.myMenus.numberOfDaysHelp')}
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur-md">
                   <div className="flex-1 min-w-[160px]">
@@ -2178,7 +2343,12 @@ const Menus = () => {
                 </div>
                 <button
                   onClick={handleCreateTemplate}
-                  disabled={submitting || !menuName.trim()}
+                  disabled={
+                    submitting ||
+                    (!isContainerScopedBuilder &&
+                      !menuContainerName.trim()) ||
+                    (isContainerScopedBuilder && !menuName.trim())
+                  }
                   className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-60 sm:w-auto"
                 >
                   {submitting
@@ -2302,6 +2472,14 @@ const Menus = () => {
                             {group.menus.length} {t('pages.myMenus.menus')}
                           </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => handleAddMenuToContainer(group)}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                        >
+                          <PlusIcon className="h-4 w-4" />
+                          {t('pages.myMenus.addMenu')}
+                        </button>
                       </div>
 
                       <div className="relative overflow-visible rounded-3xl border border-slate-200/80 bg-white/85 shadow-sm">

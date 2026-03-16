@@ -141,7 +141,12 @@ const normalizeMenuItemShape = item => {
 }
 const getServingAmount = serving =>
   parseNumber(serving?.value ?? serving?.amount ?? 0)
-const getChangedServingBaseValue = (quantity, unitRaw, servingOption, isLiquid) => {
+const getChangedServingBaseValue = (
+  quantity,
+  unitRaw,
+  servingOption,
+  isLiquid
+) => {
   const normalizedQuantity = parseNumber(quantity)
   if (normalizedQuantity <= 0) return 0
 
@@ -210,7 +215,11 @@ const shouldHideLowQualitySearchItem = item =>
 const findPortionServing = servingArray =>
   (servingArray || []).find(s => {
     const name = (s?.unitName || s?.name || s?.innerName || '').toLowerCase()
-    return name.includes('portion') || name.includes('serving') || name.includes('portie')
+    return (
+      name.includes('portion') ||
+      name.includes('serving') ||
+      name.includes('portie')
+    )
   }) || null
 
 const MENU_MEAL_SECTIONS = [
@@ -220,7 +229,8 @@ const MENU_MEAL_SECTIONS = [
   { id: 'snackPlan', labelKey: 'pages.myMenus.snack' }
 ]
 
-const roundMacro = value => Math.round((parseNumber(value) + Number.EPSILON) * 10) / 10
+const roundMacro = value =>
+  Math.round((parseNumber(value) + Number.EPSILON) * 10) / 10
 const getMenuItemTotalCalories = item => {
   const calculated = calculateDisplayValues(
     item,
@@ -238,7 +248,8 @@ const parsePositiveOrder = value => {
 
 const splitMenuName = name => {
   const normalizedName = String(name || '').trim()
-  const [containerPart, ...menuParts] = normalizedName.split(MENU_NAME_SEPARATOR)
+  const [containerPart, ...menuParts] =
+    normalizedName.split(MENU_NAME_SEPARATOR)
 
   if (menuParts.length === 0) {
     return {
@@ -302,7 +313,9 @@ const getFallbackMenuOrder = (menu, fallbackIndex = 0) => {
     return parsed.order
   }
 
-  const createdAt = menu?.dateTimeCreated ? new Date(menu.dateTimeCreated).getTime() : Number.NaN
+  const createdAt = menu?.dateTimeCreated
+    ? new Date(menu.dateTimeCreated).getTime()
+    : Number.NaN
   if (Number.isFinite(createdAt)) {
     return createdAt
   }
@@ -316,7 +329,24 @@ const getNextContainerMenuOrder = container =>
     return Math.max(maxOrder, parsedOrder ?? index + 1)
   }, 0) + 1
 
-const getNextContainerMenuLabel = container => `Day ${getNextContainerMenuOrder(container)}`
+const getNextContainerMenuLabel = (container, dayLabel = 'Day') => {
+  const normalizedDayLabel = String(dayLabel || 'Day').trim() || 'Day'
+  const existingMenuNames = new Set(
+    (container?.menus || []).map(menu =>
+      splitMenuName(menu?.name || '').menuName.trim().toLowerCase()
+    )
+  )
+
+  let nextOrder = getNextContainerMenuOrder(container)
+  let candidateName = `${normalizedDayLabel} ${nextOrder}`
+
+  while (existingMenuNames.has(candidateName.toLowerCase())) {
+    nextOrder += 1
+    candidateName = `${normalizedDayLabel} ${nextOrder}`
+  }
+
+  return candidateName
+}
 
 const moveItemInArray = (items, fromIndex, toIndex) => {
   const nextItems = [...items]
@@ -366,15 +396,17 @@ const formatAssignmentDate = (dateString, language = 'en') => {
 
 const getItemDisplayUnit = item => {
   const changedServingUnit =
-    item?.changedServing?.servingOption?.unitName ||
-    item?.changedServing?.unit
+    item?.changedServing?.servingOption?.unitName || item?.changedServing?.unit
 
   if (changedServingUnit) {
     return changedServingUnit
   }
 
   if (item?.originalServingId) {
-    const serving = findServingByIdentifier(item?.servingOptions, item.originalServingId)
+    const serving = findServingByIdentifier(
+      item?.servingOptions,
+      item.originalServingId
+    )
     if (serving?.unitName || serving?.unit) {
       return serving?.unitName || serving?.unit
     }
@@ -451,8 +483,7 @@ const getTemplateNutritionSummary = template => {
         proteinsInGrams:
           acc.proteinsInGrams + parseNumber(totals?.proteinsInGrams),
         carbohydratesInGrams:
-          acc.carbohydratesInGrams +
-          parseNumber(totals?.carbohydratesInGrams),
+          acc.carbohydratesInGrams + parseNumber(totals?.carbohydratesInGrams),
         fatInGrams: acc.fatInGrams + parseNumber(totals?.fatInGrams)
       }),
       {
@@ -470,6 +501,9 @@ const MyMenus = () => {
   const [showBuilderModal, setShowBuilderModal] = useState(false)
   const [menuContainerName, setMenuContainerName] = useState('')
   const [menuName, setMenuName] = useState('')
+  const [numberOfDays, setNumberOfDays] = useState('1')
+  const [addingToExistingContainer, setAddingToExistingContainer] =
+    useState(false)
   const [countryCode, setCountryCode] = useState('RO')
   const [activeMealType, setActiveMealType] = useState('breakfastPlan')
   const [plans, setPlans] = useState(defaultPlans)
@@ -499,7 +533,8 @@ const MyMenus = () => {
   const [templateFilter, setTemplateFilter] = useState('all')
   const [isTemplateFilterOpen, setIsTemplateFilterOpen] = useState(false)
   const [selectedContainerKey, setSelectedContainerKey] = useState(null)
-  const [selectedContainerModalOpen, setSelectedContainerModalOpen] = useState(false)
+  const [selectedContainerModalOpen, setSelectedContainerModalOpen] =
+    useState(false)
   const [selectedContainerMenuId, setSelectedContainerMenuId] = useState(null)
   const [displayValues, setDisplayValues] = useState({})
   const [viewingItem, setViewingItem] = useState(null)
@@ -514,21 +549,26 @@ const MyMenus = () => {
   const [copyMenuName, setCopyMenuName] = useState('')
   const [copyingTemplate, setCopyingTemplate] = useState(false)
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false)
-  const [selectedTemplateForDuplicate, setSelectedTemplateForDuplicate] = useState(null)
+  const [selectedTemplateForDuplicate, setSelectedTemplateForDuplicate] =
+    useState(null)
   const [duplicateMenuName, setDuplicateMenuName] = useState('')
   const [duplicatingTemplate, setDuplicatingTemplate] = useState(false)
-  const [isRenameContainerModalOpen, setIsRenameContainerModalOpen] = useState(false)
-  const [selectedContainerForRename, setSelectedContainerForRename] = useState(null)
+  const [isRenameContainerModalOpen, setIsRenameContainerModalOpen] =
+    useState(false)
+  const [selectedContainerForRename, setSelectedContainerForRename] =
+    useState(null)
   const [renameContainerName, setRenameContainerName] = useState('')
   const [renamingContainer, setRenamingContainer] = useState(false)
-  const [isCopyContainerModalOpen, setIsCopyContainerModalOpen] = useState(false)
+  const [isCopyContainerModalOpen, setIsCopyContainerModalOpen] =
+    useState(false)
   const [selectedContainerForCopy, setSelectedContainerForCopy] = useState(null)
   const [exportingContainerPdf, setExportingContainerPdf] = useState(false)
   const [copyContainerName, setCopyContainerName] = useState('')
   const [copyingContainer, setCopyingContainer] = useState(false)
   const [draggedContainerMenuId, setDraggedContainerMenuId] = useState(null)
   const [reorderingContainer, setReorderingContainer] = useState(false)
-  const [isAssignContainerPreviewOpen, setIsAssignContainerPreviewOpen] = useState(false)
+  const [isAssignContainerPreviewOpen, setIsAssignContainerPreviewOpen] =
+    useState(false)
   const [studioActiveMealType, setStudioActiveMealType] = useState(null)
   const [studioSearchText, setStudioSearchText] = useState('')
   const [studioSearchResults, setStudioSearchResults] = useState([])
@@ -540,6 +580,11 @@ const MyMenus = () => {
   const userData = useSelector(selectUserData)
   const isAdmin = useSelector(selectIsAdmin)
   const { currentUser } = useAuth()
+  const isEditingContainerMenu = Boolean(
+    editingTemplateId && menuContainerName.trim()
+  )
+  const isContainerScopedBuilder =
+    addingToExistingContainer || isEditingContainerMenu
   const isImperial = isImperialFromUserData(userData?.userData || userData)
   // Template builder should always expose both metric and imperial options.
   const includeImperialServingOptions = true
@@ -586,9 +631,7 @@ const MyMenus = () => {
   const updateSelectedMenuInContainer = updater => {
     if (!selectedMenuInContainer) return null
     const updatedMenu =
-      typeof updater === 'function'
-        ? updater(selectedMenuInContainer)
-        : updater
+      typeof updater === 'function' ? updater(selectedMenuInContainer) : updater
 
     if (!updatedMenu) return null
 
@@ -679,6 +722,8 @@ const MyMenus = () => {
   const resetBuilder = () => {
     setMenuContainerName('')
     setMenuName('')
+    setNumberOfDays('1')
+    setAddingToExistingContainer(false)
     setPlans(defaultPlans)
     setDisplayValues({})
     setEditingTemplateId(null)
@@ -687,13 +732,18 @@ const MyMenus = () => {
 
   const openBuilderForNew = () => {
     resetBuilder()
+    setAddingToExistingContainer(false)
     setShowBuilderModal(true)
   }
 
   const openBuilderForContainer = container => {
     resetBuilder()
     setMenuContainerName(container?.containerName || '')
-    setMenuName(getNextContainerMenuLabel(container))
+    setMenuName(
+      getNextContainerMenuLabel(container, t('pages.myMenus.dayLabel'))
+    )
+    setNumberOfDays('1')
+    setAddingToExistingContainer(true)
     setShowBuilderModal(true)
   }
 
@@ -734,7 +784,10 @@ const MyMenus = () => {
       let originalServingAmount = 100 // Default to 100g if no serving info
       let originalServingId = null
 
-      if (Array.isArray(enriched?.servingOptions) && enriched.servingOptions.length > 0) {
+      if (
+        Array.isArray(enriched?.servingOptions) &&
+        enriched.servingOptions.length > 0
+      ) {
         // Use findDefaultServing to get the default serving for per-100 calculations
         const defaultServing = findDefaultServing(enriched.servingOptions)
         originalServingAmount = getServingAmount(defaultServing) || 100
@@ -751,7 +804,8 @@ const MyMenus = () => {
             const normalizedDetailed = normalizeMenuItemShape(detailed)
             if (detectIsRecipe(item)) {
               // Store original values for scaling
-              const originalServings = normalizedDetailed?.numberOfRecipeServings || 1
+              const originalServings =
+                normalizedDetailed?.numberOfRecipeServings || 1
               // Get original serving info from detailed item if available
               // For recipes, caloriesPer100 is scaled by selected serving
               // We need to find the total weight for all servings
@@ -760,7 +814,9 @@ const MyMenus = () => {
                 Array.isArray(normalizedDetailed.servingOptions) &&
                 normalizedDetailed.servingOptions.length > 0
               ) {
-                const portionServing = findPortionServing(normalizedDetailed.servingOptions)
+                const portionServing = findPortionServing(
+                  normalizedDetailed.servingOptions
+                )
                 if (portionServing) {
                   // Portion amount is per 1 serving, so multiply by numberOfRecipeServings for total
                   originalServingAmount =
@@ -775,13 +831,18 @@ const MyMenus = () => {
                   if (totalWeight) {
                     originalServingAmount = totalWeight
                     // Use default serving for ID
-                    const defaultServing = findDefaultServing(normalizedDetailed.servingOptions)
+                    const defaultServing = findDefaultServing(
+                      normalizedDetailed.servingOptions
+                    )
                     originalServingId = getServingIdentifier(defaultServing)
                   } else {
                     // Last resort: use default serving and multiply by numberOfRecipeServings
-                    const defaultServing = findDefaultServing(normalizedDetailed.servingOptions)
+                    const defaultServing = findDefaultServing(
+                      normalizedDetailed.servingOptions
+                    )
                     originalServingAmount =
-                      (getServingAmount(defaultServing) || 100) * originalServings
+                      (getServingAmount(defaultServing) || 100) *
+                      originalServings
                     originalServingId = getServingIdentifier(defaultServing)
                   }
                 }
@@ -831,7 +892,9 @@ const MyMenus = () => {
                 normalizedDetailed.servingOptions.length > 0
               ) {
                 // Use findDefaultServing to get the default serving for per-100 calculations
-                const defaultServing = findDefaultServing(normalizedDetailed.servingOptions)
+                const defaultServing = findDefaultServing(
+                  normalizedDetailed.servingOptions
+                )
                 originalServingAmount = getServingAmount(defaultServing) || 100
                 originalServingId = getServingIdentifier(defaultServing)
               }
@@ -892,8 +955,10 @@ const MyMenus = () => {
             enriched.servingOptions[0]
         }
 
-        initialServingId = getServingIdentifier(initialServing) || initialServingId
-        initialServingAmount = getDefaultAmountForSelectedServing(initialServing)
+        initialServingId =
+          getServingIdentifier(initialServing) || initialServingId
+        initialServingAmount =
+          getDefaultAmountForSelectedServing(initialServing)
       }
 
       setDisplayValues(prev => ({
@@ -921,7 +986,10 @@ const MyMenus = () => {
     let originalServingAmount = 100
     let originalServingId = null
 
-    if (Array.isArray(enriched?.servingOptions) && enriched.servingOptions.length > 0) {
+    if (
+      Array.isArray(enriched?.servingOptions) &&
+      enriched.servingOptions.length > 0
+    ) {
       const defaultServing = findDefaultServing(enriched.servingOptions)
       originalServingAmount = getServingAmount(defaultServing) || 100
       originalServingId = getServingIdentifier(defaultServing)
@@ -937,13 +1005,16 @@ const MyMenus = () => {
           const normalizedDetailed = normalizeMenuItemShape(detailed)
 
           if (detectIsRecipe(item)) {
-            const originalServings = normalizedDetailed?.numberOfRecipeServings || 1
+            const originalServings =
+              normalizedDetailed?.numberOfRecipeServings || 1
             if (
               normalizedDetailed?.servingOptions &&
               Array.isArray(normalizedDetailed.servingOptions) &&
               normalizedDetailed.servingOptions.length > 0
             ) {
-              const portionServing = findPortionServing(normalizedDetailed.servingOptions)
+              const portionServing = findPortionServing(
+                normalizedDetailed.servingOptions
+              )
               if (portionServing) {
                 originalServingAmount =
                   getServingAmount(portionServing) * originalServings
@@ -1011,7 +1082,9 @@ const MyMenus = () => {
               Array.isArray(normalizedDetailed.servingOptions) &&
               normalizedDetailed.servingOptions.length > 0
             ) {
-              const defaultServing = findDefaultServing(normalizedDetailed.servingOptions)
+              const defaultServing = findDefaultServing(
+                normalizedDetailed.servingOptions
+              )
               originalServingAmount = getServingAmount(defaultServing) || 100
               originalServingId = getServingIdentifier(defaultServing)
             }
@@ -1156,7 +1229,13 @@ const MyMenus = () => {
     await persistStudioMenuChanges(updatedMenu)
   }
 
-  const openStudioItemEditor = (mealKey, index, item, selectedServing, currentAmount) => {
+  const openStudioItemEditor = (
+    mealKey,
+    index,
+    item,
+    selectedServing,
+    currentAmount
+  ) => {
     const itemKey = getStudioItemKey(mealKey, index)
     setStudioEditingItemKey(itemKey)
     setStudioDraftValues(prev => ({
@@ -1182,7 +1261,12 @@ const MyMenus = () => {
 
   const handleSaveTemplate = async e => {
     e.preventDefault()
-    if (!menuName.trim()) {
+    if (!menuContainerName.trim()) {
+      setError(t('pages.myMenus.pleaseEnterMenuName'))
+      return
+    }
+
+    if (editingTemplateId && !menuName.trim()) {
       setError(t('pages.myMenus.pleaseEnterMenuName'))
       return
     }
@@ -1255,44 +1339,70 @@ const MyMenus = () => {
       const editingTemplateOrder = editingTemplate
         ? splitMenuName(editingTemplate?.name || '').order
         : null
-      const newTemplateOrder =
-        menuContainerName.trim() && !editingTemplateId
-          ? getNextContainerMenuOrder(
-              groupedTemplates.find(
-                group =>
-                  group.containerName.toLowerCase() ===
-                  menuContainerName.trim().toLowerCase()
-              )
-            )
-          : null
-
-      const templateData = {
-        name: buildStoredMenuName(
-          menuContainerName,
-          menuName,
-          editingTemplateOrder ?? newTemplateOrder
-        ),
-        breakfastPlan: preparePlanWithChangedServing(
-          plans.breakfastPlan,
-          'breakfastPlan'
-        ),
-        lunchPlan: preparePlanWithChangedServing(plans.lunchPlan, 'lunchPlan'),
-        dinnerPlan: preparePlanWithChangedServing(
-          plans.dinnerPlan,
-          'dinnerPlan'
-        ),
-        snackPlan: preparePlanWithChangedServing(plans.snackPlan, 'snackPlan'),
-        isAssignableByUser: isAdmin ? isAssignableByUser : false,
-        createdByUserId: nutritionistId
-      }
+      const trimmedContainerName = menuContainerName.trim()
 
       if (editingTemplateId) {
+        const templateData = {
+          name: buildStoredMenuName(
+            trimmedContainerName,
+            menuName,
+            editingTemplateOrder
+          ),
+          breakfastPlan: preparePlanWithChangedServing(
+            plans.breakfastPlan,
+            'breakfastPlan'
+          ),
+          lunchPlan: preparePlanWithChangedServing(
+            plans.lunchPlan,
+            'lunchPlan'
+          ),
+          dinnerPlan: preparePlanWithChangedServing(
+            plans.dinnerPlan,
+            'dinnerPlan'
+          ),
+          snackPlan: preparePlanWithChangedServing(
+            plans.snackPlan,
+            'snackPlan'
+          ),
+          isAssignableByUser: isAdmin ? isAssignableByUser : false,
+          createdByUserId: nutritionistId
+        }
+
         await updateMenuTemplateBO({
           ...templateData,
           menuTemplateId: editingTemplateId
         })
       } else {
-        await addMenuTemplateBO(templateData)
+        const targetGroup = groupedTemplates.find(
+          group =>
+            group.containerName.toLowerCase() ===
+            trimmedContainerName.toLowerCase()
+        )
+        const startingOrder = getNextContainerMenuOrder(targetGroup)
+        const normalizedDays = addingToExistingContainer
+          ? 1
+          : Math.max(
+              1,
+              Math.min(14, Number.parseInt(String(numberOfDays || 1), 10) || 1)
+            )
+
+        for (let index = 0; index < normalizedDays; index += 1) {
+          await addMenuTemplateBO({
+            name: buildStoredMenuName(
+              trimmedContainerName,
+              addingToExistingContainer
+                ? menuName.trim()
+                : `${t('pages.myMenus.dayLabel')} ${index + 1}`,
+              startingOrder + index
+            ),
+            breakfastPlan: [],
+            lunchPlan: [],
+            dinnerPlan: [],
+            snackPlan: [],
+            isAssignableByUser: isAdmin ? isAssignableByUser : false,
+            createdByUserId: nutritionistId
+          })
+        }
       }
 
       resetBuilder()
@@ -1454,7 +1564,10 @@ const MyMenus = () => {
       const originalName = menuName || template?.name || 'Untitled'
       const targetContainer = groupedTemplates.find(
         group =>
-          group.containerName.toLowerCase() === String(containerName || '').trim().toLowerCase()
+          group.containerName.toLowerCase() ===
+          String(containerName || '')
+            .trim()
+            .toLowerCase()
       )
       const newName = buildStoredMenuName(
         containerName,
@@ -1493,7 +1606,10 @@ const MyMenus = () => {
 
     try {
       setDuplicatingTemplate(true)
-      await handleDuplicateTemplate(selectedTemplateForDuplicate, duplicateMenuName)
+      await handleDuplicateTemplate(
+        selectedTemplateForDuplicate,
+        duplicateMenuName
+      )
       setIsDuplicateModalOpen(false)
       setSelectedTemplateForDuplicate(null)
       setDuplicateMenuName('')
@@ -1658,7 +1774,12 @@ const MyMenus = () => {
     sourceMenuId,
     targetMenuId
   ) => {
-    if (!container || !sourceMenuId || !targetMenuId || sourceMenuId === targetMenuId) {
+    if (
+      !container ||
+      !sourceMenuId ||
+      !targetMenuId ||
+      sourceMenuId === targetMenuId
+    ) {
       return
     }
 
@@ -1666,11 +1787,19 @@ const MyMenus = () => {
     const sourceIndex = currentMenus.findIndex(menu => menu.id === sourceMenuId)
     const targetIndex = currentMenus.findIndex(menu => menu.id === targetMenuId)
 
-    if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) {
+    if (
+      sourceIndex === -1 ||
+      targetIndex === -1 ||
+      sourceIndex === targetIndex
+    ) {
       return
     }
 
-    const reorderedMenus = moveItemInArray(currentMenus, sourceIndex, targetIndex)
+    const reorderedMenus = moveItemInArray(
+      currentMenus,
+      sourceIndex,
+      targetIndex
+    )
 
     try {
       setReorderingContainer(true)
@@ -1722,6 +1851,8 @@ const MyMenus = () => {
     setEditingTemplateId(id)
     setMenuContainerName(containerName)
     setMenuName(parsedMenuName || '')
+    setNumberOfDays('1')
+    setAddingToExistingContainer(false)
     setIsAssignableByUser(!!template?.isAssignableByUser && isAdmin)
 
     const loadedPlans = {
@@ -1742,7 +1873,9 @@ const MyMenus = () => {
         if (item?.changedServing) {
           let servingIdentifier = null
           if (item.changedServing.servingOption) {
-            servingIdentifier = getServingIdentifier(item.changedServing.servingOption)
+            servingIdentifier = getServingIdentifier(
+              item.changedServing.servingOption
+            )
           }
 
           initialDisplayValues[itemKey] = {
@@ -1788,7 +1921,8 @@ const MyMenus = () => {
                   const numberOfRecipeServings =
                     item?.numberOfRecipeServings || item?.originalServings || 1
                   originalServingAmount =
-                    (getServingAmount(defaultServing) || 100) * numberOfRecipeServings
+                    (getServingAmount(defaultServing) || 100) *
+                    numberOfRecipeServings
                   originalServingId = getServingIdentifier(defaultServing)
                 }
               }
@@ -1860,7 +1994,9 @@ const MyMenus = () => {
     const groupsMap = new Map()
 
     filteredTemplates.forEach(template => {
-      const { containerName, menuName, order } = splitMenuName(template?.name || '')
+      const { containerName, menuName, order } = splitMenuName(
+        template?.name || ''
+      )
       const hasContainer = Boolean(containerName)
       const groupKey = hasContainer
         ? `container:${containerName.toLowerCase()}`
@@ -1895,7 +2031,9 @@ const MyMenus = () => {
           return leftOrder - rightOrder
         }
 
-        return (left?.parsedMenuName || '').localeCompare(right?.parsedMenuName || '')
+        return (left?.parsedMenuName || '').localeCompare(
+          right?.parsedMenuName || ''
+        )
       })
 
       const assignedUsersMap = new Map()
@@ -1991,7 +2129,9 @@ const MyMenus = () => {
   }, [groupedTemplates, currentPage, itemsPerPage])
 
   const selectedContainer = useMemo(
-    () => groupedTemplates.find(group => group.key === selectedContainerKey) || null,
+    () =>
+      groupedTemplates.find(group => group.key === selectedContainerKey) ||
+      null,
     [groupedTemplates, selectedContainerKey]
   )
 
@@ -2271,7 +2411,9 @@ const MyMenus = () => {
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-900">
-                          {item?.name || item?.title || t('pages.myMenus.unnamedItem')}
+                          {item?.name ||
+                            item?.title ||
+                            t('pages.myMenus.unnamedItem')}
                         </p>
                         <p className="text-xs text-slate-500">
                           {isRecipeItem
@@ -2355,18 +2497,20 @@ const MyMenus = () => {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                          <p className="truncate text-xl font-semibold text-slate-900">
+                        <p className="truncate text-xl font-semibold text-slate-900">
                           {item?.name || t('pages.myMenus.unnamedItem')}
-                          </p>
-                          <p className="text-sm text-slate-500">
+                        </p>
+                        <p className="text-sm text-slate-500">
                           {detectIsRecipe(item)
                             ? t('pages.myMenus.recipeType')
                             : t('pages.myMenus.foodType')}
-                          </p>
+                        </p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleStudioDeleteItem(mealSection, index)}
+                        onClick={() =>
+                          handleStudioDeleteItem(mealSection, index)
+                        }
                         className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
                         title={t('pages.myMenus.delete')}
                       >
@@ -2404,7 +2548,10 @@ const MyMenus = () => {
                             {servingOptions.map((serving, servingIndex) => {
                               const servingId = getServingIdentifier(serving)
                               return (
-                                <option key={servingId || servingIndex} value={servingId || ''}>
+                                <option
+                                  key={servingId || servingIndex}
+                                  value={servingId || ''}
+                                >
                                   {serving?.name ||
                                     serving?.innerName ||
                                     serving?.unitName ||
@@ -2425,7 +2572,8 @@ const MyMenus = () => {
                                   ...prev,
                                   [itemKey]: {
                                     selectedServingId: currentServingId || '',
-                                    amount: inputAmount === '' ? '' : inputAmount
+                                    amount:
+                                      inputAmount === '' ? '' : inputAmount
                                   }
                                 }))
                               }}
@@ -2447,22 +2595,47 @@ const MyMenus = () => {
                         <span className="font-semibold">
                           {t('pages.myMenus.originalServing')}:
                         </span>{' '}
-                        {item?.numberOfRecipeServings || item?.originalServings || 1}
+                        {item?.numberOfRecipeServings ||
+                          item?.originalServings ||
+                          1}
                       </div>
                     ) : null}
 
                     <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                      <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                        {t('pages.myMenus.calories')}: {Math.round(parseNumber(calculated?.calories))}
+                      <div
+                        className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                      >
+                        {t('pages.myMenus.calories')}:{' '}
+                        {Math.round(parseNumber(calculated?.calories))}
                       </div>
-                      <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                        {t('pages.myMenus.proteins')}: {Math.round(parseNumber(calculated?.nutrients?.proteinsInGrams))} g
+                      <div
+                        className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                      >
+                        {t('pages.myMenus.proteins')}:{' '}
+                        {Math.round(
+                          parseNumber(calculated?.nutrients?.proteinsInGrams)
+                        )}{' '}
+                        g
                       </div>
-                      <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                        {t('pages.myMenus.carbs')}: {Math.round(parseNumber(calculated?.nutrients?.carbohydratesInGrams))} g
+                      <div
+                        className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                      >
+                        {t('pages.myMenus.carbs')}:{' '}
+                        {Math.round(
+                          parseNumber(
+                            calculated?.nutrients?.carbohydratesInGrams
+                          )
+                        )}{' '}
+                        g
                       </div>
-                      <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                        {t('pages.myMenus.fat')}: {Math.round(parseNumber(calculated?.nutrients?.fatInGrams))} g
+                      <div
+                        className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                      >
+                        {t('pages.myMenus.fat')}:{' '}
+                        {Math.round(
+                          parseNumber(calculated?.nutrients?.fatInGrams)
+                        )}{' '}
+                        g
                       </div>
                     </div>
                     <div className="mt-4 flex justify-end gap-3">
@@ -2470,61 +2643,71 @@ const MyMenus = () => {
                         type="button"
                         onClick={async () => {
                           const servingForSave =
-                            findServingByIdentifier(servingOptions, currentServingId) ||
-                            currentServingForEdit
+                            findServingByIdentifier(
+                              servingOptions,
+                              currentServingId
+                            ) || currentServingForEdit
                           const parsedAmount =
-                            currentAmount === '' ? '' : parseNumber(currentAmount)
-                          await handleStudioItemChange(mealSection, index, currentItem => ({
-                            ...currentItem,
-                            changedServing: {
-                              value:
-                                parsedAmount === ''
-                                  ? ''
-                                  : String(
-                                      getChangedServingBaseValue(
-                                        parsedAmount,
-                                        currentItem?.changedServing?.unit ||
-                                          servingForSave?.unitName,
-                                        currentItem?.changedServing?.servingOption ||
-                                          (servingForSave
-                                            ? {
-                                                unitName:
-                                                  servingForSave?.unitName ||
-                                                  servingForSave?.unit ||
-                                                  'g',
-                                                value: parseNumber(
-                                                  servingForSave?.value ??
-                                                    servingForSave?.amount ??
-                                                    100
-                                                )
-                                              }
-                                            : null),
-                                        currentItem?.isLiquid
-                                      )
-                                    ),
-                              quantity: parsedAmount === '' ? '' : parsedAmount,
-                              unit:
-                                currentItem?.changedServing?.unit ||
-                                servingForSave?.unitName ||
-                                servingForSave?.unit ||
-                                getItemDisplayUnit(currentItem),
-                              servingOption:
-                                currentItem?.changedServing?.servingOption ||
-                                (servingForSave
-                                  ? {
-                                      unitName:
-                                        servingForSave?.unitName ||
-                                        servingForSave?.unit ||
-                                        'g',
-                                      value: parseNumber(
-                                        servingForSave?.value ??
-                                          servingForSave?.amount ??
-                                          100
-                                      )
-                                    }
-                                  : null)
-                            }
-                          }))
+                            currentAmount === ''
+                              ? ''
+                              : parseNumber(currentAmount)
+                          await handleStudioItemChange(
+                            mealSection,
+                            index,
+                            currentItem => ({
+                              ...currentItem,
+                              changedServing: {
+                                value:
+                                  parsedAmount === ''
+                                    ? ''
+                                    : String(
+                                        getChangedServingBaseValue(
+                                          parsedAmount,
+                                          currentItem?.changedServing?.unit ||
+                                            servingForSave?.unitName,
+                                          currentItem?.changedServing
+                                            ?.servingOption ||
+                                            (servingForSave
+                                              ? {
+                                                  unitName:
+                                                    servingForSave?.unitName ||
+                                                    servingForSave?.unit ||
+                                                    'g',
+                                                  value: parseNumber(
+                                                    servingForSave?.value ??
+                                                      servingForSave?.amount ??
+                                                      100
+                                                  )
+                                                }
+                                              : null),
+                                          currentItem?.isLiquid
+                                        )
+                                      ),
+                                quantity:
+                                  parsedAmount === '' ? '' : parsedAmount,
+                                unit:
+                                  currentItem?.changedServing?.unit ||
+                                  servingForSave?.unitName ||
+                                  servingForSave?.unit ||
+                                  getItemDisplayUnit(currentItem),
+                                servingOption:
+                                  currentItem?.changedServing?.servingOption ||
+                                  (servingForSave
+                                    ? {
+                                        unitName:
+                                          servingForSave?.unitName ||
+                                          servingForSave?.unit ||
+                                          'g',
+                                        value: parseNumber(
+                                          servingForSave?.value ??
+                                            servingForSave?.amount ??
+                                            100
+                                        )
+                                      }
+                                    : null)
+                              }
+                            })
+                          )
                           closeStudioItemEditor(itemKey)
                         }}
                         className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:shadow-lg"
@@ -2610,7 +2793,9 @@ const MyMenus = () => {
       includeImperialServingOptions
     )
     const previewServing =
-      findDefaultServing(previewServingOptions) || previewServingOptions[0] || null
+      findDefaultServing(previewServingOptions) ||
+      previewServingOptions[0] ||
+      null
     const previewAmount =
       getDefaultAmountForSelectedServing(previewServing) ||
       viewingItem?.originalServingAmount ||
@@ -2635,8 +2820,8 @@ const MyMenus = () => {
     const previewAddMode = studioActiveMealType
       ? 'studio'
       : activeMealType
-      ? 'builder'
-      : null
+        ? 'builder'
+        : null
     const instructions = Array.isArray(viewingItem?.recipeSteps?.instructions)
       ? viewingItem.recipeSteps.instructions
       : []
@@ -2681,16 +2866,27 @@ const MyMenus = () => {
 
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                  {t('pages.myMenus.calories')}: {Math.round(parseNumber(previewValues?.calories))}
+                <div
+                  className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                >
+                  {t('pages.myMenus.calories')}:{' '}
+                  {Math.round(parseNumber(previewValues?.calories))}
                 </div>
-                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                  {t('pages.myMenus.proteins')}: {Math.round(nutrients.proteinsInGrams)} g
+                <div
+                  className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                >
+                  {t('pages.myMenus.proteins')}:{' '}
+                  {Math.round(nutrients.proteinsInGrams)} g
                 </div>
-                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
-                  {t('pages.myMenus.carbs')}: {Math.round(nutrients.carbohydratesInGrams)} g
+                <div
+                  className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                >
+                  {t('pages.myMenus.carbs')}:{' '}
+                  {Math.round(nutrients.carbohydratesInGrams)} g
                 </div>
-                <div className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}>
+                <div
+                  className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+                >
                   {t('pages.myMenus.fat')}: {Math.round(nutrients.fatInGrams)} g
                 </div>
               </div>
@@ -2717,7 +2913,8 @@ const MyMenus = () => {
                             className="rounded-xl bg-white px-3 py-2 text-sm text-slate-700"
                           >
                             <span className="font-medium text-slate-900">
-                              {ingredient?.name || t('pages.myMenus.unnamedItem')}
+                              {ingredient?.name ||
+                                t('pages.myMenus.unnamedItem')}
                             </span>
                             {ingredient?.quantity ? (
                               <span className="ml-2 text-slate-500">
@@ -2987,24 +3184,26 @@ const MyMenus = () => {
                                   type="button"
                                   onClick={() => {
                                     setSelectedContainerKey(container.key)
-                                    setSelectedContainerMenuId(container?.menus?.[0]?.id || null)
+                                    setSelectedContainerMenuId(
+                                      container?.menus?.[0]?.id || null
+                                    )
                                     setSelectedContainerModalOpen(true)
                                   }}
                                   className="flex-1 rounded-2xl px-2 py-2 text-left transition hover:bg-slate-50 cursor-pointer"
                                 >
-                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                    {t('pages.myMenus.menuContainerName')}
-                                  </p>
                                   <h3 className="mt-2 text-2xl font-semibold text-slate-900">
                                     {container.containerName}
                                   </h3>
                                   <p className="mt-1 text-sm text-slate-500">
-                                    {container.menus.length} {t('pages.myMenus.menus')}
+                                    {container.menus.length}{' '}
+                                    {t('pages.myMenus.menus')}
                                   </p>
                                 </button>
                                 <div className="flex items-center gap-2">
                                   <button
-                                    onClick={() => openBuilderForContainer(container)}
+                                    onClick={() =>
+                                      openBuilderForContainer(container)
+                                    }
                                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
                                     title={t('pages.myMenus.addMenu')}
                                   >
@@ -3012,23 +3211,38 @@ const MyMenus = () => {
                                     {t('pages.myMenus.addMenu')}
                                   </button>
                                   <button
-                                    onClick={() => handleOpenRenameContainerModal(container)}
+                                    onClick={() =>
+                                      handleOpenRenameContainerModal(container)
+                                    }
                                     className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 transition hover:bg-blue-50"
-                                    title={t('pages.myMenus.editContainer') || 'Edit Container'}
+                                    title={
+                                      t('pages.myMenus.editContainer') ||
+                                      'Edit Container'
+                                    }
                                   >
                                     <PencilIcon className="w-4 h-4" />
                                   </button>
                                   <button
-                                    onClick={() => handleOpenCopyContainerModal(container)}
+                                    onClick={() =>
+                                      handleOpenCopyContainerModal(container)
+                                    }
                                     className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 transition hover:bg-violet-50"
-                                    title={t('pages.myMenus.copyContainer') || 'Copy Container'}
+                                    title={
+                                      t('pages.myMenus.copyContainer') ||
+                                      'Copy Container'
+                                    }
                                   >
                                     <DocumentDuplicateIcon className="w-4 h-4" />
                                   </button>
                                   <button
-                                    onClick={() => handleDeleteContainer(container)}
+                                    onClick={() =>
+                                      handleDeleteContainer(container)
+                                    }
                                     className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 transition hover:bg-red-50"
-                                    title={t('pages.myMenus.deleteContainer') || 'Delete Container'}
+                                    title={
+                                      t('pages.myMenus.deleteContainer') ||
+                                      'Delete Container'
+                                    }
                                   >
                                     <TrashIcon className="w-4 h-4" />
                                   </button>
@@ -3038,27 +3252,42 @@ const MyMenus = () => {
                                 <table className="min-w-full table-fixed">
                                   <thead className="border-b border-slate-200 bg-slate-50/90 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                                     <tr>
-                                      <th className="px-5 py-4 text-center w-[22%]">{t('pages.myMenus.menuName')}</th>
-                                      <th className="px-5 py-4 text-center w-[100px]">{t('pages.myMenus.id')}</th>
+                                      <th className="px-5 py-4 text-center w-[22%]">
+                                        {t('pages.myMenus.menuName')}
+                                      </th>
+                                      <th className="px-5 py-4 text-center w-[100px]">
+                                        {t('pages.myMenus.id')}
+                                      </th>
                                       {MENU_MEAL_SECTIONS.map(section => (
-                                        <th key={section.id} className="px-4 py-4 text-center w-[8%]">
+                                        <th
+                                          key={section.id}
+                                          className="px-4 py-4 text-center w-[8%]"
+                                        >
                                           {t(section.labelKey)}
                                         </th>
                                       ))}
-                                      <th className="px-5 py-4 text-center w-[17%]">{t('pages.myMenus.assignedUsers')}</th>
-                                      <th className="px-5 py-4 text-center w-[15%]">{t('pages.myMenus.actions')}</th>
+                                      <th className="px-5 py-4 text-center w-[17%]">
+                                        {t('pages.myMenus.assignedUsers')}
+                                      </th>
+                                      <th className="px-5 py-4 text-center w-[15%]">
+                                        {t('pages.myMenus.actions')}
+                                      </th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {container.menus.map(menu => {
-                                      const summary = getTemplateNutritionSummary(menu)
-                                      const menuAssignedUsers = menu?.assignedUsers || []
+                                      const summary =
+                                        getTemplateNutritionSummary(menu)
+                                      const menuAssignedUsers =
+                                        menu?.assignedUsers || []
 
                                       return (
                                         <tr
                                           key={menu.id}
                                           onClick={() => {
-                                            setSelectedContainerKey(container.key)
+                                            setSelectedContainerKey(
+                                              container.key
+                                            )
                                             setSelectedContainerMenuId(menu.id)
                                             setSelectedContainerModalOpen(true)
                                           }}
@@ -3077,14 +3306,22 @@ const MyMenus = () => {
                                             </span>
                                           </td>
                                           {MENU_MEAL_SECTIONS.map(section => {
-                                            const mealTotals = summary.perMeal[section.id]
+                                            const mealTotals =
+                                              summary.perMeal[section.id]
                                             return (
-                                              <td key={section.id} className="px-4 py-5 text-center">
+                                              <td
+                                                key={section.id}
+                                                className="px-4 py-5 text-center"
+                                              >
                                                 <div className="mx-auto inline-flex min-w-12 items-center justify-center rounded-full bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-600">
-                                                  {menu?.[section.id]?.length || 0}
+                                                  {menu?.[section.id]?.length ||
+                                                    0}
                                                 </div>
                                                 <p className="mt-2 text-[11px] text-slate-500">
-                                                  {Math.round(mealTotals.calories)} kcal
+                                                  {Math.round(
+                                                    mealTotals.calories
+                                                  )}{' '}
+                                                  kcal
                                                 </p>
                                               </td>
                                             )
@@ -3092,38 +3329,56 @@ const MyMenus = () => {
                                           <td className="px-5 py-5">
                                             {menuAssignedUsers.length === 0 ? (
                                               <p className="text-sm italic text-slate-500">
-                                                {t('pages.myMenus.noClientsAssigned')}
+                                                {t(
+                                                  'pages.myMenus.noClientsAssigned'
+                                                )}
                                               </p>
                                             ) : (
                                               <div className="flex items-center">
-                                                {menuAssignedUsers.slice(0, 3).map((assignment, index) => {
-                                                  const clientName =
-                                                    clients.find(client => {
-                                                      const clientId = Array.isArray(client?.user?.userId)
-                                                        ? client.user.userId[0]
-                                                        : client?.user?.userId
-                                                      return clientId === assignment?.userId
-                                                    })?.user?.userData?.name || 'User'
-                                                  const initials = clientName
-                                                    .split(' ')
-                                                    .filter(Boolean)
-                                                    .slice(0, 2)
-                                                    .map(part => part[0]?.toUpperCase())
-                                                    .join('')
+                                                {menuAssignedUsers
+                                                  .slice(0, 3)
+                                                  .map((assignment, index) => {
+                                                    const clientName =
+                                                      clients.find(client => {
+                                                        const clientId =
+                                                          Array.isArray(
+                                                            client?.user?.userId
+                                                          )
+                                                            ? client.user
+                                                                .userId[0]
+                                                            : client?.user
+                                                                ?.userId
+                                                        return (
+                                                          clientId ===
+                                                          assignment?.userId
+                                                        )
+                                                      })?.user?.userData
+                                                        ?.name || 'User'
+                                                    const initials = clientName
+                                                      .split(' ')
+                                                      .filter(Boolean)
+                                                      .slice(0, 2)
+                                                      .map(part =>
+                                                        part[0]?.toUpperCase()
+                                                      )
+                                                      .join('')
 
-                                                  return (
-                                                    <div
-                                                      key={`${menu.id}-${assignment?.userId}-${index}`}
-                                                      className="-ml-1.5 first:ml-0 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-semibold text-slate-700"
-                                                      title={clientName}
-                                                    >
-                                                      {initials || 'U'}
-                                                    </div>
-                                                  )
-                                                })}
-                                                {menuAssignedUsers.length > 3 ? (
+                                                    return (
+                                                      <div
+                                                        key={`${menu.id}-${assignment?.userId}-${index}`}
+                                                        className="-ml-1.5 first:ml-0 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-semibold text-slate-700"
+                                                        title={clientName}
+                                                      >
+                                                        {initials || 'U'}
+                                                      </div>
+                                                    )
+                                                  })}
+                                                {menuAssignedUsers.length >
+                                                3 ? (
                                                   <div className="-ml-1.5 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-xs font-semibold text-slate-600">
-                                                    +{menuAssignedUsers.length - 3}
+                                                    +
+                                                    {menuAssignedUsers.length -
+                                                      3}
                                                   </div>
                                                 ) : null}
                                               </div>
@@ -3137,17 +3392,25 @@ const MyMenus = () => {
                                                   handleOpenDuplicateModal(menu)
                                                 }}
                                                 className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 transition hover:bg-violet-50"
-                                                title={t('pages.menus.duplicate') || 'Duplicate'}
+                                                title={
+                                                  t('pages.menus.duplicate') ||
+                                                  'Duplicate'
+                                                }
                                               >
                                                 <DocumentDuplicateIcon className="w-4 h-4" />
                                               </button>
                                               <button
                                                 onClick={event => {
                                                   event.stopPropagation()
-                                                  handleLoadTemplateForEditing(menu)
+                                                  handleLoadTemplateForEditing(
+                                                    menu
+                                                  )
                                                 }}
                                                 className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 transition hover:bg-blue-50"
-                                                title={t('pages.myMenus.edit') || 'Edit'}
+                                                title={
+                                                  t('pages.myMenus.edit') ||
+                                                  'Edit'
+                                                }
                                               >
                                                 <PencilIcon className="w-4 h-4" />
                                               </button>
@@ -3157,7 +3420,11 @@ const MyMenus = () => {
                                                   handleOpenCopyModal(menu)
                                                 }}
                                                 className="inline-flex h-10 min-w-12 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 transition hover:bg-emerald-50"
-                                                title={t('pages.menus.copyToCountry') || 'Copy to Country'}
+                                                title={
+                                                  t(
+                                                    'pages.menus.copyToCountry'
+                                                  ) || 'Copy to Country'
+                                                }
                                               >
                                                 <GlobeAltIcon className="w-4 h-4" />
                                                 <DocumentDuplicateIcon className="w-3.5 h-3.5" />
@@ -3168,7 +3435,10 @@ const MyMenus = () => {
                                                   handleDeleteTemplate(menu.id)
                                                 }}
                                                 className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 transition hover:bg-red-50"
-                                                title={t('pages.myMenus.delete') || 'Delete'}
+                                                title={
+                                                  t('pages.myMenus.delete') ||
+                                                  'Delete'
+                                                }
                                               >
                                                 <TrashIcon className="w-4 h-4" />
                                               </button>
@@ -3266,16 +3536,23 @@ const MyMenus = () => {
                 <div className="relative">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                        {t('pages.myMenus.menuBuilder')}
-                      </p>
                       <h2 className="text-3xl font-bold text-gray-900">
                         {editingTemplateId
                           ? t('pages.myMenus.editMenuTemplate')
                           : t('pages.myMenus.createMenuTemplate')}
                       </h2>
                       <p className="mt-2 text-sm text-gray-600">
-                        {t('pages.myMenus.curateMeals')}
+                        {isEditingContainerMenu
+                          ? t('pages.myMenus.editingMenuInContainer', {
+                              containerName: menuContainerName
+                            })
+                          : addingToExistingContainer
+                            ? t('pages.myMenus.addingMenuToContainer', {
+                                containerName: menuContainerName
+                              })
+                            : editingTemplateId
+                              ? t('pages.myMenus.curateMeals')
+                              : t('pages.myMenus.numberOfDaysHelp')}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -3299,30 +3576,75 @@ const MyMenus = () => {
                   <div className="mt-6 space-y-6">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                       <div className="md:col-span-2 space-y-4">
-                        <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
-                            {t('pages.myMenus.menuContainerName')}
-                          </label>
-                          <input
-                            type="text"
-                            value={menuContainerName}
-                            onChange={e => setMenuContainerName(e.target.value)}
-                            className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                            placeholder={t('pages.myMenus.menuContainerNamePlaceholder')}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
-                            {t('pages.myMenus.dayMenuName')}
-                          </label>
-                          <input
-                            type="text"
-                            value={menuName}
-                            onChange={e => setMenuName(e.target.value)}
-                            className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                            placeholder={t('pages.myMenus.dayMenuNamePlaceholder')}
-                          />
-                        </div>
+                        {!isContainerScopedBuilder && (
+                          <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                              {t('pages.myMenus.name')}
+                            </label>
+                            <input
+                              type="text"
+                              value={menuContainerName}
+                              onChange={e =>
+                                setMenuContainerName(e.target.value)
+                              }
+                              className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                              placeholder={t(
+                                'pages.myMenus.menuContainerNamePlaceholder'
+                              )}
+                            />
+                          </div>
+                        )}
+                        {isContainerScopedBuilder ? (
+                          <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                              {t('pages.myMenus.dayMenuName')}
+                            </label>
+                            <input
+                              type="text"
+                              value={menuName}
+                              onChange={e => setMenuName(e.target.value)}
+                              className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                              placeholder={t(
+                                'pages.myMenus.dayMenuNamePlaceholder'
+                              )}
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
+                              {t('pages.myMenus.numberOfDays')}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="14"
+                              value={numberOfDays}
+                              onChange={e => {
+                                const nextValue = e.target.value
+                                if (nextValue === '') {
+                                  setNumberOfDays('')
+                                  return
+                                }
+
+                                const parsedValue = Number.parseInt(
+                                  nextValue,
+                                  10
+                                )
+                                if (!Number.isFinite(parsedValue)) {
+                                  return
+                                }
+
+                                setNumberOfDays(
+                                  String(Math.max(1, Math.min(14, parsedValue)))
+                                )
+                              }}
+                              className="w-full rounded-xl border border-white/60 bg-white/80 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            />
+                            <p className="mt-2 text-xs text-gray-500">
+                              {t('pages.myMenus.numberOfDaysHelp')}
+                            </p>
+                          </div>
+                        )}
 
                         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur-md">
                           <div className="flex-1 min-w-[180px]">
@@ -3389,9 +3711,10 @@ const MyMenus = () => {
                           {Math.round(builderTotals.total.calories)} kcal
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          P {roundMacro(builderTotals.total.proteinsInGrams)}g · C{' '}
-                          {roundMacro(builderTotals.total.carbohydratesInGrams)}g · F{' '}
-                          {roundMacro(builderTotals.total.fatInGrams)}g
+                          P {roundMacro(builderTotals.total.proteinsInGrams)}g ·
+                          C{' '}
+                          {roundMacro(builderTotals.total.carbohydratesInGrams)}
+                          g · F {roundMacro(builderTotals.total.fatInGrams)}g
                         </p>
                       </div>
                       {mealTypeOptions.map(meal => {
@@ -3402,15 +3725,17 @@ const MyMenus = () => {
                             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
                           >
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                              {t(`pages.myMenus.${meal.id.replace('Plan', '')}`)}
+                              {t(
+                                `pages.myMenus.${meal.id.replace('Plan', '')}`
+                              )}
                             </p>
                             <p className="mt-2 text-xl font-bold text-slate-900">
                               {Math.round(totals?.calories || 0)} kcal
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
                               P {roundMacro(totals?.proteinsInGrams || 0)}g · C{' '}
-                              {roundMacro(totals?.carbohydratesInGrams || 0)}g · F{' '}
-                              {roundMacro(totals?.fatInGrams || 0)}g
+                              {roundMacro(totals?.carbohydratesInGrams || 0)}g ·
+                              F {roundMacro(totals?.fatInGrams || 0)}g
                             </p>
                           </div>
                         )
@@ -3477,8 +3802,10 @@ const MyMenus = () => {
                             item,
                             includeImperialServingOptions
                           )
-                          const selectedServing = findDefaultServing(servingOptions)
-                          const servingAmount = getServingAmount(selectedServing) || 100
+                          const selectedServing =
+                            findDefaultServing(servingOptions)
+                          const servingAmount =
+                            getServingAmount(selectedServing) || 100
                           const servingUnit =
                             selectedServing?.unitName ||
                             selectedServing?.unit ||
@@ -3564,11 +3891,12 @@ const MyMenus = () => {
                             ) ||
                             servingOptions[0] ||
                             null
-                          const fallbackServingAmount = selectedServingForCurrent
-                            ? getDefaultAmountForSelectedServing(
-                                selectedServingForCurrent
-                              )
-                            : item?.originalServingAmount || 100
+                          const fallbackServingAmount =
+                            selectedServingForCurrent
+                              ? getDefaultAmountForSelectedServing(
+                                  selectedServingForCurrent
+                                )
+                              : item?.originalServingAmount || 100
                           const currentServingAmount =
                             displayValue?.servingAmount !== undefined
                               ? displayValue.servingAmount
@@ -3581,14 +3909,16 @@ const MyMenus = () => {
                             servingOptions.length > 0
                           ) {
                             if (isRecipeItem) {
-                              const portionServing = findPortionServing(servingOptions)
+                              const portionServing =
+                                findPortionServing(servingOptions)
                               if (portionServing) {
                                 const numberOfRecipeServings =
                                   item?.numberOfRecipeServings ||
                                   item?.originalServings ||
                                   1
                                 originalServingAmount =
-                                  getServingAmount(portionServing) * numberOfRecipeServings
+                                  getServingAmount(portionServing) *
+                                  numberOfRecipeServings
                               } else {
                                 const totalWeight =
                                   item?.nutrientsPer100?.totalQuantity ||
@@ -3692,8 +4022,7 @@ const MyMenus = () => {
                                             servingAmount:
                                               roundServingAmountByUnitSystem(
                                                 servingAmount
-                                              ) ||
-                                              currentServingAmount
+                                              ) || currentServingAmount
                                           }
                                         }))
                                       }}
@@ -3755,8 +4084,7 @@ const MyMenus = () => {
                                               [itemKey]: {
                                                 selectedServingId:
                                                   currentServingId,
-                                                servingAmount:
-                                                  fallbackAmount
+                                                servingAmount: fallbackAmount
                                               }
                                             }))
                                           }
@@ -3839,7 +4167,12 @@ const MyMenus = () => {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                       <button
                         onClick={handleSaveTemplate}
-                        disabled={submitting || !menuName.trim()}
+                        disabled={
+                          submitting ||
+                          (!isContainerScopedBuilder &&
+                            !menuContainerName.trim()) ||
+                          (isContainerScopedBuilder && !menuName.trim())
+                        }
                         className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-60 sm:w-auto"
                       >
                         {submitting
@@ -3894,7 +4227,8 @@ const MyMenus = () => {
                     {t('pages.myMenus.sourceMenu')}
                   </label>
                   <div className="p-3 bg-white/40 border border-white/30 rounded-md text-gray-900">
-                    {splitMenuName(selectedTemplateForCopy?.name || '').menuName || 'Untitled'}
+                    {splitMenuName(selectedTemplateForCopy?.name || '')
+                      .menuName || 'Untitled'}
                   </div>
                 </div>
 
@@ -3907,7 +4241,10 @@ const MyMenus = () => {
                     value={copyMenuName}
                     onChange={event => setCopyMenuName(event.target.value)}
                     className="w-full rounded-xl border border-white/30 bg-white/70 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder={splitMenuName(selectedTemplateForCopy?.name || '').menuName || 'Untitled'}
+                    placeholder={
+                      splitMenuName(selectedTemplateForCopy?.name || '')
+                        .menuName || 'Untitled'
+                    }
                   />
                 </div>
 
@@ -3967,7 +4304,9 @@ const MyMenus = () => {
                 </button>
                 <button
                   onClick={handleCopyTemplate}
-                  disabled={copyingTemplate || !copyCountryCode || !copyMenuName.trim()}
+                  disabled={
+                    copyingTemplate || !copyCountryCode || !copyMenuName.trim()
+                  }
                   className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
                   {copyingTemplate
@@ -4004,7 +4343,8 @@ const MyMenus = () => {
                     {t('pages.myMenus.sourceMenu')}
                   </label>
                   <div className="p-3 bg-white/40 border border-white/30 rounded-md text-gray-900">
-                    {splitMenuName(selectedTemplateForDuplicate?.name || '').menuName || 'Untitled'}
+                    {splitMenuName(selectedTemplateForDuplicate?.name || '')
+                      .menuName || 'Untitled'}
                   </div>
                 </div>
 
@@ -4017,7 +4357,10 @@ const MyMenus = () => {
                     value={duplicateMenuName}
                     onChange={event => setDuplicateMenuName(event.target.value)}
                     className="w-full rounded-xl border border-white/30 bg-white/70 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder={splitMenuName(selectedTemplateForDuplicate?.name || '').menuName || 'Untitled'}
+                    placeholder={
+                      splitMenuName(selectedTemplateForDuplicate?.name || '')
+                        .menuName || 'Untitled'
+                    }
                   />
                 </div>
               </div>
@@ -4088,12 +4431,15 @@ const MyMenus = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('pages.myMenus.newContainerName') || 'New Container Name'}
+                    {t('pages.myMenus.newContainerName') ||
+                      'New Container Name'}
                   </label>
                   <input
                     type="text"
                     value={renameContainerName}
-                    onChange={event => setRenameContainerName(event.target.value)}
+                    onChange={event =>
+                      setRenameContainerName(event.target.value)
+                    }
                     className="w-full rounded-xl border border-white/30 bg-white/70 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -4153,7 +4499,8 @@ const MyMenus = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('pages.myMenus.newContainerName') || 'New Container Name'}
+                    {t('pages.myMenus.newContainerName') ||
+                      'New Container Name'}
                   </label>
                   <input
                     type="text"
@@ -4191,7 +4538,9 @@ const MyMenus = () => {
 
         {isAssignContainerPreviewOpen && selectedContainer ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-            <div className={`${glassCardClass} max-h-[90vh] w-full max-w-2xl overflow-hidden p-6`}>
+            <div
+              className={`${glassCardClass} max-h-[90vh] w-full max-w-2xl overflow-hidden p-6`}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">
@@ -4235,7 +4584,8 @@ const MyMenus = () => {
                     Proposed schedule
                   </p>
                   <p className="text-xs text-slate-500">
-                    Start date: {formatAssignmentDate(assignmentDate, i18n.language)}
+                    Start date:{' '}
+                    {formatAssignmentDate(assignmentDate, i18n.language)}
                   </p>
                 </div>
                 <div className="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
@@ -4276,7 +4626,9 @@ const MyMenus = () => {
                   disabled={assigningContainer}
                   className="flex-1 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
                 >
-                  {assigningContainer ? t('pages.myMenus.assigning') : 'Confirm Assignment'}
+                  {assigningContainer
+                    ? t('pages.myMenus.assigning')
+                    : 'Confirm Assignment'}
                 </button>
               </div>
             </div>
@@ -4295,59 +4647,63 @@ const MyMenus = () => {
                   <ArrowLeftIcon className="h-5 w-5" />
                 </button>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    {t('pages.myMenus.menuContainerName')}
-                  </p>
                   <h3 className="mt-2 text-2xl font-semibold text-slate-900">
                     {selectedContainer?.containerName}
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
-                    {selectedContainer?.menus?.length || 0} {t('pages.myMenus.menus')}
+                    {selectedContainer?.menus?.length || 0}{' '}
+                    {t('pages.myMenus.menus')}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleExportContainerPdf(selectedContainer)}
-                    disabled={exportingContainerPdf}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 disabled:opacity-60"
-                    title={t('pages.myMenus.exportPdf')}
-                  >
-                    <DocumentTextIcon className="h-4 w-4" />
-                    {exportingContainerPdf
-                      ? t('pages.myMenus.exportingPdf')
-                      : t('pages.myMenus.exportPdf')}
-                  </button>
-                  <button
-                    onClick={() => openBuilderForContainer(selectedContainer)}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    {t('pages.myMenus.addMenu')}
-                  </button>
-                  <button
-                    onClick={() => handleOpenCopyContainerModal(selectedContainer)}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
-                    title={t('pages.myMenus.copyContainer') || 'Copy Container'}
-                  >
-                    <DocumentDuplicateIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleOpenRenameContainerModal(selectedContainer)}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
-                    title={t('pages.myMenus.editContainer') || 'Edit Container'}
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await handleDeleteContainer(selectedContainer)
-                    }}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50"
-                    title={t('pages.myMenus.deleteContainer') || 'Delete Container'}
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
+                <button
+                  onClick={() => handleExportContainerPdf(selectedContainer)}
+                  disabled={exportingContainerPdf}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 disabled:opacity-60"
+                  title={t('pages.myMenus.exportPdf')}
+                >
+                  <DocumentTextIcon className="h-4 w-4" />
+                  {exportingContainerPdf
+                    ? t('pages.myMenus.exportingPdf')
+                    : t('pages.myMenus.exportPdf')}
+                </button>
+                <button
+                  onClick={() => openBuilderForContainer(selectedContainer)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  {t('pages.myMenus.addMenu')}
+                </button>
+                <button
+                  onClick={() =>
+                    handleOpenCopyContainerModal(selectedContainer)
+                  }
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
+                  title={t('pages.myMenus.copyContainer') || 'Copy Container'}
+                >
+                  <DocumentDuplicateIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() =>
+                    handleOpenRenameContainerModal(selectedContainer)
+                  }
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
+                  title={t('pages.myMenus.editContainer') || 'Edit Container'}
+                >
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={async () => {
+                    await handleDeleteContainer(selectedContainer)
+                  }}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50"
+                  title={
+                    t('pages.myMenus.deleteContainer') || 'Delete Container'
+                  }
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
@@ -4380,8 +4736,8 @@ const MyMenus = () => {
               ))}
             </div>
 
-              <div className="mt-8 overflow-x-auto pb-2">
-                <div className="flex min-w-max gap-3 text-xs">
+            <div className="mt-8 overflow-x-auto pb-2">
+              <div className="flex min-w-max gap-3 text-xs">
                 <div className="w-[220px] shrink-0 rounded-3xl border border-slate-200 bg-slate-50 px-3 py-3 text-center shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                     {t('pages.myMenus.totalMenu')}
@@ -4392,8 +4748,10 @@ const MyMenus = () => {
                   </p>
                   <p className="mt-3 text-xs text-slate-500">
                     P {roundMacro(selectedMenuSummary.total.proteinsInGrams)}g
-                    {' · '}C {roundMacro(selectedMenuSummary.total.carbohydratesInGrams)}g
-                    {' · '}F {roundMacro(selectedMenuSummary.total.fatInGrams)}g
+                    {' · '}C{' '}
+                    {roundMacro(selectedMenuSummary.total.carbohydratesInGrams)}
+                    g{' · '}F {roundMacro(selectedMenuSummary.total.fatInGrams)}
+                    g
                   </p>
                 </div>
                 {MENU_MEAL_SECTIONS.map(meal => {
@@ -4418,8 +4776,8 @@ const MyMenus = () => {
                     </div>
                   )
                 })}
-                </div>
               </div>
+            </div>
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
               <div className="space-y-5">
                 {selectedMenuInContainer ? (
@@ -4434,34 +4792,48 @@ const MyMenus = () => {
                             {selectedMenuInContainer.parsedMenuName}
                           </p>
                           <p className="mt-1 text-sm text-slate-500">
-                            {t('pages.myMenus.id')}: {selectedMenuInContainer.id}
+                            {t('pages.myMenus.id')}:{' '}
+                            {selectedMenuInContainer.id}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleOpenDuplicateModal(selectedMenuInContainer)}
+                            onClick={() =>
+                              handleOpenDuplicateModal(selectedMenuInContainer)
+                            }
                             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
                             title={t('pages.menus.duplicate') || 'Duplicate'}
                           >
                             <DocumentDuplicateIcon className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleLoadTemplateForEditing(selectedMenuInContainer)}
+                            onClick={() =>
+                              handleLoadTemplateForEditing(
+                                selectedMenuInContainer
+                              )
+                            }
                             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
                             title={t('pages.myMenus.edit') || 'Edit'}
                           >
                             <PencilIcon className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleOpenCopyModal(selectedMenuInContainer)}
+                            onClick={() =>
+                              handleOpenCopyModal(selectedMenuInContainer)
+                            }
                             className="inline-flex h-11 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50"
-                            title={t('pages.menus.copyToCountry') || 'Copy to Country'}
+                            title={
+                              t('pages.menus.copyToCountry') ||
+                              'Copy to Country'
+                            }
                           >
                             <GlobeAltIcon className="w-4 h-4" />
                             <DocumentDuplicateIcon className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDeleteTemplate(selectedMenuInContainer.id)}
+                            onClick={() =>
+                              handleDeleteTemplate(selectedMenuInContainer.id)
+                            }
                             className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50"
                             title={t('pages.myMenus.delete') || 'Delete'}
                           >
@@ -4471,202 +4843,227 @@ const MyMenus = () => {
                       </div>
                     </div>
 
-                    {renderContainerStudioMealSection('breakfastPlan', t('pages.myMenus.breakfast'))}
-                    {renderContainerStudioMealSection('lunchPlan', t('pages.myMenus.lunch'))}
-                    {renderContainerStudioMealSection('dinnerPlan', t('pages.myMenus.dinner'))}
-                    {renderContainerStudioMealSection('snackPlan', t('pages.myMenus.snack'))}
+                    {renderContainerStudioMealSection(
+                      'breakfastPlan',
+                      t('pages.myMenus.breakfast')
+                    )}
+                    {renderContainerStudioMealSection(
+                      'lunchPlan',
+                      t('pages.myMenus.lunch')
+                    )}
+                    {renderContainerStudioMealSection(
+                      'dinnerPlan',
+                      t('pages.myMenus.dinner')
+                    )}
+                    {renderContainerStudioMealSection(
+                      'snackPlan',
+                      t('pages.myMenus.snack')
+                    )}
                   </>
                 ) : null}
               </div>
 
               <div className="space-y-5">
-              {selectedMenuInContainer ? (
-                <>
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-gray-800 shadow-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="font-semibold text-gray-900">
-                    {selectedMenuInContainer?.parsedMenuName} · {t('pages.myMenus.assignedUsers')}
-                  </p>
-                  <button
-                    onClick={loadClients}
-                    disabled={loadingClients}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
-                    title={t('pages.myMenus.refreshClientsList')}
-                  >
-                    <ArrowPathIcon
-                      className={`w-4 h-4 ${loadingClients ? 'animate-spin' : ''}`}
-                    />
-                  </button>
-                </div>
-                {clients.length === 0 ? (
-                  <p className="text-xs text-gray-600">
-                    {t('pages.myMenus.noClientsFound')}
-                  </p>
-                ) : (
-                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                    {clients.map(client => {
-                      const clientId = Array.isArray(client?.user?.userId)
-                        ? client.user.userId[0]
-                        : client?.user?.userId
-                      const clientName =
-                        client?.user?.userData?.name ||
-                      client?.user?.loginDetails?.displayName ||
-                        'Unknown'
-                      const assignedUsers = selectedMenuInContainer?.assignedUsers || []
-                      const assignmentInfo = assignedUsers.find(
-                        au => au.userId === clientId
-                      )
-
-                      if (!assignmentInfo) {
-                        return null
-                      }
-
-                      const menuKey = `${selectedMenuInContainer.id}-${clientId}`
-                      const isExpanded = expandedClientMenus[menuKey]
-
-                      return (
-                        <div
-                          key={clientId}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2"
+                {selectedMenuInContainer ? (
+                  <>
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-gray-800 shadow-sm">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="font-semibold text-gray-900">
+                          {selectedMenuInContainer?.parsedMenuName} ·{' '}
+                          {t('pages.myMenus.assignedUsers')}
+                        </p>
+                        <button
+                          onClick={loadClients}
+                          disabled={loadingClients}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
+                          title={t('pages.myMenus.refreshClientsList')}
                         >
+                          <ArrowPathIcon
+                            className={`w-4 h-4 ${loadingClients ? 'animate-spin' : ''}`}
+                          />
+                        </button>
+                      </div>
+                      {clients.length === 0 ? (
+                        <p className="text-xs text-gray-600">
+                          {t('pages.myMenus.noClientsFound')}
+                        </p>
+                      ) : (
+                        <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                          {clients.map(client => {
+                            const clientId = Array.isArray(client?.user?.userId)
+                              ? client.user.userId[0]
+                              : client?.user?.userId
+                            const clientName =
+                              client?.user?.userData?.name ||
+                              client?.user?.loginDetails?.displayName ||
+                              'Unknown'
+                            const assignedUsers =
+                              selectedMenuInContainer?.assignedUsers || []
+                            const assignmentInfo = assignedUsers.find(
+                              au => au.userId === clientId
+                            )
+
+                            if (!assignmentInfo) {
+                              return null
+                            }
+
+                            const menuKey = `${selectedMenuInContainer.id}-${clientId}`
+                            const isExpanded = expandedClientMenus[menuKey]
+
+                            return (
+                              <div
+                                key={clientId}
+                                className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2"
+                              >
+                                <button
+                                  onClick={() =>
+                                    setExpandedClientMenus(prev => ({
+                                      ...prev,
+                                      [menuKey]: !prev[menuKey]
+                                    }))
+                                  }
+                                  className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-slate-900"
+                                >
+                                  <div className="flex-1">
+                                    <span>{clientName}</span>
+                                    <span className="ml-2 text-xs text-slate-500">
+                                      assigned{' '}
+                                      {formatAssignmentDate(
+                                        assignmentInfo.dateApplied,
+                                        i18n.language
+                                      )}
+                                    </span>
+                                  </div>
+                                  {isExpanded ? (
+                                    <ChevronUpIcon className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDownIcon className="h-4 w-4" />
+                                  )}
+                                </button>
+                                {isExpanded && (
+                                  <div className="mt-2 space-y-2 text-xs text-slate-600">
+                                    <p>
+                                      {t('pages.myMenus.userId')}: {clientId}
+                                    </p>
+                                    <p>
+                                      {t('pages.myMenus.assignedDate')}:{' '}
+                                      {formatAssignmentDate(
+                                        assignmentInfo.dateApplied,
+                                        i18n.language
+                                      )}
+                                    </p>
+                                    <button
+                                      onClick={() =>
+                                        handleUnassignMenu(
+                                          selectedMenuInContainer.id,
+                                          clientId,
+                                          assignmentInfo.dateApplied
+                                        )
+                                      }
+                                      className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-700 transition hover:bg-red-100"
+                                    >
+                                      <XMarkIcon className="h-3 w-3" />
+                                      {t('pages.myMenus.unassign')}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="mb-4 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                        <button
+                          type="button"
+                          onClick={() => setAssignmentMode('menu')}
+                          className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                            assignmentMode === 'menu'
+                              ? 'bg-white text-blue-700 shadow-sm'
+                              : 'text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          {selectedMenuInContainer?.parsedMenuName ||
+                            t('pages.myMenus.menuName')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAssignmentMode('container')}
+                          className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                            assignmentMode === 'container'
+                              ? 'bg-white text-blue-700 shadow-sm'
+                              : 'text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          {selectedContainer?.containerName ||
+                            t('pages.myMenus.menuContainerName')}
+                        </button>
+                      </div>
+                      <p className="mb-4 text-xs text-slate-500">
+                        {assignmentMode === 'container'
+                          ? t('pages.myMenus.assignContainerHint')
+                          : t('pages.myMenus.assignMenuHint')}
+                      </p>
+                      <div className="flex flex-col gap-3">
+                        <select
+                          value={selectedClientId || ''}
+                          onChange={e => setSelectedClientId(e.target.value)}
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:flex-1"
+                          disabled={loadingClients}
+                        >
+                          <option value="">
+                            {t('pages.myMenus.selectClientToAssign')}
+                          </option>
+                          {clients.map(client => {
+                            const clientName =
+                              client?.user?.userData?.name ||
+                              client?.user?.loginDetails?.displayName ||
+                              'Unknown'
+                            const clientId = Array.isArray(client?.user?.userId)
+                              ? client.user.userId[0]
+                              : client?.user?.userId
+                            return (
+                              <option key={clientId} value={clientId}>
+                                {clientName}
+                              </option>
+                            )
+                          })}
+                        </select>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                          <input
+                            type="date"
+                            value={assignmentDate}
+                            onChange={e => setAssignmentDate(e.target.value)}
+                            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:flex-1"
+                          />
                           <button
                             onClick={() =>
-                              setExpandedClientMenus(prev => ({
-                                ...prev,
-                                [menuKey]: !prev[menuKey]
-                              }))
-                            }
-                            className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-slate-900"
-                          >
-                            <div className="flex-1">
-                              <span>{clientName}</span>
-                              <span className="ml-2 text-xs text-slate-500">
-                                assigned {formatAssignmentDate(assignmentInfo.dateApplied, i18n.language)}
-                              </span>
-                            </div>
-                            {isExpanded ? (
-                              <ChevronUpIcon className="h-4 w-4" />
-                            ) : (
-                              <ChevronDownIcon className="h-4 w-4" />
-                            )}
-                          </button>
-                          {isExpanded && (
-                            <div className="mt-2 space-y-2 text-xs text-slate-600">
-                              <p>
-                                {t('pages.myMenus.userId')}: {clientId}
-                              </p>
-                              <p>
-                                {t('pages.myMenus.assignedDate')}: {' '}
-                                {formatAssignmentDate(assignmentInfo.dateApplied, i18n.language)}
-                              </p>
-                              <button
-                                onClick={() =>
-                                  handleUnassignMenu(
-                                    selectedMenuInContainer.id,
-                                    clientId,
-                                    assignmentInfo.dateApplied
+                              assignmentMode === 'container'
+                                ? handleOpenAssignContainerPreview(
+                                    selectedContainer
                                   )
-                                }
-                                className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-700 transition hover:bg-red-100"
-                              >
-                                <XMarkIcon className="h-3 w-3" />
-                                {t('pages.myMenus.unassign')}
-                              </button>
-                            </div>
-                          )}
+                                : handleAssignMenu(selectedMenuInContainer.id)
+                            }
+                            disabled={
+                              assigningMenu ||
+                              assigningContainer ||
+                              !selectedClientId
+                            }
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 sm:w-auto sm:min-w-28"
+                          >
+                            {assigningMenu || assigningContainer
+                              ? t('pages.myMenus.assigning')
+                              : assignmentMode === 'container'
+                                ? t('pages.myMenus.reviewAssignment')
+                                : t('pages.myMenus.assign')}
+                          </button>
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="mb-4 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
-                  <button
-                    type="button"
-                    onClick={() => setAssignmentMode('menu')}
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                      assignmentMode === 'menu'
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-slate-600 hover:bg-white'
-                    }`}
-                  >
-                    {selectedMenuInContainer?.parsedMenuName || t('pages.myMenus.menuName')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAssignmentMode('container')}
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                      assignmentMode === 'container'
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-slate-600 hover:bg-white'
-                    }`}
-                  >
-                    {selectedContainer?.containerName || t('pages.myMenus.menuContainerName')}
-                  </button>
-                </div>
-                <p className="mb-4 text-xs text-slate-500">
-                  {assignmentMode === 'container'
-                    ? t('pages.myMenus.assignContainerHint')
-                    : t('pages.myMenus.assignMenuHint')}
-                </p>
-                <div className="flex flex-col gap-3">
-                <select
-                  value={selectedClientId || ''}
-                  onChange={e => setSelectedClientId(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:flex-1"
-                  disabled={loadingClients}
-                >
-                  <option value="">
-                    {t('pages.myMenus.selectClientToAssign')}
-                  </option>
-                  {clients.map(client => {
-                    const clientName =
-                      client?.user?.userData?.name ||
-                      client?.user?.loginDetails?.displayName ||
-                      'Unknown'
-                    const clientId = Array.isArray(client?.user?.userId)
-                      ? client.user.userId[0]
-                      : client?.user?.userId
-                    return (
-                      <option key={clientId} value={clientId}>
-                        {clientName}
-                      </option>
-                    )
-                  })}
-                </select>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <input
-                    type="date"
-                    value={assignmentDate}
-                    onChange={e => setAssignmentDate(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 sm:flex-1"
-                  />
-                  <button
-                    onClick={() =>
-                      assignmentMode === 'container'
-                        ? handleOpenAssignContainerPreview(selectedContainer)
-                        : handleAssignMenu(selectedMenuInContainer.id)
-                    }
-                    disabled={
-                      assigningMenu ||
-                      assigningContainer ||
-                      !selectedClientId
-                    }
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 sm:w-auto sm:min-w-28"
-                  >
-                    {assigningMenu || assigningContainer
-                      ? t('pages.myMenus.assigning')
-                      : assignmentMode === 'container'
-                      ? t('pages.myMenus.reviewAssignment')
-                      : t('pages.myMenus.assign')}
-                  </button>
-                </div>
-              </div>
-              </div>
-                </>
-              ) : null}
+                      </div>
+                    </div>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
