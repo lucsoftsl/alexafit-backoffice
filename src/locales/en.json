@@ -259,7 +259,8 @@
     "clientActionsSubtitle": "Quick links for this client",
     "backToMainMenu": "Back to main menu",
     "backofficeAdmin": "Backoffice Admin",
-    "tutorials": "Tutorials"
+    "tutorials": "Tutorials",
+    "bugHunting": "Bug Hunting"
   },
   "pages": {
     "tutorials": {

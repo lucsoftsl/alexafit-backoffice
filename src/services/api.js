@@ -1207,3 +1207,38 @@ export const auth0Login = async ({ user, userId }) => {
     throw error
   }
 }
+
+// ─── Bug Hunting ─────────────────────────────────────────────────────────────
+
+export const getAllBugs = async ({ status, search, limit = 200, offset = 0 } = {}) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/getAllBugs`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ status, search, limit, offset })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    const data = await response.json()
+    return data.data || { bugs: [], total: 0 }
+  } catch (error) {
+    console.error('Error fetching bugs:', error)
+    throw error
+  }
+}
+
+export const updateBugStatus = async ({ bugId, bugStatus, bugType, potentialPaymentValue, potentialPaymentCurrency }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/updateBugStatus`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ bugId, bugStatus, bugType, potentialPaymentValue, potentialPaymentCurrency })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error updating bug status:', error)
+    throw error
+  }
+}

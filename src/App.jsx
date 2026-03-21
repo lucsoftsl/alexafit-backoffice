@@ -22,6 +22,7 @@ import ClientMealPlans from './pages/ClientMealPlans'
 import ClientNotes from './pages/ClientNotes'
 import Chat from './pages/Chat'
 import Tutorials from './pages/Tutorials'
+import BugHunting from './pages/BugHunting'
 import Login from './components/Login'
 import { useAuth } from './contexts/AuthContext'
 import {
@@ -151,7 +152,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard']
+    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems']
     // Nutritionist-only pages
@@ -248,6 +249,8 @@ function App() {
         return <UserProgress />
       case 'tutorials':
         return <Tutorials />
+      case 'bug-hunting':
+        return <BugHunting />
       default:
         return <Dashboard />
     }

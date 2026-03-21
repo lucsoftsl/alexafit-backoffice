@@ -11,7 +11,8 @@ import {
   UserCircleIcon,
   ClipboardDocumentListIcon,
   ArrowUturnLeftIcon,
-  ChatBubbleLeftIcon
+  ChatBubbleLeftIcon,
+  BugAntIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
@@ -50,7 +51,8 @@ const Sidebar = ({
     { id: 'analytics', labelKey: 'sidebar.analytics', icon: ChartBarIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
     { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },
-    { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false }
+    { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false },
+    { id: 'bug-hunting', labelKey: 'sidebar.bugHunting', icon: BugAntIcon, adminOnly: true }
   ]
 
   // Filter menu items based on admin/nutritionist status

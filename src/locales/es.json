@@ -292,7 +292,8 @@
     "clientActionsSubtitle": "Enlaces rápidos para este cliente",
     "backToMainMenu": "Volver al menú principal",
     "backofficeAdmin": "Admin de oficina",
-    "tutorials": "Tutoriales"
+    "tutorials": "Tutoriales",
+    "bugHunting": "Caza de Bugs"
   },
   "pages": {
     "tutorials": {

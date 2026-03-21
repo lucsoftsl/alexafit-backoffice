@@ -260,7 +260,8 @@
     "clientActionsSubtitle": "Linkuri rapide pentru acest client",
     "backToMainMenu": "Înapoi la meniu principal",
     "backofficeAdmin": "Admin birou",
-    "tutorials": "Tutoriale"
+    "tutorials": "Tutoriale",
+    "bugHunting": "Vânătoare de Bug-uri"
   },
   "pages": {
     "tutorials": {
