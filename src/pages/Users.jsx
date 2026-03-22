@@ -109,6 +109,7 @@ const Users = () => {
 
   const [userSearchTerm, setUserSearchTerm] = useState('')
   const [userFilterStatus, setUserFilterStatus] = useState('all')
+  const [userFilterSubscription, setUserFilterSubscription] = useState('all')
   const [usersSort, setUsersSort] = useState({
     column: 'joinDate',
     direction: 'desc'
@@ -312,7 +313,10 @@ const Users = () => {
         row.userId.toLowerCase().includes(userSearchTerm.toLowerCase())
       const matchesFilter =
         userFilterStatus === 'all' || row.status === userFilterStatus
-      return matchesSearch && matchesFilter
+      const matchesSubscription =
+        userFilterSubscription === 'all' ||
+        row.subscription === userFilterSubscription
+      return matchesSearch && matchesFilter && matchesSubscription
     })
 
     const getterMap = {
@@ -329,11 +333,11 @@ const Users = () => {
       const result = compareValues(getter(left), getter(right))
       return usersSort.direction === 'asc' ? result : -result
     })
-  }, [usersRows, userSearchTerm, userFilterStatus, usersSort])
+  }, [usersRows, userSearchTerm, userFilterStatus, userFilterSubscription, usersSort])
 
   useEffect(() => {
     setUsersCurrentPage(1)
-  }, [userSearchTerm, userFilterStatus, usersPerPage])
+  }, [userSearchTerm, userFilterStatus, userFilterSubscription, usersPerPage])
 
   const paginatedUsersRows = useMemo(() => {
     const startIndex = (usersCurrentPage - 1) * usersPerPage
@@ -615,9 +619,20 @@ const Users = () => {
           >
             <option value="all">{t('pages.users.filters.allStatus')}</option>
             <option value="active">{t('pages.users.filters.active')}</option>
+            <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
             <option value="pending_deletion">
               {t('pages.users.filters.pendingDeletion')}
             </option>
+          </select>
+          <select
+            value={userFilterSubscription}
+            onChange={e => setUserFilterSubscription(e.target.value)}
+            className="input w-44"
+          >
+            <option value="all">All Plans</option>
+            <option value="Premium">Premium</option>
+            <option value="Free">Free</option>
           </select>
         </div>
       </div>

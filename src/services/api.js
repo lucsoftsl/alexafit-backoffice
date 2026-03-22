@@ -82,10 +82,15 @@ export const fetchUserDailyNutrition = async (userId, dateApplied) => {
 export const formatSubscriptionStatus = subscriber => {
   // Check subscription whitelist details first
   if (subscriber.subscriptionWhitelistDetails?.isPro === 'true') {
-    return {
-      status: 'active',
-      plan: 'Program Plan',
-      expiresAt: subscriber.subscriptionWhitelistDetails?.activeUntil || 'N/A'
+    const activeUntil = subscriber.subscriptionWhitelistDetails?.activeUntil
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const isExpired = activeUntil && activeUntil < todayStr
+    if (!isExpired) {
+      return {
+        status: 'active',
+        plan: 'Program Plan',
+        expiresAt: activeUntil || 'N/A'
+      }
     }
   }
 
