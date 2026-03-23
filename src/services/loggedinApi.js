@@ -146,6 +146,33 @@ export async function getUserCaloriesHistory({ userId }) {
   return requestGet(`/foodsync/getUserCaloriesHistory?${qs}`)
 }
 
+/**
+ * Admin: fetch calorie activity for ALL users within the given lookback window.
+ * Returns { days, totalActiveUsers, users: { [userId]: [{dateApplied, caloriesConsumed, caloriesGoal, dateTimeUpdated}] } }
+ * @param {object} [options]
+ * @param {number} [options.days=14]  - Lookback window in days (1–90)
+ */
+export async function getUsersCaloriesActivity({ days = 14 } = {}) {
+  return request('/backoffice/getUsersCaloriesActivity', {
+    method: 'POST',
+    body: { days }
+  })
+}
+
+/**
+ * Admin: send a reminder email to a specific user.
+ * @param {object} params
+ * @param {string} params.userId
+ * @param {string} params.subject
+ * @param {string} params.html
+ */
+export async function sendReminderEmail({ userId, subject, html }) {
+  return request('/backoffice/sendReminderEmail', {
+    method: 'POST',
+    body: { userId, subject, html }
+  })
+}
+
 // Backoffice-only menu endpoints for nutritionists
 export async function getAllMenuTemplatesByUser({ createdByUserId }) {
   // Get all menu templates created by a specific user (nutritionist)

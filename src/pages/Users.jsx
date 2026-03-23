@@ -6,7 +6,9 @@ import {
   MagnifyingGlassIcon,
   EyeIcon,
   ExclamationTriangleIcon,
-  ArrowsUpDownIcon
+  ArrowsUpDownIcon,
+  EnvelopeIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline'
 import {
   getUsers,
@@ -16,11 +18,148 @@ import {
   formatUserData,
   formatSubscriptionStatus
 } from '../services/api'
+import { getUsersCaloriesActivity, sendReminderEmail, getUserCaloriesHistory } from '../services/loggedinApi'
 import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
 
 const USERS_CACHE_KEY = 'users'
 const USER_REWARDS_CACHE_KEY = 'userRewardsSummary'
+const ACTIVITY_CACHE_KEY = 'users_calories_activity'
+
+const REMINDER_TRANSLATIONS = {
+  en: {
+    miss_you: {
+      label: 'We miss you',
+      subject: n => `We miss you on Alexa Fit, ${n}!`,
+      h1: n => `We miss you, ${n}! 👋`,
+      p1: `It's been a while since you've logged your meals on <strong>Alexa Fit</strong>. Your health journey is important and we're here to support you every step of the way.`,
+      p2: `Jump back in and start logging again – even small steps lead to big results!`
+    },
+    keep_going: {
+      label: 'Keep going',
+      subject: n => `Keep up the great work, ${n}!`,
+      h1: n => `You're doing great, ${n}! 💪`,
+      p1: `You've been making progress on <strong>Alexa Fit</strong>! Don't let a few missed days slow you down – consistency is what makes the difference.`,
+      p2: `Open the app today and log your meals to keep your streak alive!`
+    },
+    nudge: {
+      label: 'Gentle nudge',
+      subject: n => `Quick check-in from Alexa Fit, ${n}`,
+      h1: n => `Just checking in, ${n} 🌟`,
+      p1: `We noticed you haven't logged your meals recently on <strong>Alexa Fit</strong>. Tracking your nutrition is one of the most powerful things you can do for your health.`,
+      p2: `It only takes a moment – open the app and log your next meal!`
+    }
+  },
+  fr: {
+    miss_you: {
+      label: 'Vous nous manquez',
+      subject: n => `Vous nous manquez sur Alexa Fit, ${n} !`,
+      h1: n => `Vous nous manquez, ${n} ! 👋`,
+      p1: `Cela fait un moment que vous n'avez pas enregistré vos repas sur <strong>Alexa Fit</strong>. Votre parcours santé est important et nous sommes là pour vous soutenir à chaque étape.`,
+      p2: `Revenez et recommencez à enregistrer – même les petits pas mènent à de grands résultats !`
+    },
+    keep_going: {
+      label: 'Continuez ainsi',
+      subject: n => `Continuez comme ça, ${n} !`,
+      h1: n => `Vous faites du bon travail, ${n} ! 💪`,
+      p1: `Vous progressez sur <strong>Alexa Fit</strong> ! Ne laissez pas quelques jours manqués vous ralentir – la régularité fait la différence.`,
+      p2: `Ouvrez l'application aujourd'hui et enregistrez vos repas pour maintenir votre élan !`
+    },
+    nudge: {
+      label: 'Petit rappel',
+      subject: n => `Un petit coucou d'Alexa Fit, ${n}`,
+      h1: n => `Juste un coucou, ${n} 🌟`,
+      p1: `Nous avons remarqué que vous n'avez pas récemment enregistré vos repas sur <strong>Alexa Fit</strong>. Suivre votre nutrition est l'une des choses les plus puissantes pour votre santé.`,
+      p2: `Ça ne prend qu'un instant – ouvrez l'appli et enregistrez votre prochain repas !`
+    }
+  },
+  es: {
+    miss_you: {
+      label: 'Te echamos de menos',
+      subject: n => `¡Te echamos de menos en Alexa Fit, ${n}!`,
+      h1: n => `¡Te echamos de menos, ${n}! 👋`,
+      p1: `Ha pasado un tiempo desde que registraste tus comidas en <strong>Alexa Fit</strong>. Tu camino hacia la salud es importante y estamos aquí para apoyarte en cada paso.`,
+      p2: `¡Vuelve y empieza a registrar de nuevo – incluso los pequeños pasos llevan a grandes resultados!`
+    },
+    keep_going: {
+      label: 'Sigue adelante',
+      subject: n => `¡Sigue con el buen trabajo, ${n}!`,
+      h1: n => `¡Lo estás haciendo genial, ${n}! 💪`,
+      p1: `¡Estás progresando en <strong>Alexa Fit</strong>! No dejes que unos pocos días perdidos te frenen – la constancia es lo que marca la diferencia.`,
+      p2: `¡Abre la app hoy y registra tus comidas para mantener tu racha!`
+    },
+    nudge: {
+      label: 'Recordatorio amable',
+      subject: n => `Un rápido saludo de Alexa Fit, ${n}`,
+      h1: n => `Solo pasando a saludar, ${n} 🌟`,
+      p1: `Notamos que no has registrado tus comidas recientemente en <strong>Alexa Fit</strong>. Hacer un seguimiento de tu nutrición es una de las cosas más poderosas para tu salud.`,
+      p2: `Solo toma un momento – ¡abre la app y registra tu próxima comida!`
+    }
+  },
+  ro: {
+    miss_you: {
+      label: 'Ne ești dor',
+      subject: n => `Ne ești dor pe Alexa Fit, ${n}!`,
+      h1: n => `Ne ești dor, ${n}! 👋`,
+      p1: `A trecut ceva timp de când nu ți-ai înregistrat mesele în <strong>Alexa Fit</strong>. Călătoria ta spre sănătate este importantă și suntem aici să te sprijinim la fiecare pas.`,
+      p2: `Revino și începe din nou să înregistrezi – chiar și pașii mici duc la rezultate mari!`
+    },
+    keep_going: {
+      label: 'Continuă tot așa',
+      subject: n => `Continuă tot așa, ${n}!`,
+      h1: n => `Te descurci excelent, ${n}! 💪`,
+      p1: `Faci progrese pe <strong>Alexa Fit</strong>! Nu lăsa câteva zile ratate să te oprească – consecvența face diferența.`,
+      p2: `Deschide aplicația astăzi și înregistrează-ți mesele pentru a-ți menține seria!`
+    },
+    nudge: {
+      label: 'Un mic memento',
+      subject: n => `Un salut rapid de la Alexa Fit, ${n}`,
+      h1: n => `Doar un salut, ${n} 🌟`,
+      p1: `Am observat că nu ți-ai înregistrat mesele recent în <strong>Alexa Fit</strong>. Urmărirea nutriției tale este unul dintre cele mai puternice lucruri pe care le poți face pentru sănătatea ta.`,
+      p2: `Durează doar un moment – deschide aplicația și înregistrează-ți următoarea masă!`
+    }
+  }
+}
+
+const EMAIL_CSS = `body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f4f4f7;margin:0;padding:0}.c{max-width:600px;margin:0 auto;background:#fff;padding:40px 30px;border-radius:10px}.d{width:48px;height:3px;background:#0a84ff;border-radius:2px;margin:0 auto 24px}h1{color:#1a1a1a;text-align:center;font-size:22px;font-weight:700;margin:0 0 20px}p{color:#555;font-size:15px;line-height:1.6;margin:0 0 14px}.f{text-align:center;margin-top:36px;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#aaa}`
+
+const buildReminderHtml = (h1, p1, p2) =>
+  `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>${EMAIL_CSS}</style></head><body><div class="c"><div class="d"></div><h1>${h1}</h1><p>${p1}</p><p>${p2}</p><div class="f">&copy; ${new Date().getFullYear()} Alexa Fit. All rights reserved.</div></div></body></html>`
+
+const getReminderTemplates = (lang = 'en') => {
+  const strings = REMINDER_TRANSLATIONS[lang] || REMINDER_TRANSLATIONS.en
+  return [
+    {
+      id: 'miss_you',
+      label: strings.miss_you.label,
+      minDays: 8,
+      subject: strings.miss_you.subject,
+      html: n => buildReminderHtml(strings.miss_you.h1(n), strings.miss_you.p1, strings.miss_you.p2)
+    },
+    {
+      id: 'keep_going',
+      label: strings.keep_going.label,
+      minDays: 4,
+      subject: strings.keep_going.subject,
+      html: n => buildReminderHtml(strings.keep_going.h1(n), strings.keep_going.p1, strings.keep_going.p2)
+    },
+    {
+      id: 'nudge',
+      label: strings.nudge.label,
+      minDays: 1,
+      subject: strings.nudge.subject,
+      html: n => buildReminderHtml(strings.nudge.h1(n), strings.nudge.p1, strings.nudge.p2)
+    }
+  ]
+}
+
+const getActivityLevel = daysSinceLastLog => {
+  if (daysSinceLastLog === null) return { label: 'No data', color: 'bg-gray-100 text-gray-600' }
+  if (daysSinceLastLog === 0) return { label: 'Active today', color: 'bg-green-100 text-green-700' }
+  if (daysSinceLastLog <= 3) return { label: `${daysSinceLastLog}d ago`, color: 'bg-blue-100 text-blue-700' }
+  if (daysSinceLastLog <= 7) return { label: `${daysSinceLastLog}d ago`, color: 'bg-yellow-100 text-yellow-700' }
+  return { label: `${daysSinceLastLog}+ days`, color: 'bg-red-100 text-red-700' }
+}
 
 const formatShortDate = value => {
   if (!value) return 'N/A'
@@ -126,6 +265,21 @@ const Users = () => {
   const [rewardsCurrentPage, setRewardsCurrentPage] = useState(1)
   const [rewardsPerPage, setRewardsPerPage] = useState(5)
 
+  const [activityByUserId, setActivityByUserId] = useState({})
+  const [reminderRow, setReminderRow] = useState(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState(null)
+  const [sendingReminder, setSendingReminder] = useState(false)
+  const [reminderResult, setReminderResult] = useState(null)
+  const [reminderLang, setReminderLang] = useState('en')
+  const [editedSubject, setEditedSubject] = useState('')
+  const [editedHtml, setEditedHtml] = useState('')
+  const [showEmailPreview, setShowEmailPreview] = useState(false)
+  const [caloriesHistoryRow, setCaloriesHistoryRow] = useState(null)
+  const [caloriesHistoryData, setCaloriesHistoryData] = useState([])
+  const [caloriesHistoryLoading, setCaloriesHistoryLoading] = useState(false)
+  const [caloriesHistoryError, setCaloriesHistoryError] = useState(null)
+  const [caloriesHistorySort, setCaloriesHistorySort] = useState('desc')
+
   const toggleUsersSort = column => {
     setUsersSort(current =>
       current.column === column
@@ -148,6 +302,33 @@ const Users = () => {
     )
   }
 
+  useEffect(() => {
+    if (!reminderRow) return
+    const templates = getReminderTemplates(reminderLang)
+    const avail = templates.filter(tmpl => reminderRow.daysSinceLastLog === null || reminderRow.daysSinceLastLog >= tmpl.minDays)
+    const tmpl = avail.find(tmpl => tmpl.id === selectedTemplateId) || avail[0]
+    if (tmpl) {
+      setEditedSubject(tmpl.subject(reminderRow.name))
+      setEditedHtml(tmpl.html(reminderRow.name))
+    }
+  }, [selectedTemplateId, reminderLang, reminderRow])
+
+  const openCaloriesHistory = async row => {
+    setCaloriesHistoryRow(row)
+    setCaloriesHistoryData([])
+    setCaloriesHistoryError(null)
+    setCaloriesHistoryLoading(true)
+    try {
+      const res = await getUserCaloriesHistory({ userId: row.userId })
+      const entries = Array.isArray(res?.data?.data) ? res.data.data : Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
+      setCaloriesHistoryData(entries.sort((a, b) => new Date(b.dateApplied) - new Date(a.dateApplied)))
+    } catch (err) {
+      setCaloriesHistoryError(err?.message || 'Failed to load')
+    } finally {
+      setCaloriesHistoryLoading(false)
+    }
+  }
+
   const loadPageData = async ({ forceRefresh = false } = {}) => {
     if (!isAdmin) return
 
@@ -159,6 +340,7 @@ const Users = () => {
       if (forceRefresh) {
         localStorage.removeItem(USERS_CACHE_KEY)
         localStorage.removeItem(USER_REWARDS_CACHE_KEY)
+        localStorage.removeItem(ACTIVITY_CACHE_KEY)
       }
 
       const cachedUsersData = forceRefresh
@@ -167,9 +349,13 @@ const Users = () => {
       const cachedRewardsData = forceRefresh
         ? null
         : localStorage.getItem(USER_REWARDS_CACHE_KEY)
+      const cachedActivityData = forceRefresh
+        ? null
+        : localStorage.getItem(ACTIVITY_CACHE_KEY)
 
       const hasUsersCache = Boolean(cachedUsersData)
       const hasRewardsCache = Boolean(cachedRewardsData)
+      const hasActivityCache = Boolean(cachedActivityData)
 
       if (hasUsersCache) {
         const data = JSON.parse(cachedUsersData)
@@ -183,7 +369,11 @@ const Users = () => {
         )
       }
 
-      if (hasUsersCache && hasRewardsCache && !forceRefresh) {
+      if (hasActivityCache) {
+        setActivityByUserId(JSON.parse(cachedActivityData))
+      }
+
+      if (hasUsersCache && hasRewardsCache && hasActivityCache && !forceRefresh) {
         setLoading(false)
         return
       }
@@ -192,9 +382,10 @@ const Users = () => {
         setTimeout(() => reject(new Error('Request timeout')), 10000)
       )
 
-      const [usersResult, rewardsResult] = await Promise.allSettled([
+      const [usersResult, rewardsResult, activityResult] = await Promise.allSettled([
         Promise.race([getUsers(), timeoutPromise]),
-        Promise.race([getUserRewardsSummary(), timeoutPromise])
+        Promise.race([getUserRewardsSummary(), timeoutPromise]),
+        Promise.race([getUsersCaloriesActivity({ days: 14 }), timeoutPromise])
       ])
 
       if (usersResult.status === 'fulfilled') {
@@ -218,6 +409,31 @@ const Users = () => {
       } else if (!hasRewardsCache) {
         setUserRewardsSummaries([])
         setRewardsError(t('pages.users.rewards.failed'))
+      }
+
+      if (activityResult.status === 'fulfilled') {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const rawUsers = activityResult.value?.data?.users || {}
+        const computed = {}
+        for (const [uid, entries] of Object.entries(rawUsers)) {
+          const sorted = [...entries].sort(
+            (a, b) => new Date(b.dateApplied) - new Date(a.dateApplied)
+          )
+          const lastEntry = sorted.find(e => Number(e.caloriesConsumed) > 0)
+          if (lastEntry) {
+            const last = new Date(lastEntry.dateApplied)
+            last.setHours(0, 0, 0, 0)
+            const diff = Math.round((today - last) / 86400000)
+            computed[uid] = { daysSinceLastLog: diff, daysActive: sorted.filter(e => Number(e.caloriesConsumed) > 0).length }
+          } else {
+            computed[uid] = { daysSinceLastLog: 14, daysActive: 0 }
+          }
+        }
+        setActivityByUserId(computed)
+        try {
+          localStorage.setItem(ACTIVITY_CACHE_KEY, JSON.stringify(computed))
+        } catch (_) {}
       }
     } catch (err) {
       setError(
@@ -289,21 +505,25 @@ const Users = () => {
         subInfo.plan === 'Pro Plan' || subInfo.plan === 'Program Plan'
           ? 'Premium'
           : 'Free'
+      const uid = user?.userId || user?.id || ''
+      const activity = activityByUserId[uid] ?? null
 
       return {
         raw: user,
-        key: user?.userId || user?.id,
-        userId: user?.userId || user?.id || '',
+        key: uid,
+        userId: uid,
         name,
         email,
         avatar: getUserAvatar(name),
         status: (user?.status || '').toString().toLowerCase(),
         subscription,
         joinDate: user?.dateTimeCreated || null,
-        lastActive: user?.dateTimeUpdated || null
+        lastActive: user?.dateTimeUpdated || null,
+        daysSinceLastLog: activity ? activity.daysSinceLastLog : null,
+        daysActive: activity ? activity.daysActive : null
       }
     })
-  }, [users])
+  }, [users, activityByUserId])
 
   const filteredUsersRows = useMemo(() => {
     const filtered = usersRows.filter(row => {
@@ -324,7 +544,8 @@ const Users = () => {
       status: row => row.status,
       subscription: row => row.subscription,
       joinDate: row => new Date(row.joinDate || 0).getTime() || 0,
-      lastActive: row => new Date(row.lastActive || 0).getTime() || 0
+      lastActive: row => new Date(row.lastActive || 0).getTime() || 0,
+      daysSinceLastLog: row => row.daysSinceLastLog ?? 999
     }
 
     const getter = getterMap[usersSort.column] || getterMap.joinDate
@@ -735,6 +956,14 @@ const Users = () => {
                   onClick={() => toggleUsersSort('lastActive')}
                 />
               </th>
+              <th className="px-6 py-3 text-left">
+                <SortHeader
+                  label="Last Logged"
+                  active={usersSort.column === 'daysSinceLastLog'}
+                  direction={usersSort.direction}
+                  onClick={() => toggleUsersSort('daysSinceLastLog')}
+                />
+              </th>
               <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                 {t('pages.users.actions')}
               </th>
@@ -770,17 +999,54 @@ const Users = () => {
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                   {formatShortDate(row.lastActive)}
                 </td>
+                <td className="whitespace-nowrap px-6 py-4">
+                  {(() => {
+                    const level = getActivityLevel(row.daysSinceLastLog)
+                    return (
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${level.color}`}>
+                        {level.label}
+                      </span>
+                    )
+                  })()}
+                </td>
                 <td className="whitespace-nowrap px-6 py-4 text-right">
-                  <button
-                    onClick={() => {
-                      setSelectedUser(row.raw)
-                      setIsModalOpen(true)
-                    }}
-                    className="text-blue-600 hover:text-blue-900"
-                    title={t('pages.users.view')}
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => openCaloriesHistory(row)}
+                      className="text-teal-500 hover:text-teal-700"
+                      title="View calorie history"
+                    >
+                      <ChartBarIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const available = getReminderTemplates('en').filter(
+                          tmpl => row.daysSinceLastLog === null || row.daysSinceLastLog >= tmpl.minDays
+                        )
+                        setSelectedTemplateId(available[0]?.id ?? getReminderTemplates('en')[0].id)
+                        setReminderLang('en')
+                        setEditedSubject('')
+                        setEditedHtml('')
+                        setShowEmailPreview(false)
+                        setReminderResult(null)
+                        setReminderRow(row)
+                      }}
+                      className="text-indigo-500 hover:text-indigo-700"
+                      title="Send reminder email"
+                    >
+                      <EnvelopeIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedUser(row.raw)
+                        setIsModalOpen(true)
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
+                      title={t('pages.users.view')}
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1349,6 +1615,268 @@ const Users = () => {
           </div>
         </div>
       ) : null}
+
+      {reminderRow && (() => {
+        const availableTemplates = getReminderTemplates(reminderLang).filter(
+          tmpl => reminderRow.daysSinceLastLog === null || reminderRow.daysSinceLastLog >= tmpl.minDays
+        )
+        const handleSend = async () => {
+          setSendingReminder(true)
+          setReminderResult(null)
+          try {
+            await sendReminderEmail({
+              userId: reminderRow.userId,
+              subject: editedSubject,
+              html: editedHtml
+            })
+            setReminderResult({ ok: true })
+          } catch (err) {
+            setReminderResult({ ok: false, error: err?.message || 'Failed to send' })
+          } finally {
+            setSendingReminder(false)
+          }
+        }
+
+        const actLevel = getActivityLevel(reminderRow.daysSinceLastLog)
+        const LANGS = ['en', 'fr', 'es', 'ro']
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-10">
+            <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+              {/* Header */}
+              <div className="border-b border-gray-100 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Send Reminder Email</h3>
+                  <button
+                    onClick={() => { setReminderRow(null); setReminderResult(null) }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >✕</button>
+                </div>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-medium text-white">
+                    {reminderRow.avatar}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{reminderRow.name}</p>
+                    <p className="text-xs text-gray-500">{reminderRow.email}</p>
+                  </div>
+                  <span className={`ml-auto inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${actLevel.color}`}>
+                    {actLevel.label}
+                  </span>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 space-y-5">
+                {/* Language selector */}
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">Language</p>
+                  <div className="flex gap-2">
+                    {LANGS.map(lng => (
+                      <button
+                        key={lng}
+                        onClick={() => setReminderLang(lng)}
+                        className={`rounded-lg border px-3 py-1 text-xs font-medium uppercase transition-colors ${
+                          reminderLang === lng
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                            : 'border-gray-200 text-gray-600 hover:border-indigo-300'
+                        }`}
+                      >
+                        {lng}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Template selector */}
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">Template</p>
+                  {availableTemplates.length === 0 ? (
+                    <p className="text-sm text-gray-500">No templates available for this activity level.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {availableTemplates.map(tmpl => (
+                        <button
+                          key={tmpl.id}
+                          onClick={() => setSelectedTemplateId(tmpl.id)}
+                          className={`rounded-xl border px-4 py-2 text-left text-sm transition-colors ${
+                            (selectedTemplateId === tmpl.id || (!selectedTemplateId && tmpl === availableTemplates[0]))
+                              ? 'border-indigo-500 bg-indigo-50 text-indigo-800'
+                              : 'border-gray-200 text-gray-700 hover:border-indigo-300'
+                          }`}
+                        >
+                          <p className="font-medium">{tmpl.label}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Editable subject */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">Subject</label>
+                  <input
+                    type="text"
+                    value={editedSubject}
+                    onChange={e => setEditedSubject(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* Editable HTML body */}
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="text-xs font-medium uppercase tracking-wider text-gray-500">HTML Body</label>
+                    <button
+                      onClick={() => setShowEmailPreview(v => !v)}
+                      className="text-xs text-indigo-600 hover:text-indigo-800"
+                    >
+                      {showEmailPreview ? 'Hide preview' : 'Show preview'}
+                    </button>
+                  </div>
+                  <textarea
+                    value={editedHtml}
+                    onChange={e => setEditedHtml(e.target.value)}
+                    rows={5}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-xs focus:border-indigo-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* HTML preview */}
+                {showEmailPreview && editedHtml && (
+                  <div>
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-500">Preview</p>
+                    <iframe
+                      srcDoc={editedHtml}
+                      title="Email preview"
+                      sandbox="allow-same-origin"
+                      className="h-72 w-full rounded-lg border border-gray-200"
+                    />
+                  </div>
+                )}
+
+                {reminderResult && (
+                  <div className={`rounded-lg px-4 py-2 text-sm ${reminderResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    {reminderResult.ok ? 'Email sent successfully!' : `Error: ${reminderResult.error}`}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                <button
+                  onClick={() => { setReminderRow(null); setReminderResult(null) }}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={sendingReminder || !editedSubject || !editedHtml || reminderResult?.ok}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {sendingReminder ? 'Sending…' : reminderResult?.ok ? 'Sent ✓' : 'Send Email'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+      {caloriesHistoryRow && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 pt-10">
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+            <div className="border-b border-gray-100 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Calorie History</h3>
+                  <p className="text-xs text-gray-500">{caloriesHistoryRow.name} · {caloriesHistoryRow.email}</p>
+                </div>
+                <button
+                  onClick={() => setCaloriesHistoryRow(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >✕</button>
+              </div>
+            </div>
+
+            <div className="px-6 py-4">
+              {caloriesHistoryLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-teal-600" />
+                </div>
+              )}
+              {caloriesHistoryError && (
+                <p className="text-sm text-red-600">{caloriesHistoryError}</p>
+              )}
+              {!caloriesHistoryLoading && !caloriesHistoryError && caloriesHistoryData.length === 0 && (
+                <p className="py-4 text-center text-sm text-gray-500">No calorie history found.</p>
+              )}
+              {!caloriesHistoryLoading && caloriesHistoryData.length > 0 && (
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-100">
+                    <thead className="sticky top-0 bg-white">
+                      <tr>
+                        <th className="py-2 pr-4 text-left">
+                          <button
+                            onClick={() => setCaloriesHistorySort(s => s === 'desc' ? 'asc' : 'desc')}
+                            className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-700"
+                          >
+                            Date
+                            <span className="text-[10px] text-teal-600">{caloriesHistorySort === 'desc' ? '↓' : '↑'}</span>
+                          </button>
+                        </th>
+                        <th className="py-2 pr-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Consumed</th>
+                        <th className="py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Goal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {[...caloriesHistoryData].sort((a, b) => {
+                        const diff = new Date(b.dateApplied) - new Date(a.dateApplied)
+                        return caloriesHistorySort === 'desc' ? diff : -diff
+                      }).map((entry, i) => {
+                        const consumed = Number(entry.caloriesConsumed || 0)
+                        const goal = Number(entry.caloriesGoal || 0)
+                        const pct = goal > 0 ? Math.min(100, Math.round((consumed / goal) * 100)) : null
+                        return (
+                          <tr key={entry.dateApplied || i} className="hover:bg-gray-50">
+                            <td className="py-2 pr-4 text-sm text-gray-900">
+                              {entry.dateApplied ? new Date(entry.dateApplied).toLocaleDateString() : '—'}
+                            </td>
+                            <td className="py-2 pr-4 text-right">
+                              <span className={`text-sm font-medium ${consumed > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+                                {consumed > 0 ? consumed.toLocaleString() : '—'}
+                              </span>
+                              {consumed > 0 && <span className="ml-1 text-xs text-gray-400">kcal</span>}
+                            </td>
+                            <td className="py-2 text-right">
+                              {goal > 0 ? (
+                                <span className={`inline-flex items-center gap-1 text-sm ${
+                                  pct >= 90 ? 'text-green-600' : pct >= 60 ? 'text-yellow-600' : 'text-red-500'
+                                }`}>
+                                  {goal.toLocaleString()}
+                                  <span className="text-xs text-gray-400">({pct}%)</span>
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-400">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end border-t border-gray-100 px-6 py-4">
+              <button
+                onClick={() => setCaloriesHistoryRow(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

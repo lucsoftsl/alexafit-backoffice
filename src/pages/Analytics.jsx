@@ -314,6 +314,21 @@ const Analytics = () => {
   }, [currentUser?.uid, isAdmin, lookbackWindow, refreshTick, t])
 
   const analyticsRows = analyticsFeed?.rows || []
+
+  const emailRows = useMemo(
+    () =>
+      analyticsRows.filter(row => {
+        const action = (row.action || row.message || '').toLowerCase()
+        return (
+          action.includes('email') ||
+          action.includes('sendwelcome') ||
+          action.includes('sendnormal') ||
+          action.includes('sendprogram') ||
+          action.includes('reminder')
+        )
+      }),
+    [analyticsRows]
+  )
   const analyticsMeta = analyticsFeed?.meta || {}
 
   const timelineBuckets = useMemo(() => {
@@ -1317,6 +1332,57 @@ const Analytics = () => {
                 </div>
               ) : null}
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isAdmin && emailRows.length > 0 ? (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Email Events</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Automated and admin-triggered emails sent in the selected time window — {emailRows.length} event{emailRows.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Time</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Recipient</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">User ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {emailRows.map((row, i) => {
+                  const details = row.parsedDetails || row.details || {}
+                  const parsedDetails = typeof details === 'string' ? (() => { try { return JSON.parse(details) } catch { return {} } })() : details
+                  return (
+                    <tr key={row.id || i} className="hover:bg-slate-50">
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500">
+                        {row.createdAt ? new Date(row.createdAt).toLocaleString() : 'N/A'}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className="inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                          {row.action || row.message || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-700">
+                        {parsedDetails?.email || '—'}
+                      </td>
+                      <td className="max-w-[140px] truncate px-4 py-3 text-xs text-slate-500">
+                        {row.userID || row.userId || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-500">
+                        {parsedDetails?.subject ? <span className="italic">{parsedDetails.subject}</span> : parsedDetails?.sentByAdmin ? 'Admin reminder' : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       ) : null}
