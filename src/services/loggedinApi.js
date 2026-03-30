@@ -601,7 +601,7 @@ export async function deleteUserCheckin({ userId, checkInId }) {
 
 export async function getBackofficeAnalyticsFeed({
   userId,
-  lookbackWindow = '1h'
+  lookbackWindow = '7d'
 }) {
   const requestKey = JSON.stringify({
     userId,

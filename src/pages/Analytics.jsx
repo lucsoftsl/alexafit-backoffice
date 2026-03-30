@@ -237,7 +237,7 @@ const Analytics = () => {
   const { t } = useTranslation()
   const { currentUser } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
-  const [lookbackWindow, setLookbackWindow] = useState('1h')
+  const [lookbackWindow, setLookbackWindow] = useState('7d')
   const [refreshTick, setRefreshTick] = useState(0)
   const [timeframeMenuOpen, setTimeframeMenuOpen] = useState(false)
   const [timeframeSearch, setTimeframeSearch] = useState('')
