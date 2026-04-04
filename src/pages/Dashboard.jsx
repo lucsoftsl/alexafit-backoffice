@@ -7,13 +7,14 @@ import {
   ChartBarIcon,
   ArrowTrendingUpIcon,
   EyeIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import { fetchProgramSubscribers, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
 
-const Dashboard = () => {
+const Dashboard = ({ onOpenChat = () => {} }) => {
   const [subscribers, setSubscribers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -364,6 +365,13 @@ const Dashboard = () => {
                     >
                       <EyeIcon className="h-4 w-4" />
                     </button>
+                    <button
+                      onClick={() => onOpenChat(subscriber.userId)}
+                      className="text-green-600 hover:text-green-900"
+                      title="Chat with user"
+                    >
+                      <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -480,15 +488,24 @@ const Dashboard = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => {
-                          setSelectedUser(subscriber)
-                          setIsModalOpen(true)
-                        }}
-                        className="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedUser(subscriber)
+                            setIsModalOpen(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-900 cursor-pointer"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onOpenChat(subscriber.userId)}
+                          className="text-green-600 hover:text-green-900 cursor-pointer"
+                          title="Chat with user"
+                        >
+                          <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

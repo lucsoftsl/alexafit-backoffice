@@ -8,7 +8,8 @@ import {
   ExclamationTriangleIcon,
   ArrowsUpDownIcon,
   EnvelopeIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import {
   getUsers,
@@ -227,7 +228,7 @@ const SortHeader = ({ label, active, direction, onClick, align = 'left' }) => (
   </button>
 )
 
-const Users = () => {
+const Users = ({ onOpenChat = () => {} }) => {
   const { t } = useTranslation()
   const isAdmin = useSelector(selectIsAdmin)
 
@@ -878,16 +879,25 @@ const Users = () => {
                   <p className="text-xs text-gray-500">{row.email}</p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedUser(row.raw)
-                  setIsModalOpen(true)
-                }}
-                className="text-blue-600 hover:text-blue-900"
-                title={t('pages.users.view')}
-              >
-                <EyeIcon className="h-4 w-4" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedUser(row.raw)
+                    setIsModalOpen(true)
+                  }}
+                  className="text-blue-600 hover:text-blue-900"
+                  title={t('pages.users.view')}
+                >
+                  <EyeIcon className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => onOpenChat(row.userId)}
+                  className="text-green-600 hover:text-green-900"
+                  title="Chat with user"
+                >
+                  <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div className="space-y-1">
@@ -1048,6 +1058,13 @@ const Users = () => {
                       title={t('pages.users.view')}
                     >
                       <EyeIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onOpenChat(row.userId)}
+                      className="text-green-600 hover:text-green-900"
+                      title="Chat with user"
+                    >
+                      <ChatBubbleLeftRightIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </td>

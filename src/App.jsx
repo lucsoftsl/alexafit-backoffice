@@ -42,6 +42,8 @@ function App() {
   const [sidebarVariant, setSidebarVariant] = useState('main')
   const [clientSidebarItem, setClientSidebarItem] = useState('all-clients')
   const [selectedClient, setSelectedClient] = useState(null)
+  const [adminChatUserId, setAdminChatUserId] = useState(null)
+  const [adminChatReturnPage, setAdminChatReturnPage] = useState('dashboard')
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -126,6 +128,18 @@ function App() {
     setSidebarVariant('clients')
   }
 
+  const handleOpenAdminChat = (userId) => {
+    setAdminChatReturnPage(activePage)
+    setAdminChatUserId(userId)
+    setActivePage('admin-chat')
+    setSidebarOpen(false)
+  }
+
+  const handleAdminChatBack = () => {
+    setActivePage(adminChatReturnPage)
+    setAdminChatUserId(null)
+  }
+
   const handleBackToMainSidebar = () => {
     setSidebarVariant('main')
     setClientSidebarItem('all-clients')
@@ -152,7 +166,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting']
+    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting', 'admin-chat']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems']
     // Nutritionist-only pages
@@ -198,8 +212,10 @@ function App() {
     }
 
     switch (activePage) {
+      case 'admin-chat':
+        return <Chat selectedUserId={adminChatUserId} onBack={handleAdminChatBack} />
       case 'dashboard':
-        return <Dashboard />
+        return <Dashboard onOpenChat={handleOpenAdminChat} />
       case 'myday':
         return <MyDay />
       case 'myusers':
@@ -230,9 +246,9 @@ function App() {
       case 'myfooditems':
         return <FoodItems />
       case 'users':
-        return <Users />
+        return <Users onOpenChat={handleOpenAdminChat} />
       case 'subscribers':
-        return <Subscribers />
+        return <Subscribers onOpenChat={handleOpenAdminChat} />
       case 'unapprovedItems':
         return <UnapprovedItems />
       case 'analytics':

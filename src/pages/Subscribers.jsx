@@ -1,19 +1,20 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import { 
+import {
   MagnifyingGlassIcon,
   FunnelIcon,
   EyeIcon,
   CalendarIcon,
   CurrencyDollarIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import { fetchProgramSubscribers, formatSubscriptionStatus, formatUserData, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
 import { selectIsAdmin } from '../store/userSlice'
 
-const Subscribers = () => {
+const Subscribers = ({ onOpenChat = () => {} }) => {
   const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPlan, setFilterPlan] = useState('all')
@@ -477,7 +478,7 @@ const Subscribers = () => {
                         <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4 text-gray-500" />Next {subscriptionData.expiresAt !== 'N/A' ? new Date(subscriptionData.expiresAt).toLocaleDateString() : 'N/A'}</span>
                       </div>
                       <div className="flex gap-3 pt-1">
-                        <button 
+                        <button
                           onClick={() => {
                             setSelectedUser(subscriber)
                             setIsModalOpen(true)
@@ -486,6 +487,13 @@ const Subscribers = () => {
                           title="View user details and nutrition"
                         >
                           <EyeIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => onOpenChat(subscriber.userId)}
+                          className="text-green-600 hover:text-green-800"
+                          title="Chat with user"
+                        >
+                          <ChatBubbleLeftRightIcon className="w-5 h-5" />
                         </button>
                       </div>
                     </div>
@@ -625,7 +633,7 @@ const Subscribers = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
-                          <button 
+                          <button
                             onClick={() => {
                               setSelectedUser(subscriber)
                               setIsModalOpen(true)
@@ -634,6 +642,13 @@ const Subscribers = () => {
                             title="View user details and nutrition"
                           >
                             <EyeIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onOpenChat(subscriber.userId)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Chat with user"
+                          >
+                            <ChatBubbleLeftRightIcon className="w-4 h-4" />
                           </button>
                         </div>
                       </td>

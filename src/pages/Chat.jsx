@@ -5,14 +5,14 @@ import {
   getChatThread,
   markMessagesAsRead
 } from '../services/chatApi'
-import { sendPushNotification } from '../services/api'
+import { sendPushNotificationToUser } from '../services/api'
 import { PaperAirplaneIcon, ArrowLeftIcon } from '@heroicons/react/24/solid'
 import { useTranslation } from 'react-i18next'
 
-const REFRESH_INTERVAL_MS = 10000
+const REFRESH_INTERVAL_MS = 30000
 const RETRY_LIMIT_MS = 120000
 
-function ChatPage({ selectedUserId = null }) {
+function ChatPage({ selectedUserId = null, onBack = null }) {
   const { t } = useTranslation()
   const { currentUser, userData } = useAuth()
   const [allMessages, setAllMessages] = useState([])
@@ -22,6 +22,7 @@ function ChatPage({ selectedUserId = null }) {
   const [senderId] = useState(currentUser?.uid || '')
   const [selectedThreadUserId, setSelectedThreadUserId] = useState(selectedUserId || '')
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const [sendPushNotification, setSendPushNotification] = useState(false)
   // Hide thread list by default when opened from client view (selectedUserId provided)
   const [showThreadList, setShowThreadList] = useState(!selectedUserId)
   const messagesEndRef = useRef(null)
@@ -157,7 +158,7 @@ function ChatPage({ selectedUserId = null }) {
       const unreadMessages = currentThreadMessages.filter(msg => !msg.isRead && msg.recipientId === senderId)
 
       if (unreadMessages.length > 0) {
-        markMessagesAsRead(selectedThreadUserId, senderId).catch(err => {
+        markMessagesAsRead(senderId, selectedThreadUserId).catch(err => {
           console.error('Error marking messages as read:', err)
         })
 
@@ -215,12 +216,13 @@ function ChatPage({ selectedUserId = null }) {
             : currentThreadMessages[0].senderDetails)
           : null
 
-        if (recipientDetails?.pushNotificationToken) {
-          sendPushNotification(
-            recipientDetails.pushNotificationToken,
-            t('common.New message received'),
-            ''
-          ).catch((pushErr) => {
+        if (sendPushNotification && recipientDetails?.pushNotificationToken) {
+          const senderName = userData?.displayName || currentUser?.displayName || t('common.Support')
+          sendPushNotificationToUser({
+            pushNotificationToken: recipientDetails.pushNotificationToken,
+            notificationTitle: senderName,
+            notificationBody: inputMessage.trim()
+          }).catch((pushErr) => {
             console.error('Error sending push notification:', pushErr)
           })
         }
@@ -347,46 +349,51 @@ function ChatPage({ selectedUserId = null }) {
           <>
             {/* Header */}
             <div className="bg-white/95 backdrop-blur-lg border-b border-gray-200/50 px-4 md:px-6 py-4 shadow-sm flex items-center justify-between flex-shrink-0 z-10">
-              {currentThreadMessages.length > 0 && (
-                (() => {
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                {onBack && (
+                  <button
+                    onClick={onBack}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                    title="Go back"
+                  >
+                    <ArrowLeftIcon className="w-5 h-5 text-gray-700" />
+                  </button>
+                )}
+                {!isSingleClientMode && (
+                  <button
+                    onClick={() => setShowThreadList(true)}
+                    className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    <ArrowLeftIcon className="w-5 h-5 text-gray-700" />
+                  </button>
+                )}
+                {currentThreadMessages.length > 0 && (() => {
                   const firstMsg = currentThreadMessages[0]
                   const otherUserDetails = firstMsg.senderId === senderId ? firstMsg.recipientDetails : firstMsg.senderDetails
                   return (
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      {!isSingleClientMode && (
-                        <button
-                          onClick={() => setShowThreadList(true)}
-                          className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                        >
-                          <ArrowLeftIcon className="w-5 h-5 text-gray-700" />
-                        </button>
+                    <div className="min-w-0 flex-1">
+                      <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">
+                        {otherUserDetails?.displayName || selectedThreadUserId}
+                      </h1>
+                      {otherUserDetails?.email && (
+                        <p className="text-xs md:text-sm text-gray-500 mt-0.5 truncate">{otherUserDetails.email}</p>
                       )}
-                      <div className="min-w-0 flex-1">
-                        <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">
-                          {otherUserDetails?.displayName || selectedThreadUserId}
-                        </h1>
-                        {otherUserDetails?.email && (
-                          <p className="text-xs md:text-sm text-gray-500 mt-0.5 truncate">{otherUserDetails.email}</p>
-                        )}
-                      </div>
                     </div>
                   )
-                })()
-              )}
-              {!isSingleClientMode && (
-                <button
-                  onClick={loadAllChatThreads}
-                  disabled={isLoadingMessages}
-                  className="px-3 py-2 bg-white hover:bg-gray-50 disabled:bg-gray-100 text-gray-700 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm border border-gray-200 flex-shrink-0"
-                  title={t('common.Refresh')}
-                >
-                  {isLoadingMessages ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
-                  ) : (
-                    '↻'
-                  )}
-                </button>
-              )}
+                })()}
+              </div>
+              <button
+                onClick={loadAllChatThreads}
+                disabled={isLoadingMessages}
+                className="px-3 py-2 bg-white hover:bg-gray-50 disabled:bg-gray-100 text-gray-700 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm border border-gray-200 flex-shrink-0"
+                title={t('common.Refresh')}
+              >
+                {isLoadingMessages ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700"></div>
+                ) : (
+                  '↻'
+                )}
+              </button>
             </div>
 
             {/* Messages Container */}
@@ -447,6 +454,15 @@ function ChatPage({ selectedUserId = null }) {
                 onSubmit={handleSendMessage}
                 className="px-4 md:px-6 py-3 md:py-4"
               >
+                <label className="flex items-center gap-2 mb-2 cursor-pointer select-none w-fit">
+                  <input
+                    type="checkbox"
+                    checked={sendPushNotification}
+                    onChange={(e) => setSendPushNotification(e.target.checked)}
+                    className="w-4 h-4 accent-blue-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-gray-500">Send push notification</span>
+                </label>
                 <div className="flex gap-2 md:gap-3 items-end">
                   <input
                     type="text"
