@@ -32,6 +32,7 @@ const Subscribers = () => {
 
   const normalizePlanType = planRaw => {
     const plan = String(planRaw || '').trim().toLowerCase()
+    if (plan.includes('paid') && plan.includes('not onboarded')) return 'Paid - Not Onboarded'
     if (plan.includes('program')) return 'Program Plan'
     if (plan.includes('pro')) return 'Pro Plan'
     return 'No Plan'
@@ -273,6 +274,7 @@ const Subscribers = () => {
     const planStyles = {
       'Program Plan': 'bg-blue-100 text-blue-800',
       'Pro Plan': 'bg-purple-100 text-purple-800',
+      'Paid - Not Onboarded': 'bg-amber-100 text-amber-800',
       'No Plan': 'bg-gray-100 text-gray-800'
     }
     return (

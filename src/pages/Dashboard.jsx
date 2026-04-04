@@ -32,6 +32,7 @@ const Dashboard = () => {
 
   const normalizePlanType = planRaw => {
     const plan = String(planRaw || '').trim().toLowerCase()
+    if (plan.includes('paid') && plan.includes('not onboarded')) return 'Paid - Not Onboarded'
     if (plan.includes('program')) return 'Program Plan'
     if (plan.includes('pro')) return 'Pro Plan'
     return 'No Plan'
@@ -456,7 +457,9 @@ const Dashboard = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm text-gray-900">{normalizePlanType(subscriptionData.plan)}</div>
+                        <div className={`text-sm font-medium ${normalizePlanType(subscriptionData.plan) === 'Paid - Not Onboarded' ? 'text-amber-700' : 'text-gray-900'}`}>
+                          {normalizePlanType(subscriptionData.plan)}
+                        </div>
                         <div className="text-sm text-gray-500">{subscriptionData.status}</div>
                       </div>
                     </td>
@@ -469,9 +472,11 @@ const Dashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${subscriber.status === 'ACTIVE'
                         ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
+                        : subscriber.noMobileOnboarding
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-red-100 text-red-800'
                         }`}>
-                        {t(`common.${subscriber.status}`)}
+                        {subscriber.noMobileOnboarding ? 'Not Onboarded' : t(`common.${subscriber.status}`)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

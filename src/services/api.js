@@ -80,6 +80,17 @@ export const fetchUserDailyNutrition = async (userId, dateApplied) => {
 }
 
 export const formatSubscriptionStatus = subscriber => {
+  // Website-only users who never opened the app
+  if (subscriber.noMobileOnboarding) {
+    const payment = subscriber.paymentDetails || {}
+    const isPaid = payment.paymentSuccess === true || payment.status?.toLowerCase() === 'completed'
+    return {
+      status: 'inactive',
+      plan: isPaid ? 'Paid - Not Onboarded' : 'No Plan',
+      expiresAt: 'N/A'
+    }
+  }
+
   // Check subscription whitelist details first
   if (subscriber.subscriptionWhitelistDetails?.isPro === 'true') {
     const activeUntil = subscriber.subscriptionWhitelistDetails?.activeUntil

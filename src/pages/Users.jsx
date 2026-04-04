@@ -502,9 +502,11 @@ const Users = () => {
       const email = getUserEmail({ user, loginDetails })
       const subInfo = formatSubscriptionStatus(user)
       const subscription =
-        subInfo.plan === 'Pro Plan' || subInfo.plan === 'Program Plan'
-          ? 'Premium'
-          : 'Free'
+        subInfo.plan === 'Paid - Not Onboarded'
+          ? 'Paid - Not Onboarded'
+          : subInfo.plan === 'Pro Plan' || subInfo.plan === 'Program Plan'
+            ? 'Premium'
+            : 'Free'
       const uid = user?.userId || user?.id || ''
       const activity = activityByUserId[uid] ?? null
 
@@ -699,6 +701,7 @@ const Users = () => {
     const styles = {
       Premium: 'bg-purple-100 text-purple-800',
       Basic: 'bg-blue-100 text-blue-800',
+      'Paid - Not Onboarded': 'bg-amber-100 text-amber-800',
       Free: 'bg-gray-100 text-gray-800'
     }
 
