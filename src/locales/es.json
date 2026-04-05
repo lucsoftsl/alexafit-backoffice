@@ -8,6 +8,8 @@
     "Type your message": "Escribe tu mensaje",
     "Sending": "Enviando",
     "Select a user to start messaging": "Selecciona un usuario para comenzar a enviar mensajes",
+    "Select a conversation to start messaging": "Selecciona una conversación para comenzar",
+    "No conversations yet": "Aún no hay conversaciones",
     "Today": "Hoy",
     "Yesterday": "Ayer",
     "na": "N/D",
@@ -293,9 +295,31 @@
     "backToMainMenu": "Volver al menú principal",
     "backofficeAdmin": "Admin de oficina",
     "tutorials": "Tutoriales",
-    "bugHunting": "Caza de Bugs"
+    "bugHunting": "Caza de Bugs",
+    "messages": "Mensajes",
+    "surveys": "Encuestas"
   },
   "pages": {
+    "messages": {
+      "title": "Mensajes",
+      "subtitle": "Todas las conversaciones con tus clientes, agrupadas por usuario."
+    },
+    "surveys": {
+      "title": "Encuestas",
+      "subtitle": "Todas las encuestas de personalización enviadas desde la web y la app.",
+      "loadError": "Error al cargar las encuestas.",
+      "searchPlaceholder": "Buscar por ID de usuario, edad, género…",
+      "noResults": "Ninguna encuesta coincide con tu búsqueda.",
+      "empty": "Aún no hay encuestas enviadas.",
+      "drawerTitle": "Detalles de la encuesta",
+      "viewDetails": "Ver",
+      "colDate": "Fecha",
+      "colSource": "Fuente",
+      "colAge": "Edad",
+      "colGender": "Género",
+      "colActivity": "Actividad",
+      "colUserId": "ID de usuario"
+    },
     "tutorials": {
       "title": "Tutoriales",
       "subtitle": "Recorridos rápidos de los flujos principales que usas a diario.",

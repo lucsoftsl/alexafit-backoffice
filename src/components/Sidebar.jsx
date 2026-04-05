@@ -52,7 +52,9 @@ const Sidebar = ({
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
     { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },
     { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false },
-    { id: 'bug-hunting', labelKey: 'sidebar.bugHunting', icon: BugAntIcon, adminOnly: true }
+    { id: 'bug-hunting', labelKey: 'sidebar.bugHunting', icon: BugAntIcon, adminOnly: true },
+    { id: 'messages', labelKey: 'sidebar.messages', icon: ChatBubbleLeftIcon, nutritionistOnly: true },
+    { id: 'surveys', labelKey: 'sidebar.surveys', icon: ClipboardDocumentListIcon, adminOnly: true }
   ]
 
   // Filter menu items based on admin/nutritionist status

@@ -8,6 +8,8 @@
     "Type your message": "Tapez votre message",
     "Sending": "Envoi en cours",
     "Select a user to start messaging": "Sélectionnez un utilisateur pour commencer à envoyer des messages",
+    "Select a conversation to start messaging": "Sélectionnez une conversation pour commencer",
+    "No conversations yet": "Aucune conversation pour l'instant",
     "Today": "Aujourd'hui",
     "Yesterday": "Hier",
     "na": "N/D",
@@ -261,9 +263,31 @@
     "backToMainMenu": "Retour au menu principal",
     "backofficeAdmin": "Admin back-office",
     "tutorials": "Tutoriels",
-    "bugHunting": "Chasse aux Bugs"
+    "bugHunting": "Chasse aux Bugs",
+    "messages": "Messages",
+    "surveys": "Sondages"
   },
   "pages": {
+    "messages": {
+      "title": "Messages",
+      "subtitle": "Toutes les conversations avec vos clients, regroupées par utilisateur."
+    },
+    "surveys": {
+      "title": "Sondages",
+      "subtitle": "Tous les sondages de personnalisation soumis via le web et l'application.",
+      "loadError": "Échec du chargement des sondages.",
+      "searchPlaceholder": "Rechercher par ID utilisateur, âge, genre…",
+      "noResults": "Aucun sondage ne correspond à votre recherche.",
+      "empty": "Aucun sondage soumis pour l'instant.",
+      "drawerTitle": "Détails du sondage",
+      "viewDetails": "Voir",
+      "colDate": "Date",
+      "colSource": "Source",
+      "colAge": "Âge",
+      "colGender": "Genre",
+      "colActivity": "Activité",
+      "colUserId": "ID utilisateur"
+    },
     "tutorials": {
       "title": "Tutoriels",
       "subtitle": "Parcours rapides des principaux flux que vous utilisez au quotidien.",

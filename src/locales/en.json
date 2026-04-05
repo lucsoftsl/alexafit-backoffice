@@ -8,6 +8,8 @@
     "Type your message": "Type your message",
     "Sending": "Sending",
     "Select a user to start messaging": "Select a user to start messaging",
+    "Select a conversation to start messaging": "Select a conversation to start messaging",
+    "No conversations yet": "No conversations yet",
     "Today": "Today",
     "Yesterday": "Yesterday",
     "na": "N/A",
@@ -260,9 +262,31 @@
     "backToMainMenu": "Back to main menu",
     "backofficeAdmin": "Backoffice Admin",
     "tutorials": "Tutorials",
-    "bugHunting": "Bug Hunting"
+    "bugHunting": "Bug Hunting",
+    "messages": "Messages",
+    "surveys": "Surveys"
   },
   "pages": {
+    "messages": {
+      "title": "Messages",
+      "subtitle": "All conversations with your clients, grouped by user."
+    },
+    "surveys": {
+      "title": "Surveys",
+      "subtitle": "All submitted personalization surveys from web and app.",
+      "loadError": "Failed to load surveys.",
+      "searchPlaceholder": "Search by user ID, age, gender…",
+      "noResults": "No surveys match your search.",
+      "empty": "No surveys submitted yet.",
+      "drawerTitle": "Survey Details",
+      "viewDetails": "View",
+      "colDate": "Date",
+      "colSource": "Source",
+      "colAge": "Age",
+      "colGender": "Gender",
+      "colActivity": "Activity",
+      "colUserId": "User ID"
+    },
     "tutorials": {
       "title": "Tutorials",
       "subtitle": "Quick walkthroughs of the main workflows you use every day.",

@@ -23,6 +23,8 @@ import ClientNotes from './pages/ClientNotes'
 import Chat from './pages/Chat'
 import Tutorials from './pages/Tutorials'
 import BugHunting from './pages/BugHunting'
+import Messages from './pages/Messages'
+import Surveys from './pages/Surveys'
 import Login from './components/Login'
 import { useAuth } from './contexts/AuthContext'
 import {
@@ -168,7 +170,7 @@ function App() {
     // Admin-only pages
     const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting', 'admin-chat']
     // Admin + Nutritionist pages
-    const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems']
+    const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems', 'messages', 'surveys']
     // Nutritionist-only pages
     const nutritionistPages = ['myusers', 'client-profile', 'client-journal', 'client-meal-plans', 'client-notes']
     
@@ -267,6 +269,10 @@ function App() {
         return <Tutorials />
       case 'bug-hunting':
         return <BugHunting />
+      case 'messages':
+        return <Messages />
+      case 'surveys':
+        return <Surveys />
       default:
         return <Dashboard />
     }

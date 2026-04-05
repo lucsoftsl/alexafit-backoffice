@@ -8,6 +8,8 @@
     "Type your message": "Tastează mesajul tău",
     "Sending": "Se trimite...",
     "Select a user to start messaging": "Selectați un utilizator pentru a începe să trimiteți mesaje",
+    "Select a conversation to start messaging": "Selectează o conversație pentru a începe",
+    "No conversations yet": "Nicio conversație încă",
     "Today": "Astăzi",
     "Yesterday": "Ieri",
     "na": "N/A",
@@ -261,9 +263,31 @@
     "backToMainMenu": "Înapoi la meniu principal",
     "backofficeAdmin": "Admin birou",
     "tutorials": "Tutoriale",
-    "bugHunting": "Vânătoare de Bug-uri"
+    "bugHunting": "Vânătoare de Bug-uri",
+    "messages": "Mesaje",
+    "surveys": "Chestionare"
   },
   "pages": {
+    "messages": {
+      "title": "Mesaje",
+      "subtitle": "Toate conversațiile cu clienții tăi, grupate pe utilizator."
+    },
+    "surveys": {
+      "title": "Chestionare",
+      "subtitle": "Toate chestionarele de personalizare trimise din web și din aplicație.",
+      "loadError": "Eroare la încărcarea chestionarelor.",
+      "searchPlaceholder": "Caută după ID utilizator, vârstă, gen…",
+      "noResults": "Niciun chestionar nu corespunde căutării.",
+      "empty": "Nu există chestionare trimise încă.",
+      "drawerTitle": "Detalii chestionar",
+      "viewDetails": "Vezi",
+      "colDate": "Dată",
+      "colSource": "Sursă",
+      "colAge": "Vârstă",
+      "colGender": "Gen",
+      "colActivity": "Activitate",
+      "colUserId": "ID utilizator"
+    },
     "tutorials": {
       "title": "Tutoriale",
       "subtitle": "Ghiduri rapide pentru fluxurile pe care le folosești zilnic.",
