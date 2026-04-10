@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import {
@@ -28,6 +28,7 @@ import {
 } from '../services/api'
 import { selectIsAdmin } from '../store/userSlice'
 import { useAuth } from '../contexts/AuthContext'
+import ControlsDropdown from '../components/ControlsDropdown'
 import {
   buildServingOptionsForMenuItem,
   detectIsRecipe,
@@ -58,6 +59,8 @@ const parseNumber = value => {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
 }
+const roundMacro = value =>
+  Math.round((parseNumber(value) + Number.EPSILON) * 10) / 10
 const parsePositiveOrder = value => {
   const parsed = Number.parseInt(String(value || '').trim(), 10)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
@@ -298,6 +301,7 @@ const Menus = () => {
   const [usersExpanded, setUsersExpanded] = useState(true)
   const [templateCreatorFilter, setTemplateCreatorFilter] = useState('ALL')
   const [isTemplateFilterOpen, setIsTemplateFilterOpen] = useState(false)
+  const templateFilterRef = useRef(null)
   const isEditingContainerMenu = Boolean(
     editingTemplateId && menuContainerName.trim()
   )
@@ -1805,6 +1809,18 @@ const Menus = () => {
     setTemplatesPage(1)
   }, [templateSearchTerm, templateCreatorFilter, templatesPerPage])
 
+  // Close filter popup when clicking outside
+  useEffect(() => {
+    if (!isTemplateFilterOpen) return
+    const handler = e => {
+      if (templateFilterRef.current && !templateFilterRef.current.contains(e.target)) {
+        setIsTemplateFilterOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [isTemplateFilterOpen])
+
   return (
     <div className="space-y-6">
       {/* Header - Glass hero */}
@@ -2514,7 +2530,7 @@ const Menus = () => {
                     className="w-full rounded-2xl border border-white/70 bg-white/90 py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
-                <div className="relative">
+                <div className="relative" ref={templateFilterRef}>
                   <button
                     type="button"
                     onClick={() => setIsTemplateFilterOpen(open => !open)}
@@ -2593,7 +2609,7 @@ const Menus = () => {
                       </div>
 
                       <div className="relative overflow-visible rounded-3xl border border-slate-200/80 bg-white/85 shadow-sm">
-                        <div className="overflow-x-auto rounded-3xl">
+                        <div className="rounded-3xl">
                           <table className="min-w-full table-fixed">
                           <thead className="bg-slate-50/90">
                             <tr>
@@ -2682,29 +2698,30 @@ const Menus = () => {
                                     className="px-4 py-4"
                                     onClick={event => event.stopPropagation()}
                                   >
-                                    <div className="flex items-center justify-center gap-2">
-                                      <button
-                                        onClick={() => handleDuplicateTemplate(menu)}
-                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-indigo-600 transition hover:border-indigo-200 hover:bg-indigo-50"
-                                        title={t('pages.menus.duplicate') || 'Duplicate menu'}
-                                      >
-                                        <DocumentDuplicateIcon className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleOpenCopyModal(menu)}
-                                        className="inline-flex h-10 w-12 items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white text-emerald-600 transition hover:border-emerald-200 hover:bg-emerald-50"
-                                        title={t('pages.menus.copyToCountry') || 'Copy menu to country'}
-                                      >
-                                        <GlobeAltIcon className="h-4 w-4" />
-                                        <DocumentDuplicateIcon className="h-3.5 w-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteTemplate(id)}
-                                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-rose-600 transition hover:border-rose-200 hover:bg-rose-50"
-                                        title={t('pages.menus.delete') || 'Delete menu'}
-                                      >
-                                        <TrashIcon className="h-4 w-4" />
-                                      </button>
+                                    <div className="flex items-center justify-center">
+                                      <ControlsDropdown
+                                        absolute
+                                        actions={[
+                                          {
+                                            icon: DocumentDuplicateIcon,
+                                            labelKey: 'pages.menus.duplicate',
+                                            colorClass: 'text-indigo-600',
+                                            onClick: () => handleDuplicateTemplate(menu)
+                                          },
+                                          {
+                                            icon: GlobeAltIcon,
+                                            labelKey: 'common.controls.copyToCountry',
+                                            colorClass: 'text-emerald-600',
+                                            onClick: () => handleOpenCopyModal(menu)
+                                          },
+                                          {
+                                            icon: TrashIcon,
+                                            labelKey: 'pages.menus.delete',
+                                            colorClass: 'text-rose-600',
+                                            onClick: () => handleDeleteTemplate(id)
+                                          }
+                                        ]}
+                                      />
                                     </div>
                                   </td>
                                 </tr>

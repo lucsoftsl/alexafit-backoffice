@@ -140,7 +140,36 @@
     "New message received": "New message received",
     "Please select a user to message": "Please select a user to message",
     "Failed to send message": "Failed to send message",
-    "close": "Close"
+    "close": "Close",
+    "controls": {
+      "label": "Controls",
+      "viewDetails": "View details",
+      "chat": "Chat",
+      "calorieHistory": "Calorie history",
+      "reminderEmail": "Send reminder",
+      "whitelist": "Whitelist",
+      "rename": "Rename",
+      "copyContainer": "Copy container",
+      "copyToCountry": "Copy to country"
+    },
+    "whitelistModal": {
+      "title": "Subscription Whitelist",
+      "noFields": "No fields yet — add one below.",
+      "colKey": "Key",
+      "colType": "Type",
+      "colValue": "Value",
+      "addField": "Add field",
+      "duplicateKeys": "Duplicate field names are not allowed.",
+      "saveSuccess": "Whitelist details saved successfully.",
+      "saveFailed": "Failed to save.",
+      "typeBool": "bool",
+      "typeDate": "date",
+      "typeNum": "num",
+      "typeText": "text",
+      "typeHint": "Click to change type",
+      "keyPlaceholder": "key",
+      "valuePlaceholder": "value"
+    }
   },
   "login": {
     "signInTitle": "Sign in to your account",
@@ -678,8 +707,7 @@
       "logout": "Logout"
     },
     "app": {
-      "loadingUserData": "Loading user data..."
-      ,
+      "loadingUserData": "Loading user data...",
       "footer": {
         "copyright": "© 2024 AlexaFit Health & Fitness Solutions. All rights reserved.",
         "rightsReserved": "All rights reserved",

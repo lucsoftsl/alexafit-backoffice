@@ -8,10 +8,13 @@ import {
   CalendarIcon,
   CurrencyDollarIcon,
   ExclamationTriangleIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
-import { fetchProgramSubscribers, formatSubscriptionStatus, formatUserData, formatPaymentData } from '../services/api'
+import { fetchProgramSubscribers, formatSubscriptionStatus, formatUserData, formatPaymentData, setUserSubscriptionWhitelistDetails } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
+import ControlsDropdown from '../components/ControlsDropdown'
+import WhitelistModal from '../components/WhitelistModal'
 import { selectIsAdmin } from '../store/userSlice'
 
 const Subscribers = ({ onOpenChat = () => {} }) => {
@@ -30,6 +33,8 @@ const Subscribers = ({ onOpenChat = () => {} }) => {
   const [sortDirection, setSortDirection] = useState('desc')
   const hasLoadedRef = useRef(false)
   const isAdmin = useSelector(selectIsAdmin)
+
+  const [whitelistSubscriber, setWhitelistSubscriber] = useState(null)
 
   const normalizePlanType = planRaw => {
     const plan = String(planRaw || '').trim().toLowerCase()
@@ -477,24 +482,34 @@ const Subscribers = ({ onOpenChat = () => {} }) => {
                         <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4 text-gray-500" />Start {new Date(subscriber.dateTimeCreated).toLocaleDateString()}</span>
                         <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4 text-gray-500" />Next {subscriptionData.expiresAt !== 'N/A' ? new Date(subscriptionData.expiresAt).toLocaleDateString() : 'N/A'}</span>
                       </div>
-                      <div className="flex gap-3 pt-1">
-                        <button
-                          onClick={() => {
-                            setSelectedUser(subscriber)
-                            setIsModalOpen(true)
-                          }}
-                          className="text-blue-600 hover:text-blue-800"
-                          title="View user details and nutrition"
-                        >
-                          <EyeIcon className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => onOpenChat(subscriber.userId)}
-                          className="text-green-600 hover:text-green-800"
-                          title="Chat with user"
-                        >
-                          <ChatBubbleLeftRightIcon className="w-5 h-5" />
-                        </button>
+                      <div className="pt-1">
+                        <ControlsDropdown
+                          actions={[
+                            {
+                              icon: ShieldCheckIcon,
+                              labelKey: 'common.controls.whitelist',
+                              colorClass: 'text-violet-600',
+                              onClick: () => {
+                                setWhitelistSubscriber(subscriber)
+                              }
+                            },
+                            {
+                              icon: EyeIcon,
+                              labelKey: 'common.controls.viewDetails',
+                              colorClass: 'text-blue-600',
+                              onClick: () => {
+                                setSelectedUser(subscriber)
+                                setIsModalOpen(true)
+                              }
+                            },
+                            {
+                              icon: ChatBubbleLeftRightIcon,
+                              labelKey: 'common.controls.chat',
+                              colorClass: 'text-green-600',
+                              onClick: () => onOpenChat(subscriber.userId)
+                            }
+                          ]}
+                        />
                       </div>
                     </div>
                   </div>
@@ -632,24 +647,32 @@ const Subscribers = ({ onOpenChat = () => {} }) => {
                         }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => {
-                              setSelectedUser(subscriber)
-                              setIsModalOpen(true)
-                            }}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="View user details and nutrition"
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => onOpenChat(subscriber.userId)}
-                            className="text-green-600 hover:text-green-900"
-                            title="Chat with user"
-                          >
-                            <ChatBubbleLeftRightIcon className="w-4 h-4" />
-                          </button>
+                        <div className="flex justify-end">
+                          <ControlsDropdown
+                            actions={[
+                              {
+                                icon: ShieldCheckIcon,
+                                labelKey: 'common.controls.whitelist',
+                                colorClass: 'text-violet-600',
+                                onClick: () => setWhitelistSubscriber(subscriber)
+                              },
+                              {
+                                icon: EyeIcon,
+                                labelKey: 'common.controls.viewDetails',
+                                colorClass: 'text-blue-600',
+                                onClick: () => {
+                                  setSelectedUser(subscriber)
+                                  setIsModalOpen(true)
+                                }
+                              },
+                              {
+                                icon: ChatBubbleLeftRightIcon,
+                                labelKey: 'common.controls.chat',
+                                colorClass: 'text-green-600',
+                                onClick: () => onOpenChat(subscriber.userId)
+                              }
+                            ]}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -785,6 +808,29 @@ const Subscribers = ({ onOpenChat = () => {} }) => {
         }}
         user={selectedUser}
       />
+
+      {/* Subscription Whitelist Modal */}
+      {whitelistSubscriber ? (
+        <WhitelistModal
+          userMeta={formatUserData(whitelistSubscriber)}
+          currentDetails={whitelistSubscriber.subscriptionWhitelistDetails}
+          onClose={() => setWhitelistSubscriber(null)}
+          onSave={async parsed => {
+            const userId = whitelistSubscriber?.userId || null
+            const id = whitelistSubscriber?.id || null
+            await setUserSubscriptionWhitelistDetails({
+              userId: userId || undefined,
+              id: userId ? undefined : id,
+              subscriptionWhitelistDetails: parsed
+            })
+            setSubscribers(prev => prev.map(s => {
+              const sid = s?.userId || s?.id
+              const wsid = whitelistSubscriber?.userId || whitelistSubscriber?.id
+              return sid === wsid ? { ...s, subscriptionWhitelistDetails: parsed } : s
+            }))
+          }}
+        />
+      ) : null}
     </div>
   )
 }

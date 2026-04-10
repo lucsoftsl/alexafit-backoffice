@@ -9,7 +9,8 @@ import {
   ArrowsUpDownIcon,
   EnvelopeIcon,
   ChartBarIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import {
   getUsers,
@@ -17,10 +18,13 @@ import {
   getUserPurchaseRequests,
   updateUserPurchaseStatus,
   formatUserData,
-  formatSubscriptionStatus
+  formatSubscriptionStatus,
+  setUserSubscriptionWhitelistDetails
 } from '../services/api'
 import { getUsersCaloriesActivity, sendReminderEmail, getUserCaloriesHistory } from '../services/loggedinApi'
 import UserDetailModal from '../components/UserDetailModal'
+import ControlsDropdown from '../components/ControlsDropdown'
+import WhitelistModal from '../components/WhitelistModal'
 import { selectIsAdmin } from '../store/userSlice'
 
 const USERS_CACHE_KEY = 'users'
@@ -280,6 +284,8 @@ const Users = ({ onOpenChat = () => {} }) => {
   const [caloriesHistoryLoading, setCaloriesHistoryLoading] = useState(false)
   const [caloriesHistoryError, setCaloriesHistoryError] = useState(null)
   const [caloriesHistorySort, setCaloriesHistorySort] = useState('desc')
+
+  const [whitelistRow, setWhitelistRow] = useState(null)
 
   const toggleUsersSort = column => {
     setUsersSort(current =>
@@ -879,25 +885,54 @@ const Users = ({ onOpenChat = () => {} }) => {
                   <p className="text-xs text-gray-500">{row.email}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setSelectedUser(row.raw)
-                    setIsModalOpen(true)
-                  }}
-                  className="text-blue-600 hover:text-blue-900"
-                  title={t('pages.users.view')}
-                >
-                  <EyeIcon className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => onOpenChat(row.userId)}
-                  className="text-green-600 hover:text-green-900"
-                  title="Chat with user"
-                >
-                  <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                </button>
-              </div>
+              <ControlsDropdown
+                actions={[
+                  {
+                    icon: ChartBarIcon,
+                    labelKey: 'common.controls.calorieHistory',
+                    colorClass: 'text-teal-600',
+                    onClick: () => openCaloriesHistory(row)
+                  },
+                  {
+                    icon: EnvelopeIcon,
+                    labelKey: 'common.controls.reminderEmail',
+                    colorClass: 'text-indigo-600',
+                    onClick: () => {
+                      const available = getReminderTemplates('en').filter(
+                        tmpl => row.daysSinceLastLog === null || row.daysSinceLastLog >= tmpl.minDays
+                      )
+                      setSelectedTemplateId(available[0]?.id ?? getReminderTemplates('en')[0].id)
+                      setReminderLang('en')
+                      setEditedSubject('')
+                      setEditedHtml('')
+                      setShowEmailPreview(false)
+                      setReminderResult(null)
+                      setReminderRow(row)
+                    }
+                  },
+                  {
+                    icon: ShieldCheckIcon,
+                    labelKey: 'common.controls.whitelist',
+                    colorClass: 'text-violet-600',
+                    onClick: () => setWhitelistRow(row)
+                  },
+                  {
+                    icon: EyeIcon,
+                    labelKey: 'common.controls.viewDetails',
+                    colorClass: 'text-blue-600',
+                    onClick: () => {
+                      setSelectedUser(row.raw)
+                      setIsModalOpen(true)
+                    }
+                  },
+                  {
+                    icon: ChatBubbleLeftRightIcon,
+                    labelKey: 'common.controls.chat',
+                    colorClass: 'text-green-600',
+                    onClick: () => onOpenChat(row.userId)
+                  }
+                ]}
+              />
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div className="space-y-1">
@@ -1023,50 +1058,54 @@ const Users = ({ onOpenChat = () => {} }) => {
                   })()}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => openCaloriesHistory(row)}
-                      className="text-teal-500 hover:text-teal-700"
-                      title="View calorie history"
-                    >
-                      <ChartBarIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        const available = getReminderTemplates('en').filter(
-                          tmpl => row.daysSinceLastLog === null || row.daysSinceLastLog >= tmpl.minDays
-                        )
-                        setSelectedTemplateId(available[0]?.id ?? getReminderTemplates('en')[0].id)
-                        setReminderLang('en')
-                        setEditedSubject('')
-                        setEditedHtml('')
-                        setShowEmailPreview(false)
-                        setReminderResult(null)
-                        setReminderRow(row)
-                      }}
-                      className="text-indigo-500 hover:text-indigo-700"
-                      title="Send reminder email"
-                    >
-                      <EnvelopeIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedUser(row.raw)
-                        setIsModalOpen(true)
-                      }}
-                      className="text-blue-600 hover:text-blue-900"
-                      title={t('pages.users.view')}
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => onOpenChat(row.userId)}
-                      className="text-green-600 hover:text-green-900"
-                      title="Chat with user"
-                    >
-                      <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <ControlsDropdown
+                    actions={[
+                      {
+                        icon: ChartBarIcon,
+                        labelKey: 'common.controls.calorieHistory',
+                        colorClass: 'text-teal-600',
+                        onClick: () => openCaloriesHistory(row)
+                      },
+                      {
+                        icon: EnvelopeIcon,
+                        labelKey: 'common.controls.reminderEmail',
+                        colorClass: 'text-indigo-600',
+                        onClick: () => {
+                          const available = getReminderTemplates('en').filter(
+                            tmpl => row.daysSinceLastLog === null || row.daysSinceLastLog >= tmpl.minDays
+                          )
+                          setSelectedTemplateId(available[0]?.id ?? getReminderTemplates('en')[0].id)
+                          setReminderLang('en')
+                          setEditedSubject('')
+                          setEditedHtml('')
+                          setShowEmailPreview(false)
+                          setReminderResult(null)
+                          setReminderRow(row)
+                        }
+                      },
+                      {
+                        icon: ShieldCheckIcon,
+                        labelKey: 'common.controls.whitelist',
+                        colorClass: 'text-violet-600',
+                        onClick: () => setWhitelistRow(row)
+                      },
+                      {
+                        icon: EyeIcon,
+                        labelKey: 'common.controls.viewDetails',
+                        colorClass: 'text-blue-600',
+                        onClick: () => {
+                          setSelectedUser(row.raw)
+                          setIsModalOpen(true)
+                        }
+                      },
+                      {
+                        icon: ChatBubbleLeftRightIcon,
+                        labelKey: 'common.controls.chat',
+                        colorClass: 'text-green-600',
+                        onClick: () => onOpenChat(row.userId)
+                      }
+                    ]}
+                  />
                 </td>
               </tr>
             ))}
@@ -1502,6 +1541,28 @@ const Users = ({ onOpenChat = () => {} }) => {
         }}
         user={selectedUser}
       />
+
+      {whitelistRow ? (
+        <WhitelistModal
+          userMeta={{ name: whitelistRow.name, email: whitelistRow.email }}
+          currentDetails={whitelistRow.raw?.subscriptionWhitelistDetails}
+          onClose={() => setWhitelistRow(null)}
+          onSave={async parsed => {
+            const userId = whitelistRow.raw?.userId || null
+            const id = whitelistRow.raw?.id || null
+            await setUserSubscriptionWhitelistDetails({
+              userId: userId || undefined,
+              id: userId ? undefined : id,
+              subscriptionWhitelistDetails: parsed
+            })
+            setUsers(prev => prev.map(u => {
+              const uid = u?.userId || u?.id
+              const rowUid = whitelistRow.raw?.userId || whitelistRow.raw?.id
+              return uid === rowUid ? { ...u, subscriptionWhitelistDetails: parsed } : u
+            }))
+          }}
+        />
+      ) : null}
 
       {isRewardsModalOpen ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/45 p-4">

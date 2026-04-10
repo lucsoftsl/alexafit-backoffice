@@ -40,6 +40,7 @@ import {
 } from '../services/loggedinApi'
 import { selectIsAdmin, selectUserData } from '../store/userSlice'
 import { useAuth } from '../contexts/AuthContext'
+import ControlsDropdown from '../components/ControlsDropdown'
 import {
   calculateDisplayValues,
   buildServingOptionsForMenuItem,
@@ -3514,70 +3515,43 @@ const MyMenus = () => {
                                     <PlusIcon className="h-4 w-4" />
                                     {t('pages.myMenus.addDay')}
                                   </button>
-                                  <button
-                                    onClick={() =>
-                                      handleOpenRenameContainerModal(container)
-                                    }
-                                    disabled={isContainerActionBusy}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 transition hover:bg-blue-50"
-                                    title={
-                                      t('pages.myMenus.editContainer') ||
-                                      'Edit Container'
-                                    }
-                                  >
-                                    <PencilIcon className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleOpenCopyContainerModal(container)
-                                    }
-                                    disabled={isContainerActionBusy}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 transition hover:bg-violet-50"
-                                    title={
-                                      t('pages.myMenus.copyContainer') ||
-                                      'Copy Container'
-                                    }
-                                  >
-                                    <DocumentDuplicateIcon className="w-4 h-4" />
-                                  </button>
-                                  {isAdmin ? (
-                                    <button
-                                      onClick={() =>
-                                        handleOpenCopyContainerToCountryModal(
-                                          container
-                                        )
+                                  <ControlsDropdown
+                                    absolute
+                                    actions={[
+                                      {
+                                        icon: PencilIcon,
+                                        labelKey: 'common.controls.rename',
+                                        colorClass: 'text-blue-700',
+                                        disabled: isContainerActionBusy,
+                                        onClick: () => handleOpenRenameContainerModal(container)
+                                      },
+                                      {
+                                        icon: DocumentDuplicateIcon,
+                                        labelKey: 'common.controls.copyContainer',
+                                        colorClass: 'text-violet-700',
+                                        disabled: isContainerActionBusy,
+                                        onClick: () => handleOpenCopyContainerModal(container)
+                                      },
+                                      ...(isAdmin ? [{
+                                        icon: GlobeAltIcon,
+                                        labelKey: 'common.controls.copyToCountry',
+                                        colorClass: 'text-emerald-700',
+                                        disabled: isContainerActionBusy,
+                                        onClick: () => handleOpenCopyContainerToCountryModal(container)
+                                      }] : []),
+                                      {
+                                        icon: TrashIcon,
+                                        labelKey: 'pages.myMenus.deleteContainer',
+                                        colorClass: 'text-red-600',
+                                        disabled: isContainerActionBusy,
+                                        loading: isContainerDeleting,
+                                        onClick: () => handleDeleteContainer(container)
                                       }
-                                      disabled={isContainerActionBusy}
-                                      className="inline-flex h-10 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 transition hover:bg-emerald-50"
-                                      title={
-                                        t('pages.myMenus.copyContainerToCountry') ||
-                                        'Copy Container to Country'
-                                      }
-                                    >
-                                      <GlobeAltIcon className="w-4 h-4" />
-                                      <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                                    </button>
-                                  ) : null}
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteContainer(container)
-                                    }
-                                    disabled={isContainerActionBusy}
-                                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 transition hover:bg-red-50"
-                                    title={
-                                      t('pages.myMenus.deleteContainer') ||
-                                      'Delete Container'
-                                    }
-                                  >
-                                    {isContainerDeleting ? (
-                                      <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                      <TrashIcon className="w-4 h-4" />
-                                    )}
-                                  </button>
+                                    ]}
+                                  />
                                 </div>
                               </div>
-                              <div className="overflow-x-auto">
+                              <div className="overflow-visible">
                                 <table className="min-w-full table-fixed">
                                   <thead className="border-b border-slate-200 bg-slate-50/90 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                                     <tr>
@@ -3713,73 +3687,42 @@ const MyMenus = () => {
                                               </div>
                                             )}
                                           </td>
-                                          <td className="px-5 py-5">
-                                            <div className="flex items-center justify-end gap-2">
-                                              <button
-                                                onClick={event => {
-                                                  event.stopPropagation()
-                                                  handleOpenDuplicateModal(menu)
-                                                }}
-                                                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 transition hover:bg-violet-50"
-                                                title={
-                                                  t('pages.menus.duplicate') ||
-                                                  'Duplicate'
-                                                }
-                                              >
-                                                <DocumentDuplicateIcon className="w-4 h-4" />
-                                              </button>
-                                              <button
-                                                onClick={event => {
-                                                  event.stopPropagation()
-                                                  handleLoadTemplateForEditing(
-                                                    menu
-                                                  )
-                                                }}
-                                                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 transition hover:bg-blue-50"
-                                                title={
-                                                  t('pages.myMenus.edit') ||
-                                                  'Edit'
-                                                }
-                                              >
-                                                <PencilIcon className="w-4 h-4" />
-                                              </button>
-                                              {isAdmin ? (
-                                                <button
-                                                  onClick={event => {
-                                                    event.stopPropagation()
-                                                    handleOpenCopyModal(menu)
-                                                  }}
-                                                  className="inline-flex h-10 min-w-12 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 transition hover:bg-emerald-50"
-                                                  title={
-                                                    t(
-                                                      'pages.menus.copyToCountry'
-                                                    ) || 'Copy to Country'
+                                          <td
+                                            className="px-5 py-5"
+                                            onClick={e => e.stopPropagation()}
+                                          >
+                                            <div className="flex items-center justify-end">
+                                              <ControlsDropdown
+                                                absolute
+                                                actions={[
+                                                  {
+                                                    icon: DocumentDuplicateIcon,
+                                                    labelKey: 'pages.menus.duplicate',
+                                                    colorClass: 'text-violet-700',
+                                                    onClick: () => handleOpenDuplicateModal(menu)
+                                                  },
+                                                  {
+                                                    icon: PencilIcon,
+                                                    labelKey: 'common.edit',
+                                                    colorClass: 'text-blue-700',
+                                                    onClick: () => handleLoadTemplateForEditing(menu)
+                                                  },
+                                                  ...(isAdmin ? [{
+                                                    icon: GlobeAltIcon,
+                                                    labelKey: 'common.controls.copyToCountry',
+                                                    colorClass: 'text-emerald-700',
+                                                    onClick: () => handleOpenCopyModal(menu)
+                                                  }] : []),
+                                                  {
+                                                    icon: TrashIcon,
+                                                    labelKey: 'common.delete',
+                                                    colorClass: 'text-red-600',
+                                                    disabled: deletingTemplateId === menu.id,
+                                                    loading: deletingTemplateId === menu.id,
+                                                    onClick: () => handleDeleteTemplate(menu.id)
                                                   }
-                                                >
-                                                  <GlobeAltIcon className="w-4 h-4" />
-                                                  <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                                                </button>
-                                              ) : null}
-                                              <button
-                                                onClick={event => {
-                                                  event.stopPropagation()
-                                                  handleDeleteTemplate(menu.id)
-                                                }}
-                                                disabled={
-                                                  deletingTemplateId === menu.id
-                                                }
-                                                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 transition hover:bg-red-50"
-                                                title={
-                                                  t('pages.myMenus.delete') ||
-                                                  'Delete'
-                                                }
-                                              >
-                                                {deletingTemplateId === menu.id ? (
-                                                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                  <TrashIcon className="w-4 h-4" />
-                                                )}
-                                              </button>
+                                                ]}
+                                              />
                                             </div>
                                           </td>
                                         </tr>
@@ -5134,17 +5077,6 @@ const MyMenus = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleExportContainerPdf(selectedContainer)}
-                  disabled={isSelectedContainerActionBusy}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 disabled:opacity-60"
-                  title={t('pages.myMenus.exportPdf')}
-                >
-                  <DocumentTextIcon className="h-4 w-4" />
-                  {exportingContainerPdf
-                    ? t('pages.myMenus.exportingPdf')
-                    : t('pages.myMenus.exportPdf')}
-                </button>
-                <button
                   onClick={() => openBuilderForContainer(selectedContainer)}
                   disabled={isSelectedContainerActionBusy}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
@@ -5152,58 +5084,46 @@ const MyMenus = () => {
                   <PlusIcon className="h-4 w-4" />
                   {t('pages.myMenus.addDay')}
                 </button>
-                {isAdmin ? (
-                  <button
-                    onClick={() =>
-                      handleOpenCopyContainerToCountryModal(selectedContainer)
+                <ControlsDropdown
+                  actions={[
+                    {
+                      icon: DocumentTextIcon,
+                      labelKey: 'pages.myMenus.exportPdf',
+                      disabled: isSelectedContainerActionBusy,
+                      loading: exportingContainerPdf,
+                      onClick: () => handleExportContainerPdf(selectedContainer)
+                    },
+                    {
+                      icon: PencilIcon,
+                      labelKey: 'common.controls.rename',
+                      colorClass: 'text-blue-700',
+                      disabled: isSelectedContainerActionBusy,
+                      onClick: () => handleOpenRenameContainerModal(selectedContainer)
+                    },
+                    {
+                      icon: DocumentDuplicateIcon,
+                      labelKey: 'common.controls.copyContainer',
+                      colorClass: 'text-violet-700',
+                      disabled: isSelectedContainerActionBusy,
+                      onClick: () => handleOpenCopyContainerModal(selectedContainer)
+                    },
+                    ...(isAdmin ? [{
+                      icon: GlobeAltIcon,
+                      labelKey: 'common.controls.copyToCountry',
+                      colorClass: 'text-emerald-700',
+                      disabled: isSelectedContainerActionBusy,
+                      onClick: () => handleOpenCopyContainerToCountryModal(selectedContainer)
+                    }] : []),
+                    {
+                      icon: TrashIcon,
+                      labelKey: 'pages.myMenus.deleteContainer',
+                      colorClass: 'text-red-600',
+                      disabled: isSelectedContainerActionBusy,
+                      loading: isSelectedContainerDeleting,
+                      onClick: () => handleDeleteContainer(selectedContainer)
                     }
-                    disabled={isSelectedContainerActionBusy}
-                    className="inline-flex h-11 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50"
-                    title={
-                      t('pages.myMenus.copyContainerToCountry') ||
-                      'Copy Container to Country'
-                    }
-                  >
-                    <GlobeAltIcon className="w-4 h-4" />
-                    <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                  </button>
-                ) : null}
-                <button
-                  onClick={() =>
-                    handleOpenCopyContainerModal(selectedContainer)
-                  }
-                  disabled={isSelectedContainerActionBusy}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
-                  title={t('pages.myMenus.copyContainer') || 'Copy Container'}
-                >
-                  <DocumentDuplicateIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() =>
-                    handleOpenRenameContainerModal(selectedContainer)
-                  }
-                  disabled={isSelectedContainerActionBusy}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
-                  title={t('pages.myMenus.editContainer') || 'Edit Container'}
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={async () => {
-                    await handleDeleteContainer(selectedContainer)
-                  }}
-                  disabled={isSelectedContainerActionBusy}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50"
-                  title={
-                    t('pages.myMenus.deleteContainer') || 'Delete Container'
-                  }
-                >
-                  {isSelectedContainerDeleting ? (
-                    <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <TrashIcon className="w-4 h-4" />
-                  )}
-                </button>
+                  ]}
+                />
               </div>
             </div>
               )
@@ -5325,58 +5245,40 @@ const MyMenus = () => {
                               ? t('pages.myMenus.saving')
                               : t('common.save')}
                           </button>
-                          <button
-                            onClick={() =>
-                              handleOpenDuplicateModal(selectedMenuInContainer)
-                            }
-                            disabled={isSelectedMenuActionBusy}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
-                            title={t('pages.menus.duplicate') || 'Duplicate'}
-                          >
-                            <DocumentDuplicateIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleLoadTemplateForEditing(
-                                selectedMenuInContainer
-                              )
-                            }
-                            disabled={isSelectedMenuActionBusy}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
-                            title={t('pages.myMenus.edit') || 'Edit'}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          {isAdmin ? (
-                            <button
-                              onClick={() =>
-                                handleOpenCopyModal(selectedMenuInContainer)
+                          <ControlsDropdown
+                            absolute
+                            actions={[
+                              {
+                                icon: DocumentDuplicateIcon,
+                                labelKey: 'pages.menus.duplicate',
+                                colorClass: 'text-violet-700',
+                                disabled: isSelectedMenuActionBusy,
+                                onClick: () => handleOpenDuplicateModal(selectedMenuInContainer)
+                              },
+                              {
+                                icon: PencilIcon,
+                                labelKey: 'common.edit',
+                                colorClass: 'text-blue-700',
+                                disabled: isSelectedMenuActionBusy,
+                                onClick: () => handleLoadTemplateForEditing(selectedMenuInContainer)
+                              },
+                              ...(isAdmin ? [{
+                                icon: GlobeAltIcon,
+                                labelKey: 'common.controls.copyToCountry',
+                                colorClass: 'text-emerald-700',
+                                disabled: isSelectedMenuActionBusy,
+                                onClick: () => handleOpenCopyModal(selectedMenuInContainer)
+                              }] : []),
+                              {
+                                icon: TrashIcon,
+                                labelKey: 'common.delete',
+                                colorClass: 'text-red-600',
+                                disabled: isSelectedMenuActionBusy,
+                                loading: isSelectedMenuDeleting,
+                                onClick: () => handleDeleteTemplate(selectedMenuInContainer.id)
                               }
-                              disabled={isSelectedMenuActionBusy}
-                              className="inline-flex h-11 min-w-14 items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 text-emerald-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50"
-                              title={
-                                t('pages.menus.copyToCountry') ||
-                                'Copy to Country'
-                              }
-                            >
-                              <GlobeAltIcon className="w-4 h-4" />
-                              <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                            </button>
-                          ) : null}
-                          <button
-                            onClick={() =>
-                              handleDeleteTemplate(selectedMenuInContainer.id)
-                            }
-                            disabled={isSelectedMenuActionBusy}
-                            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50"
-                            title={t('pages.myMenus.delete') || 'Delete'}
-                          >
-                            {isSelectedMenuDeleting ? (
-                              <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <TrashIcon className="w-4 h-4" />
-                            )}
-                          </button>
+                            ]}
+                          />
                         </div>
                       </div>
                     </div>
@@ -5561,12 +5463,17 @@ const MyMenus = () => {
                               client?.user?.userData?.name ||
                               client?.user?.loginDetails?.displayName ||
                               'Unknown'
+                            const clientEmail =
+                              client?.user?.userData?.email ||
+                              client?.user?.loginDetails?.email ||
+                              client?.user?.email ||
+                              ''
                             const clientId = Array.isArray(client?.user?.userId)
                               ? client.user.userId[0]
                               : client?.user?.userId
                             return (
                               <option key={clientId} value={clientId}>
-                                {clientName}
+                                {clientName}{clientEmail ? ` - ${clientEmail}` : ''}
                               </option>
                             )
                           })}

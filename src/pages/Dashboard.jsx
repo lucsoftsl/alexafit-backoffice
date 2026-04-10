@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { fetchProgramSubscribers, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
+import ControlsDropdown from '../components/ControlsDropdown'
 import { selectIsAdmin } from '../store/userSlice'
 
 const Dashboard = ({ onOpenChat = () => {} }) => {
@@ -355,24 +356,25 @@ const Dashboard = ({ onOpenChat = () => {} }) => {
                     <p className="text-xs text-gray-500">{userData.email}</p>
                     <p className="text-xs text-gray-400">ID: {subscriber.userId}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedUser(subscriber)
-                        setIsModalOpen(true)
-                      }}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => onOpenChat(subscriber.userId)}
-                      className="text-green-600 hover:text-green-900"
-                      title="Chat with user"
-                    >
-                      <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                    </button>
-                  </div>
+                  <ControlsDropdown
+                    actions={[
+                      {
+                        icon: EyeIcon,
+                        labelKey: 'common.controls.viewDetails',
+                        colorClass: 'text-blue-600',
+                        onClick: () => {
+                          setSelectedUser(subscriber)
+                          setIsModalOpen(true)
+                        }
+                      },
+                      {
+                        icon: ChatBubbleLeftRightIcon,
+                        labelKey: 'common.controls.chat',
+                        colorClass: 'text-green-600',
+                        onClick: () => onOpenChat(subscriber.userId)
+                      }
+                    ]}
+                  />
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                   <div className="space-y-1">
@@ -488,24 +490,25 @@ const Dashboard = ({ onOpenChat = () => {} }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedUser(subscriber)
-                            setIsModalOpen(true)
-                          }}
-                          className="text-blue-600 hover:text-blue-900 cursor-pointer"
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => onOpenChat(subscriber.userId)}
-                          className="text-green-600 hover:text-green-900 cursor-pointer"
-                          title="Chat with user"
-                        >
-                          <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                        </button>
-                      </div>
+                      <ControlsDropdown
+                        actions={[
+                          {
+                            icon: EyeIcon,
+                            labelKey: 'common.controls.viewDetails',
+                            colorClass: 'text-blue-600',
+                            onClick: () => {
+                              setSelectedUser(subscriber)
+                              setIsModalOpen(true)
+                            }
+                          },
+                          {
+                            icon: ChatBubbleLeftRightIcon,
+                            labelKey: 'common.controls.chat',
+                            colorClass: 'text-green-600',
+                            onClick: () => onOpenChat(subscriber.userId)
+                          }
+                        ]}
+                      />
                     </td>
                   </tr>
                 )

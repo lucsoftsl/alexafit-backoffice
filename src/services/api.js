@@ -1258,3 +1258,19 @@ export const updateBugStatus = async ({ bugId, bugStatus, bugType, potentialPaym
     throw error
   }
 }
+
+export const setUserSubscriptionWhitelistDetails = async ({ userId, id, subscriptionWhitelistDetails }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/setUserSubscriptionWhitelistDetails`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId, id, subscriptionWhitelistDetails })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error setting user subscription whitelist details:', error)
+    throw error
+  }
+}
