@@ -116,6 +116,7 @@ async function requestGet(path, { timeout = DEFAULT_TIMEOUT_MS } = {}) {
 }
 
 const analyticsFeedInFlightRequests = new Map()
+const websiteAnalyticsFeedInFlightRequests = new Map()
 
 export async function getDailyNutrition({ userId, dateApplied }) {
   // RN http.ts: POST /foodsync/getUserItemsByDateApplied
@@ -597,6 +598,30 @@ export async function deleteUserCheckin({ userId, checkInId }) {
       checkInId
     }
   })
+}
+
+export async function getWebsiteAnalyticsFeed({
+  userId,
+  lookbackWindow = '7d'
+}) {
+  const requestKey = JSON.stringify({ type: 'website', userId, lookbackWindow })
+
+  if (websiteAnalyticsFeedInFlightRequests.has(requestKey)) {
+    return websiteAnalyticsFeedInFlightRequests.get(requestKey)
+  }
+
+  const requestPromise = requestAbsolute(
+    `${API_BASE_UTILS_URL}/analytics/alexafit/feed`,
+    {
+      method: 'POST',
+      body: { userId, lookbackWindow }
+    }
+  ).finally(() => {
+    websiteAnalyticsFeedInFlightRequests.delete(requestKey)
+  })
+
+  websiteAnalyticsFeedInFlightRequests.set(requestKey, requestPromise)
+  return requestPromise
 }
 
 export async function getBackofficeAnalyticsFeed({

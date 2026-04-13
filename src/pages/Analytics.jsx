@@ -238,6 +238,9 @@ const Analytics = () => {
   const { currentUser } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const [lookbackWindow, setLookbackWindow] = useState('7d')
+  const [sourceFilter, setSourceFilter] = useState('ALL')
+  const [websiteActionFilter, setWebsiteActionFilter] = useState('ALL')
+  const [websiteButtonFilter, setWebsiteButtonFilter] = useState('ALL')
   const [refreshTick, setRefreshTick] = useState(0)
   const [timeframeMenuOpen, setTimeframeMenuOpen] = useState(false)
   const [timeframeSearch, setTimeframeSearch] = useState('')
@@ -315,9 +318,47 @@ const Analytics = () => {
 
   const analyticsRows = analyticsFeed?.rows || []
 
+  // Filter rows by source. 'WEBSITE' = version === 'website', 'APP' = everything else.
+  const activeRows = useMemo(() => {
+    if (sourceFilter === 'WEBSITE') return analyticsRows.filter(r => r.version === 'website')
+    if (sourceFilter === 'APP') return analyticsRows.filter(r => r.version !== 'website')
+    return analyticsRows
+  }, [analyticsRows, sourceFilter])
+
+  // Reset website sub-filters whenever the source filter changes
+  useEffect(() => {
+    setWebsiteActionFilter('ALL')
+    setWebsiteButtonFilter('ALL')
+  }, [sourceFilter])
+
+  // All distinct button names present in the current website rows (for the dropdown)
+  const availableButtonNames = useMemo(() => {
+    if (sourceFilter !== 'WEBSITE') return []
+    const names = new Set()
+    for (const row of activeRows) {
+      if (row.action === 'button_click' && row.details?.button) {
+        names.add(row.details.button)
+      }
+    }
+    return Array.from(names).sort()
+  }, [sourceFilter, activeRows])
+
+  // Rows fed into the timeline — further narrowed by the website action/button filters
+  const timelineRows = useMemo(() => {
+    if (sourceFilter !== 'WEBSITE') return activeRows
+    let rows = activeRows
+    if (websiteActionFilter !== 'ALL') {
+      rows = rows.filter(r => r.action === websiteActionFilter)
+    }
+    if (websiteButtonFilter !== 'ALL') {
+      rows = rows.filter(r => r.details?.button === websiteButtonFilter)
+    }
+    return rows
+  }, [sourceFilter, activeRows, websiteActionFilter, websiteButtonFilter])
+
   const emailRows = useMemo(
     () =>
-      analyticsRows.filter(row => {
+      activeRows.filter(row => {
         const action = (row.action || row.message || '').toLowerCase()
         return (
           action.includes('email') ||
@@ -327,7 +368,7 @@ const Analytics = () => {
           action.includes('reminder')
         )
       }),
-    [analyticsRows]
+    [activeRows]
   )
   const analyticsMeta = analyticsFeed?.meta || {}
 
@@ -335,7 +376,7 @@ const Analytics = () => {
     const bucketMinutes = getBucketMinutes(lookbackWindow)
     const grouped = new Map()
 
-    analyticsRows.forEach(row => {
+    timelineRows.forEach(row => {
       const bucketDate = truncateToBucket(row?.createdAt, bucketMinutes)
       if (!bucketDate) {
         return
@@ -373,7 +414,7 @@ const Analytics = () => {
     )
 
     return sortedBuckets
-  }, [analyticsRows, lookbackWindow])
+  }, [timelineRows, lookbackWindow])
 
   useEffect(() => {
     const hasConfirmedBucket = timelineBuckets.some(
@@ -418,34 +459,67 @@ const Analytics = () => {
     bucket => bucket.bucketKey === pendingBucketKey
   )
 
-  const analyticsKindRows = useMemo(
-    () => buildCountRows(analyticsMeta?.analyticsKindCounts, 'kind'),
-    [analyticsMeta?.analyticsKindCounts]
-  )
-  const deviceRows = useMemo(
-    () => buildCountRows(analyticsMeta?.deviceTypeCounts, 'device'),
-    [analyticsMeta?.deviceTypeCounts]
-  )
-  const sourceRows = useMemo(
-    () => buildCountRows(analyticsMeta?.sourcePlatformCounts, 'source'),
-    [analyticsMeta?.sourcePlatformCounts]
-  )
-  const endpointRows = useMemo(
-    () =>
-      buildCountRows(analyticsMeta?.endpointCounts, 'endpoint')
-        .map(row => ({
-          ...row,
-          endpointDisplay: formatEndpointLabel(row.endpoint)
-        }))
-        .slice(0, 10),
-    [analyticsMeta?.endpointCounts]
-  )
-  const appVersionRows = useMemo(
-    () => buildCountRows(analyticsMeta?.appVersionCounts, 'version').slice(0, 10),
-    [analyticsMeta?.appVersionCounts]
-  )
+  // When a source filter is active, derive breakdowns from activeRows so counts stay accurate.
+  // When showing all sources (filter = 'ALL'), use the server-provided meta for efficiency.
+  const isFiltered = sourceFilter !== 'ALL'
+
+  const analyticsKindRows = useMemo(() => {
+    if (!isFiltered) return buildCountRows(analyticsMeta?.analyticsKindCounts, 'kind')
+    const counts = {}
+    for (const row of activeRows) {
+      const kind = row.analyticsKind || 'OTHER'
+      counts[kind] = (counts[kind] || 0) + 1
+    }
+    return buildCountRows(counts, 'kind')
+  }, [isFiltered, analyticsMeta?.analyticsKindCounts, activeRows])
+
+  const deviceRows = useMemo(() => {
+    if (!isFiltered) return buildCountRows(analyticsMeta?.deviceTypeCounts, 'device')
+    const counts = {}
+    for (const row of activeRows) {
+      const device = row.deviceType || row.phone || 'Unknown'
+      counts[device] = (counts[device] || 0) + 1
+    }
+    return buildCountRows(counts, 'device')
+  }, [isFiltered, analyticsMeta?.deviceTypeCounts, activeRows])
+
+  const sourceRows = useMemo(() => {
+    if (!isFiltered) return buildCountRows(analyticsMeta?.sourcePlatformCounts, 'source')
+    const counts = {}
+    for (const row of activeRows) {
+      const src = row.sourcePlatform || 'UNKNOWN'
+      counts[src] = (counts[src] || 0) + 1
+    }
+    return buildCountRows(counts, 'source')
+  }, [isFiltered, analyticsMeta?.sourcePlatformCounts, activeRows])
+
+  const endpointRows = useMemo(() => {
+    if (!isFiltered) {
+      return buildCountRows(analyticsMeta?.endpointCounts, 'endpoint')
+        .map(row => ({ ...row, endpointDisplay: formatEndpointLabel(row.endpoint) }))
+        .slice(0, 10)
+    }
+    const counts = {}
+    for (const row of activeRows) {
+      const ep = row.endpoint || row.details?.url || row.message || 'N/A'
+      counts[ep] = (counts[ep] || 0) + 1
+    }
+    return buildCountRows(counts, 'endpoint')
+      .map(row => ({ ...row, endpointDisplay: formatEndpointLabel(row.endpoint) }))
+      .slice(0, 10)
+  }, [isFiltered, analyticsMeta?.endpointCounts, activeRows])
+
+  const appVersionRows = useMemo(() => {
+    if (!isFiltered) return buildCountRows(analyticsMeta?.appVersionCounts, 'version').slice(0, 10)
+    const counts = {}
+    for (const row of activeRows) {
+      const v = row.version || 'unknown'
+      counts[v] = (counts[v] || 0) + 1
+    }
+    return buildCountRows(counts, 'version').slice(0, 10)
+  }, [isFiltered, analyticsMeta?.appVersionCounts, activeRows])
   const topUserRows = useMemo(() => {
-    const counts = analyticsRows.reduce((acc, row) => {
+    const counts = activeRows.reduce((acc, row) => {
       const key = row?.userID || 'Unknown'
       acc[key] = (acc[key] || 0) + 1
       return acc
@@ -455,7 +529,7 @@ const Analytics = () => {
       ...row,
       ...parseAnalyticsUserIdentifier(row.userId)
     }))
-  }, [analyticsRows])
+  }, [activeRows])
   const visibleTopUserRows = useMemo(
     () => (showAllTopUsers ? topUserRows : topUserRows.slice(0, 8)),
     [showAllTopUsers, topUserRows]
@@ -591,25 +665,44 @@ const Analytics = () => {
     setDragSelection({ startKey: null, endKey: null })
   }
 
+  const filteredStats = useMemo(() => {
+    if (!isFiltered) {
+      return {
+        total: analyticsMeta?.total || 0,
+        uniqueUsers: analyticsMeta?.uniqueUserCount || 0,
+        apiFailures: analyticsMeta?.analyticsKindCounts?.API_FAILURE || 0,
+        appFailures: analyticsMeta?.analyticsKindCounts?.APP_FAILURE || 0
+      }
+    }
+    const uniqueUsers = new Set(activeRows.map(r => r.userID || r.userId)).size
+    let apiFailures = 0
+    let appFailures = 0
+    for (const row of activeRows) {
+      if (row.analyticsKind === 'API_FAILURE') apiFailures++
+      else if (row.analyticsKind === 'APP_FAILURE') appFailures++
+    }
+    return { total: activeRows.length, uniqueUsers, apiFailures, appFailures }
+  }, [isFiltered, analyticsMeta, activeRows])
+
   const stats = [
     {
       title: t('pages.analytics.stats.totalEvents'),
-      value: analyticsMeta?.total || 0,
+      value: filteredStats.total,
       icon: ChartBarIcon
     },
     {
       title: t('pages.analytics.stats.uniqueUsers'),
-      value: analyticsMeta?.uniqueUserCount || 0,
+      value: filteredStats.uniqueUsers,
       icon: SparklesIcon
     },
     {
       title: t('pages.analytics.stats.apiFailures'),
-      value: analyticsMeta?.analyticsKindCounts?.API_FAILURE || 0,
+      value: filteredStats.apiFailures,
       icon: ServerStackIcon
     },
     {
       title: t('pages.analytics.stats.appFailures'),
-      value: analyticsMeta?.analyticsKindCounts?.APP_FAILURE || 0,
+      value: filteredStats.appFailures,
       icon: ExclamationTriangleIcon
     }
   ]
@@ -630,6 +723,32 @@ const Analytics = () => {
       </div>
 
       <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-end">
+        <div className="min-w-40">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Source
+          </p>
+          <div className="flex gap-1.5">
+            {[
+              { value: 'ALL', label: 'All' },
+              { value: 'WEBSITE', label: '🌐 Website' },
+              { value: 'APP', label: '📱 App' }
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSourceFilter(opt.value)}
+                className={`rounded-2xl border px-3 py-2 text-sm font-medium transition ${
+                  sourceFilter === opt.value
+                    ? 'border-violet-400 bg-violet-50 text-violet-800'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="relative min-w-56">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             {t('pages.analytics.filters.timeWindow')}
@@ -798,6 +917,67 @@ const Analytics = () => {
               )
             })}
           </div>
+
+          {sourceFilter === 'WEBSITE' && (
+            <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-500">
+                🌐 Website filter
+              </span>
+
+              {/* Action filter */}
+              <div className="flex gap-1.5">
+                {[
+                  { value: 'ALL', label: 'All events' },
+                  { value: 'page_view', label: '👁 Page views' },
+                  { value: 'button_click', label: '🖱 Button clicks' }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setWebsiteActionFilter(opt.value)
+                      if (opt.value !== 'button_click') setWebsiteButtonFilter('ALL')
+                    }}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      websiteActionFilter === opt.value
+                        ? 'border-violet-400 bg-violet-600 text-white'
+                        : 'border-violet-200 bg-white text-violet-700 hover:bg-violet-100'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Button name filter — only when action = button_click */}
+              {websiteActionFilter === 'button_click' && availableButtonNames.length > 0 && (
+                <select
+                  value={websiteButtonFilter}
+                  onChange={e => setWebsiteButtonFilter(e.target.value)}
+                  className="rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-semibold text-violet-700 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                >
+                  <option value="ALL">All buttons</option>
+                  {availableButtonNames.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* Active filter badge */}
+              {(websiteActionFilter !== 'ALL' || websiteButtonFilter !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWebsiteActionFilter('ALL')
+                    setWebsiteButtonFilter('ALL')
+                  }}
+                  className="ml-auto rounded-full border border-violet-200 bg-white px-3 py-1.5 text-xs font-semibold text-violet-500 hover:bg-violet-100 transition"
+                >
+                  Clear ×
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="mb-4 flex items-center justify-between gap-3">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
