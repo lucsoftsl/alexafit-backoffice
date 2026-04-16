@@ -1190,7 +1190,22 @@
       "removeSuccess": "Meniul a fost eliminat cu succes!",
       "removeFail": "Eliminarea meniului a eșuat",
       "confirmDeleteTemplate": "Sunteți sigur că doriți să ștergeți acest șablon?",
-      "duplicateFail": "Duplicarea șablonului de meniu a eșuat"
+      "duplicateFail": "Duplicarea șablonului de meniu a eșuat",
+      "generateFromText": "Genereaza din text",
+      "textToMenu": {
+        "title": "Genereaza meniu din text",
+        "describe": "Descrie meniul",
+        "placeholder": "ex. O zi mediteraneana de 1800 calorii: ovaz cu banana la micul dejun, pui la gratar cu salata la pranz, somon cu legume la cina, iaurt grecesc ca gustare.",
+        "menuName": "Nume meniu (optional)",
+        "menuNamePlaceholder": "Lasa gol pentru a genera automat",
+        "country": "Tara",
+        "hint": "AI-ul va genera un meniu din descrierea ta si va cauta elementele in baza de date existenta. Elementele negasite vor fi omise.",
+        "generate": "Genereaza meniu",
+        "generating": "Se genereaza...",
+        "emptyError": "Te rugam sa introduci o descriere pentru meniu",
+        "success": "Meniul a fost generat cu succes!",
+        "error": "Eroare la generarea meniului"
+      }
     },
     "subscribers": {
       "title": "Abonați",

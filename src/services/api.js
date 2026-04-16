@@ -793,6 +793,35 @@ export const copyMenuTemplateToCountry = async ({
   }
 }
 
+export const generateMenuFromText = async ({
+  text,
+  menuName,
+  countryCode,
+  createdByUserId = null,
+  dayLabel = 'Day'
+}) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/foodsync/generateMenuFromTextBO`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text, menuName, countryCode, createdByUserId, dayLabel })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error generating menu from text:', error)
+    throw error
+  }
+}
+
 export const getUserMenus = async ({ userId }) => {
   try {
     const headers = await getHeaders()

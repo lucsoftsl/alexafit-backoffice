@@ -1190,7 +1190,22 @@
       "removeSuccess": "Menu removed successfully!",
       "removeFail": "Failed to remove menu",
       "confirmDeleteTemplate": "Are you sure you want to delete this template?",
-      "duplicateFail": "Failed to duplicate menu template"
+      "duplicateFail": "Failed to duplicate menu template",
+      "generateFromText": "Generate from Text",
+      "textToMenu": {
+        "title": "Generate Menu from Text",
+        "describe": "Describe the menu",
+        "placeholder": "e.g. A 1800 calorie Mediterranean day: oatmeal and banana for breakfast, grilled chicken with salad for lunch, salmon with vegetables for dinner, Greek yogurt as snack.",
+        "menuName": "Menu name (optional)",
+        "menuNamePlaceholder": "Leave blank to auto-generate",
+        "country": "Country",
+        "hint": "The AI will generate a menu from your description and match items against the existing food database. Items not found in the database will be skipped.",
+        "generate": "Generate Menu",
+        "generating": "Generating...",
+        "emptyError": "Please enter a description for your menu",
+        "success": "Menu generated successfully!",
+        "error": "Failed to generate menu"
+      }
     },
     "subscribers": {
       "title": "Subscribers",

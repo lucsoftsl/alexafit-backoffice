@@ -14,12 +14,14 @@ import {
   DocumentDuplicateIcon,
   GlobeAltIcon,
   DocumentTextIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import {
   searchFoodItems,
   getItemsByIds,
-  copyMenuTemplateToCountry
+  copyMenuTemplateToCountry,
+  generateMenuFromText
 } from '../services/api'
 import {
   getAllMenuTemplatesByUser,
@@ -551,6 +553,15 @@ const MyMenus = () => {
   const [copyCountryCode, setCopyCountryCode] = useState('RO')
   const [copyMenuName, setCopyMenuName] = useState('')
   const [copyingTemplate, setCopyingTemplate] = useState(false)
+
+  // Text-to-menu modal state
+  const [isTextToMenuOpen, setIsTextToMenuOpen] = useState(false)
+  const [textToMenuInput, setTextToMenuInput] = useState('')
+  const [textToMenuName, setTextToMenuName] = useState('')
+  const [textToMenuCountry, setTextToMenuCountry] = useState('RO')
+  const [generatingMenu, setGeneratingMenu] = useState(false)
+  const [textToMenuContainerContext, setTextToMenuContainerContext] = useState(null)
+
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false)
   const [selectedTemplateForDuplicate, setSelectedTemplateForDuplicate] =
     useState(null)
@@ -1853,6 +1864,57 @@ const MyMenus = () => {
     setCopyCountryCode('RO')
     setCopyMenuName(menuName ? `${menuName} Copy` : '')
     setIsCopyModalOpen(true)
+  }
+
+  const openTextToMenu = (containerGroup = null) => {
+    setTextToMenuContainerContext(containerGroup || null)
+    setTextToMenuInput('')
+    setTextToMenuName('')
+    setTextToMenuCountry('RO')
+    setIsTextToMenuOpen(true)
+  }
+
+  const resolveMenuName = () => {
+    if (textToMenuName.trim()) return textToMenuName.trim()
+    const dayLabel = t('pages.myMenus.dayLabel') || 'Day'
+    if (textToMenuContainerContext) {
+      const label = getNextContainerMenuLabel(textToMenuContainerContext, dayLabel)
+      return buildStoredMenuName(textToMenuContainerContext.containerName, label, getNextContainerMenuOrder(textToMenuContainerContext))
+    }
+    return null
+  }
+
+  const handleGenerateFromText = async () => {
+    if (!textToMenuInput.trim()) {
+      alert(t('pages.menus.textToMenu.emptyError') || 'Please enter a description for your menu')
+      return
+    }
+    try {
+      setGeneratingMenu(true)
+      const result = await generateMenuFromText({
+        text: textToMenuInput.trim(),
+        menuName: resolveMenuName(),
+        countryCode: textToMenuCountry,
+        createdByUserId: currentUser?.uid || null,
+        dayLabel: t('pages.myMenus.dayLabel') || 'Day'
+      })
+      if (result?.ok && result?.data) {
+        alert(t('pages.menus.textToMenu.success') || 'Menu generated successfully!')
+        setIsTextToMenuOpen(false)
+        setTextToMenuInput('')
+        setTextToMenuName('')
+        setTextToMenuCountry('RO')
+        setTextToMenuContainerContext(null)
+        await loadTemplates()
+      } else {
+        throw new Error(result?.error || 'Failed to generate menu')
+      }
+    } catch (e) {
+      console.error('Failed to generate menu from text', e)
+      alert(`${t('pages.menus.textToMenu.error') || 'Failed to generate menu'}: ${e.message}`)
+    } finally {
+      setGeneratingMenu(false)
+    }
   }
 
   const handleCopyTemplate = async () => {
@@ -3318,13 +3380,23 @@ const MyMenus = () => {
                 {t('pages.myMenus.subtitle')}
               </p>
             </div>
-            <button
-              onClick={openBuilderForNew}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
-            >
-              <PlusIcon className="h-4 w-4" />
-              {t('pages.myMenus.addMenu')}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => openTextToMenu()}
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
+                title={t('pages.menus.generateFromText') || 'Generate from Text'}
+              >
+                <SparklesIcon className="h-4 w-4" />
+                {t('pages.menus.generateFromText') || 'Generate from Text'}
+              </button>
+              <button
+                onClick={openBuilderForNew}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
+              >
+                <PlusIcon className="h-4 w-4" />
+                {t('pages.myMenus.addMenu')}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:max-w-3xl">
@@ -3430,6 +3502,14 @@ const MyMenus = () => {
                       ) : null}
                     </div>
                     <button
+                      onClick={() => openTextToMenu()}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                      title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                    >
+                      <SparklesIcon className="w-4 h-4" />
+                      {t('pages.menus.generateFromText') || 'Generate from Text'}
+                    </button>
+                    <button
                       onClick={loadTemplates}
                       disabled={loadingTemplates}
                       className="inline-flex items-center justify-center rounded-full border border-white/70 bg-white/80 p-3 text-blue-600 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-white"
@@ -3505,6 +3585,14 @@ const MyMenus = () => {
                                 </button>
                                 <div className="flex items-center gap-2">
                                   <button
+                                    onClick={() => openTextToMenu(container)}
+                                    disabled={isContainerActionBusy}
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                                    title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                                  >
+                                    <SparklesIcon className="h-4 w-4" />
+                                  </button>
+                                  <button
                                     onClick={() =>
                                       openBuilderForContainer(container)
                                     }
@@ -3550,186 +3638,6 @@ const MyMenus = () => {
                                     ]}
                                   />
                                 </div>
-                              </div>
-                              <div className="overflow-visible">
-                                <table className="min-w-full table-fixed">
-                                  <thead className="border-b border-slate-200 bg-slate-50/90 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                    <tr>
-                                      <th className="px-5 py-4 text-center w-[22%]">
-                                        {t('pages.myMenus.menuName')}
-                                      </th>
-                                      <th className="px-5 py-4 text-center w-[100px]">
-                                        {t('pages.myMenus.id')}
-                                      </th>
-                                      {MENU_MEAL_SECTIONS.map(section => (
-                                        <th
-                                          key={section.id}
-                                          className="px-4 py-4 text-center w-[8%]"
-                                        >
-                                          {t(section.labelKey)}
-                                        </th>
-                                      ))}
-                                      <th className="px-5 py-4 text-center w-[17%]">
-                                        {t('pages.myMenus.assignedUsers')}
-                                      </th>
-                                      <th className="px-5 py-4 text-center w-[15%]">
-                                        {t('pages.myMenus.actions')}
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {container.menus.map(menu => {
-                                      const summary =
-                                        getTemplateNutritionSummary(menu)
-                                      const menuAssignedUsers =
-                                        menu?.assignedUsers || []
-
-                                      return (
-                                        <tr
-                                          key={menu.id}
-                                          onClick={() => {
-                                            setSelectedContainerKey(
-                                              container.key
-                                            )
-                                            setSelectedContainerMenuId(menu.id)
-                                            setSelectedContainerModalOpen(true)
-                                          }}
-                                          className="border-b border-slate-100 align-top last:border-b-0 cursor-pointer transition hover:bg-slate-50/80"
-                                        >
-                                          <td className="px-5 py-5">
-                                            <div>
-                                              <h4 className="text-lg font-semibold text-slate-900">
-                                                {menu.parsedMenuName}
-                                              </h4>
-                                            </div>
-                                          </td>
-                                          <td className="w-[100px] max-w-[100px] px-5 py-5">
-                                            <span className="inline-flex w-full max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                                              {menu.id}
-                                            </span>
-                                          </td>
-                                          {MENU_MEAL_SECTIONS.map(section => {
-                                            const mealTotals =
-                                              summary.perMeal[section.id]
-                                            return (
-                                              <td
-                                                key={section.id}
-                                                className="px-4 py-5 text-center"
-                                              >
-                                                <div className="mx-auto inline-flex min-w-12 items-center justify-center rounded-full bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-600">
-                                                  {menu?.[section.id]?.length ||
-                                                    0}
-                                                </div>
-                                                <p className="mt-2 text-[11px] text-slate-500">
-                                                  {Math.round(
-                                                    mealTotals.calories
-                                                  )}{' '}
-                                                  kcal
-                                                </p>
-                                              </td>
-                                            )
-                                          })}
-                                          <td className="px-5 py-5">
-                                            {menuAssignedUsers.length === 0 ? (
-                                              <p className="text-sm italic text-slate-500">
-                                                {t(
-                                                  'pages.myMenus.noClientsAssigned'
-                                                )}
-                                              </p>
-                                            ) : (
-                                              <div className="flex items-center">
-                                                {menuAssignedUsers
-                                                  .slice(0, 3)
-                                                  .map((assignment, index) => {
-                                                    const clientName =
-                                                      clients.find(client => {
-                                                        const clientId =
-                                                          Array.isArray(
-                                                            client?.user?.userId
-                                                          )
-                                                            ? client.user
-                                                                .userId[0]
-                                                            : client?.user
-                                                                ?.userId
-                                                        return (
-                                                          clientId ===
-                                                          assignment?.userId
-                                                        )
-                                                      })?.user?.userData
-                                                        ?.name || 'User'
-                                                    const initials = clientName
-                                                      .split(' ')
-                                                      .filter(Boolean)
-                                                      .slice(0, 2)
-                                                      .map(part =>
-                                                        part[0]?.toUpperCase()
-                                                      )
-                                                      .join('')
-
-                                                    return (
-                                                      <div
-                                                        key={`${menu.id}-${assignment?.userId}-${index}`}
-                                                        className="-ml-1.5 first:ml-0 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-semibold text-slate-700"
-                                                        title={clientName}
-                                                      >
-                                                        {initials || 'U'}
-                                                      </div>
-                                                    )
-                                                  })}
-                                                {menuAssignedUsers.length >
-                                                3 ? (
-                                                  <div className="-ml-1.5 flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-xs font-semibold text-slate-600">
-                                                    +
-                                                    {menuAssignedUsers.length -
-                                                      3}
-                                                  </div>
-                                                ) : null}
-                                              </div>
-                                            )}
-                                          </td>
-                                          <td
-                                            className="px-5 py-5"
-                                            onClick={e => e.stopPropagation()}
-                                          >
-                                            <div className="flex items-center justify-end">
-                                              <ControlsDropdown
-                                                absolute
-                                                actions={[
-                                                  {
-                                                    icon: DocumentDuplicateIcon,
-                                                    labelKey: 'pages.menus.duplicate',
-                                                    colorClass: 'text-violet-700',
-                                                    onClick: () => handleOpenDuplicateModal(menu)
-                                                  },
-                                                  {
-                                                    icon: PencilIcon,
-                                                    labelKey: 'common.edit',
-                                                    colorClass: 'text-blue-700',
-                                                    onClick: () => handleLoadTemplateForEditing(menu)
-                                                  },
-                                                  ...(isAdmin ? [{
-                                                    icon: GlobeAltIcon,
-                                                    labelKey: 'common.controls.copyToCountry',
-                                                    colorClass: 'text-emerald-700',
-                                                    onClick: () => handleOpenCopyModal(menu)
-                                                  }] : []),
-                                                  {
-                                                    icon: TrashIcon,
-                                                    labelKey: 'common.delete',
-                                                    colorClass: 'text-red-600',
-                                                    disabled: deletingTemplateId === menu.id,
-                                                    loading: deletingTemplateId === menu.id,
-                                                    onClick: () => handleDeleteTemplate(menu.id)
-                                                  }
-                                                ]}
-                                              />
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )
-                                    })}
-                                  </tbody>
-                                </table>
                               </div>
                             </div>
                           )
@@ -4489,6 +4397,109 @@ const MyMenus = () => {
 
         {renderItemPreviewModal()}
 
+        {/* Text-to-Menu Modal */}
+        {isTextToMenuOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <SparklesIcon className="w-5 h-5 text-violet-500" />
+                  <h3 className="text-xl font-bold text-gray-900">{t('pages.menus.textToMenu.title') || 'Generate Menu from Text'}</h3>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsTextToMenuOpen(false)
+                    setTextToMenuInput('')
+                    setTextToMenuName('')
+                    setTextToMenuCountry('RO')
+                    setTextToMenuContainerContext(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-700"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {t('pages.menus.textToMenu.describe') || 'Describe the menu'}
+                  </label>
+                  <textarea
+                    value={textToMenuInput}
+                    onChange={e => setTextToMenuInput(e.target.value)}
+                    rows={5}
+                    placeholder={t('pages.menus.textToMenu.placeholder') || 'e.g. A 1800 calorie Mediterranean day: oatmeal and banana for breakfast, grilled chicken with salad for lunch, salmon with vegetables for dinner, Greek yogurt as snack.'}
+                    className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 resize-none text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {t('pages.menus.textToMenu.menuName') || 'Menu name (optional)'}
+                  </label>
+                  <input
+                    type="text"
+                    value={textToMenuName}
+                    onChange={e => setTextToMenuName(e.target.value)}
+                    placeholder={t('pages.menus.textToMenu.menuNamePlaceholder') || 'Leave blank to auto-generate'}
+                    className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {t('pages.menus.textToMenu.country') || 'Country'}
+                  </label>
+                  <select
+                    value={textToMenuCountry}
+                    onChange={e => setTextToMenuCountry(e.target.value)}
+                    className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-sm"
+                  >
+                    <option value="RO">Romania (RO)</option>
+                    <option value="US">United States (US)</option>
+                    <option value="IT">Italy (IT)</option>
+                    <option value="ES">Spain (ES)</option>
+                    <option value="UK">United Kingdom (UK)</option>
+                    <option value="DE">Germany (DE)</option>
+                    <option value="FR">France (FR)</option>
+                    <option value="HU">Hungary (HU)</option>
+                  </select>
+                </div>
+
+                <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg text-sm text-violet-800">
+                  {t('pages.menus.textToMenu.hint') || 'The AI will generate a menu from your description and match items against the existing food database. Items not found in the database will be skipped.'}
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setIsTextToMenuOpen(false)
+                    setTextToMenuInput('')
+                    setTextToMenuName('')
+                    setTextToMenuCountry('RO')
+                    setTextToMenuContainerContext(null)
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 bg-white rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50"
+                  disabled={generatingMenu}
+                >
+                  {t('common.cancel') || 'Cancel'}
+                </button>
+                <button
+                  onClick={handleGenerateFromText}
+                  disabled={generatingMenu || !textToMenuInput.trim()}
+                  className="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {generatingMenu
+                    ? t('pages.menus.textToMenu.generating') || 'Generating...'
+                    : t('pages.menus.textToMenu.generate') || 'Generate Menu'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Copy Template Modal */}
         {isCopyModalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -5076,6 +5087,14 @@ const MyMenus = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openTextToMenu(selectedContainer)}
+                  disabled={isSelectedContainerActionBusy}
+                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                  title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                >
+                  <SparklesIcon className="h-4 w-4" />
+                </button>
                 <button
                   onClick={() => openBuilderForContainer(selectedContainer)}
                   disabled={isSelectedContainerActionBusy}

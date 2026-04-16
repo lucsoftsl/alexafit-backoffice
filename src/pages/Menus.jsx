@@ -24,7 +24,8 @@ import {
   assignMenuTemplateToUser,
   getUserMenus,
   removeMenuFromUser,
-  copyMenuTemplateToCountry
+  copyMenuTemplateToCountry,
+  generateMenuFromText
 } from '../services/api'
 import { selectIsAdmin } from '../store/userSlice'
 import { useAuth } from '../contexts/AuthContext'
@@ -317,6 +318,17 @@ const Menus = () => {
   const [selectedTemplateForCopy, setSelectedTemplateForCopy] = useState(null)
   const [copyCountryCode, setCopyCountryCode] = useState('RO')
   const [copyingTemplate, setCopyingTemplate] = useState(false)
+
+  // Text-to-menu modal state
+  const [isTextToMenuOpen, setIsTextToMenuOpen] = useState(false)
+  const [textToMenuInput, setTextToMenuInput] = useState('')
+  const [textToMenuName, setTextToMenuName] = useState('')
+  const [textToMenuCountry, setTextToMenuCountry] = useState('RO')
+  const [generatingMenu, setGeneratingMenu] = useState(false)
+  const [textToMenuContainerContext, setTextToMenuContainerContext] = useState(null)
+
+  // Per-container expand/collapse
+  const [expandedContainers, setExpandedContainers] = useState({})
   const [viewingItem, setViewingItem] = useState(null)
   const [viewingItemServingId, setViewingItemServingId] = useState('')
   const [viewingItemAmount, setViewingItemAmount] = useState('')
@@ -1275,6 +1287,57 @@ const Menus = () => {
     }
   }
 
+  const openTextToMenu = (containerGroup = null) => {
+    setTextToMenuContainerContext(containerGroup || null)
+    setTextToMenuInput('')
+    setTextToMenuName('')
+    setTextToMenuCountry('RO')
+    setIsTextToMenuOpen(true)
+  }
+
+  const resolveMenuName = () => {
+    if (textToMenuName.trim()) return textToMenuName.trim()
+    const dayLabel = t('pages.myMenus.dayLabel') || 'Day'
+    if (textToMenuContainerContext) {
+      const label = getNextContainerMenuLabel(textToMenuContainerContext, dayLabel)
+      return buildStoredMenuName(textToMenuContainerContext.containerName, label, getNextContainerMenuOrder(textToMenuContainerContext))
+    }
+    return null
+  }
+
+  const handleGenerateFromText = async () => {
+    if (!textToMenuInput.trim()) {
+      alert(t('pages.menus.textToMenu.emptyError') || 'Please enter a description for your menu')
+      return
+    }
+    try {
+      setGeneratingMenu(true)
+      const result = await generateMenuFromText({
+        text: textToMenuInput.trim(),
+        menuName: resolveMenuName(),
+        countryCode: textToMenuCountry,
+        createdByUserId: currentUser?.uid || null,
+        dayLabel: t('pages.myMenus.dayLabel') || 'Day'
+      })
+      if (result?.ok && result?.data) {
+        alert(t('pages.menus.textToMenu.success') || 'Menu generated successfully!')
+        setIsTextToMenuOpen(false)
+        setTextToMenuInput('')
+        setTextToMenuName('')
+        setTextToMenuCountry('RO')
+        setTextToMenuContainerContext(null)
+        await loadTemplates()
+      } else {
+        throw new Error(result?.error || 'Failed to generate menu')
+      }
+    } catch (e) {
+      console.error('Failed to generate menu from text', e)
+      alert(`${t('pages.menus.textToMenu.error') || 'Failed to generate menu'}: ${e.message}`)
+    } finally {
+      setGeneratingMenu(false)
+    }
+  }
+
   const computeMealTotals = (items, mealKey) => {
     return items.reduce(
       (acc, item, index) => {
@@ -1838,13 +1901,22 @@ const Menus = () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={loadTemplates}
-            disabled={refreshing || loadingTemplates}
-            className="btn-primary"
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => openTextToMenu()}
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+            >
+              <SparklesIcon className="w-4 h-4" />
+              {t('pages.menus.generateFromText') || 'Generate from Text'}
+            </button>
+            <button
+              onClick={loadTemplates}
+              disabled={refreshing || loadingTemplates}
+              className="btn-primary"
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -2467,24 +2539,35 @@ const Menus = () => {
                     {totalItems}
                   </span>
                 </div>
-                <button
-                  onClick={handleCreateTemplate}
-                  disabled={
-                    submitting ||
-                    (!isContainerScopedBuilder &&
-                      !menuContainerName.trim()) ||
-                    (isContainerScopedBuilder && !menuName.trim())
-                  }
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-60 sm:w-auto"
-                >
-                  {submitting
-                    ? editingTemplateId
-                      ? t('pages.menus.updating') || 'Updating...'
-                      : t('pages.menus.creating') || 'Creating...'
-                    : editingTemplateId
-                      ? t('pages.menus.updateTemplate') || 'Update Template'
-                      : t('common.create')}
-                </button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  {!editingTemplateId && (
+                    <button
+                      onClick={() => openTextToMenu()}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl"
+                      title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                    >
+                      <SparklesIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={handleCreateTemplate}
+                    disabled={
+                      submitting ||
+                      (!isContainerScopedBuilder &&
+                        !menuContainerName.trim()) ||
+                      (isContainerScopedBuilder && !menuName.trim())
+                    }
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-60 sm:flex-none"
+                  >
+                    {submitting
+                      ? editingTemplateId
+                        ? t('pages.menus.updating') || 'Updating...'
+                        : t('pages.menus.creating') || 'Creating...'
+                      : editingTemplateId
+                        ? t('pages.menus.updateTemplate') || 'Update Template'
+                        : t('common.create')}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2586,29 +2669,55 @@ const Menus = () => {
                         'No templates found'}
                 </div>
               ) : (
-                getCurrentTemplates().map(group => (
+                getCurrentTemplates().map(group => {
+                  const isGroupExpanded = !!expandedContainers[group.key]
+                  return (
                   <div key={group.key} className={`${glassCardClass} p-5 md:p-6`}>
                     <div className="relative">
-                      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div>
-                          <h3 className="text-2xl font-semibold text-gray-900">
-                            {group.containerName}
-                          </h3>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {group.menus.length} {t('pages.myMenus.menus')}
-                          </p>
-                        </div>
+                      <div className="mb-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <button
                           type="button"
-                          onClick={() => handleAddMenuToContainer(group)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                          className="flex-1 text-left flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/20"
+                          onClick={() =>
+                            setExpandedContainers(prev => ({
+                              ...prev,
+                              [group.key]: !prev[group.key]
+                            }))
+                          }
                         >
-                          <PlusIcon className="h-4 w-4" />
-                          {t('pages.myMenus.addDay')}
+                          {isGroupExpanded
+                            ? <ChevronUpIcon className="w-5 h-5 text-gray-500 shrink-0" />
+                            : <ChevronDownIcon className="w-5 h-5 text-gray-500 shrink-0" />}
+                          <div>
+                            <h3 className="text-2xl font-semibold text-gray-900">
+                              {group.containerName}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-500">
+                              {group.menus.length} {t('pages.myMenus.menus')}
+                            </p>
+                          </div>
                         </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openTextToMenu(group)}
+                            className="inline-flex items-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                            title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                          >
+                            <SparklesIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAddMenuToContainer(group)}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                          >
+                            <PlusIcon className="h-4 w-4" />
+                            {t('pages.myMenus.addDay')}
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="relative overflow-visible rounded-3xl border border-slate-200/80 bg-white/85 shadow-sm">
+                      {isGroupExpanded && <div className="relative overflow-visible rounded-3xl border border-slate-200/80 bg-white/85 shadow-sm mt-4">
                         <div className="rounded-3xl">
                           <table className="min-w-full table-fixed">
                           <thead className="bg-slate-50/90">
@@ -2730,10 +2839,10 @@ const Menus = () => {
                           </tbody>
                           </table>
                         </div>
-                      </div>
+                      </div>}
                     </div>
                   </div>
-                ))
+                )})
               )}
             </div>
 
@@ -3665,6 +3774,109 @@ const Menus = () => {
       )}
 
       {renderItemPreviewModal()}
+
+      {/* Text-to-Menu Modal */}
+      {isTextToMenuOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <SparklesIcon className="w-5 h-5 text-violet-500" />
+                <h3 className="text-xl font-bold text-gray-900">{t('pages.menus.textToMenu.title') || 'Generate Menu from Text'}</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setIsTextToMenuOpen(false)
+                  setTextToMenuInput('')
+                  setTextToMenuName('')
+                  setTextToMenuCountry('RO')
+                  setTextToMenuContainerContext(null)
+                }}
+                className="text-gray-400 hover:text-gray-700"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {t('pages.menus.textToMenu.describe') || 'Describe the menu'}
+                </label>
+                <textarea
+                  value={textToMenuInput}
+                  onChange={e => setTextToMenuInput(e.target.value)}
+                  rows={5}
+                  placeholder={t('pages.menus.textToMenu.placeholder') || 'e.g. A 1800 calorie Mediterranean day: oatmeal and banana for breakfast, grilled chicken with salad for lunch, salmon with vegetables for dinner, Greek yogurt as snack.'}
+                  className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 resize-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {t('pages.menus.textToMenu.menuName') || 'Menu name (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={textToMenuName}
+                  onChange={e => setTextToMenuName(e.target.value)}
+                  placeholder={t('pages.menus.textToMenu.menuNamePlaceholder') || 'Leave blank to auto-generate'}
+                  className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {t('pages.menus.textToMenu.country') || 'Country'}
+                </label>
+                <select
+                  value={textToMenuCountry}
+                  onChange={e => setTextToMenuCountry(e.target.value)}
+                  className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-sm"
+                >
+                  <option value="RO">Romania (RO)</option>
+                  <option value="US">United States (US)</option>
+                  <option value="IT">Italy (IT)</option>
+                  <option value="ES">Spain (ES)</option>
+                  <option value="UK">United Kingdom (UK)</option>
+                  <option value="DE">Germany (DE)</option>
+                  <option value="FR">France (FR)</option>
+                  <option value="HU">Hungary (HU)</option>
+                </select>
+              </div>
+
+              <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg text-sm text-violet-800">
+                {t('pages.menus.textToMenu.hint') || 'The AI will generate a menu from your description and match items against the existing food database. Items not found in the database will be skipped.'}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setIsTextToMenuOpen(false)
+                  setTextToMenuInput('')
+                  setTextToMenuName('')
+                  setTextToMenuCountry('RO')
+                  setTextToMenuContainerContext(null)
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 bg-white rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50"
+                disabled={generatingMenu}
+              >
+                {t('common.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={handleGenerateFromText}
+                disabled={generatingMenu || !textToMenuInput.trim()}
+                className="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {generatingMenu
+                  ? t('pages.menus.textToMenu.generating') || 'Generating...'
+                  : t('pages.menus.textToMenu.generate') || 'Generate Menu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Copy Template Modal */}
       {isCopyModalOpen && (

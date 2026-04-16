@@ -1190,7 +1190,22 @@
       "removeSuccess": "Menu retiré avec succès !",
       "removeFail": "Échec de la suppression du menu",
       "confirmDeleteTemplate": "Voulez-vous vraiment supprimer ce modèle ?",
-      "duplicateFail": "Échec de la duplication du modèle de menu"
+      "duplicateFail": "Échec de la duplication du modèle de menu",
+      "generateFromText": "Generer depuis un texte",
+      "textToMenu": {
+        "title": "Generer un menu depuis un texte",
+        "describe": "Decrivez le menu",
+        "placeholder": "ex. Une journee mediterraneenne a 1800 calories : flocons d'avoine et banane au petit-dejeuner, poulet grille et salade au dejeuner, saumon et legumes au diner, yaourt grec en collation.",
+        "menuName": "Nom du menu (optionnel)",
+        "menuNamePlaceholder": "Laisser vide pour generer automatiquement",
+        "country": "Pays",
+        "hint": "L'IA generera un menu a partir de votre description et recherchera les elements dans la base de donnees existante. Les elements introuvables seront ignores.",
+        "generate": "Generer le menu",
+        "generating": "Generation en cours...",
+        "emptyError": "Veuillez entrer une description pour votre menu",
+        "success": "Menu genere avec succes !",
+        "error": "Echec de la generation du menu"
+      }
     },
     "subscribers": {
       "title": "Abonnés",
