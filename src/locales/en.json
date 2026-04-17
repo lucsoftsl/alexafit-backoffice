@@ -1335,6 +1335,8 @@
       "tip3": "Enable user assignment when relevant.",
       "menuBuilder": "Menu Builder",
       "curateMeals": "Curate meals, tweak servings, and save as reusable templates.",
+      "showRecipeDetailsInPdf": "Show recipe details in PDF",
+      "recipeDetailsSection": "Recipe details",
       "totalMenu": "Total Menu",
       "breakfast": "Breakfast",
       "lunch": "Lunch",

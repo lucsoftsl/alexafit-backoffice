@@ -236,6 +236,410 @@ const MENU_MEAL_SECTIONS = [
 
 const roundMacro = value =>
   Math.round((parseNumber(value) + Number.EPSILON) * 10) / 10
+const shouldShowRecipeDetailsInPdf = item =>
+  detectIsRecipe(item) ? item?.showRecipeDetailsInPdf === true : false
+const parseIngredientNutrients = nutrients => {
+  if (!nutrients) return {}
+  if (typeof nutrients === 'object') return nutrients
+  if (typeof nutrients === 'string') {
+    try {
+      const parsed = JSON.parse(nutrients)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+const getIngredientAmountInBaseUnit = ingredient => {
+  const quantity = parseNumber(ingredient?.quantity ?? ingredient?.weight)
+  const unit = normalizeServingUnitKey(ingredient?.unit || 'g')
+
+  if (unit === 'g' || unit === 'ml') return quantity
+  if (unit === 'oz') return quantity * OZ_TO_GRAMS
+  if (unit === 'fl oz') return quantity * FL_OZ_TO_ML
+
+  const servingValue = parseNumber(ingredient?.value ?? ingredient?.amount)
+  return servingValue > 0 ? quantity * servingValue : quantity
+}
+const toEditableIngredientEntry = ingredient => {
+  const fallbackPer100 = getPer100FromRecipeIngredientTotals(ingredient)
+
+  return {
+    id: ingredient?.id || null,
+    name: String(ingredient?.name || '').trim(),
+    quantity:
+      ingredient?.quantity !== undefined && ingredient?.quantity !== null
+        ? ingredient.quantity
+        : (ingredient?.weight ?? ''),
+    unit: String(ingredient?.unit || 'g').trim() || 'g',
+    caloriesPer100:
+      parseNumber(ingredient?.caloriesPer100) || fallbackPer100.caloriesPer100,
+    nutrientsPer100:
+      Object.keys(parseIngredientNutrients(ingredient?.nutrientsPer100))
+        .length > 0
+        ? parseIngredientNutrients(ingredient?.nutrientsPer100)
+        : fallbackPer100.nutrientsPer100
+  }
+}
+const createEmptyEditableIngredient = () => ({
+  id: null,
+  name: '',
+  quantity: '',
+  unit: 'g',
+  caloriesPer100: 0,
+  nutrientsPer100: {}
+})
+const getPer100FromRecipeIngredientTotals = ingredient => {
+  const baseWeight = parseNumber(
+    ingredient?.quantity ??
+      ingredient?.weight ??
+      ingredient?.originalWeight ??
+      ingredient?.weightInGrams
+  )
+  if (baseWeight <= 0) {
+    return {
+      caloriesPer100: 0,
+      nutrientsPer100: {}
+    }
+  }
+
+  return {
+    caloriesPer100:
+      (parseNumber(
+        ingredient?.calorieAmount ?? ingredient?.originalCalorieAmount
+      ) *
+        100) /
+      baseWeight,
+    nutrientsPer100: {
+      proteinsInGrams:
+        (parseNumber(
+          ingredient?.proteinAmount ?? ingredient?.originalProteinAmount
+        ) *
+          100) /
+        baseWeight,
+      carbohydratesInGrams:
+        (parseNumber(
+          ingredient?.carbohydateAmount ??
+            ingredient?.carbohydrateAmount ??
+            ingredient?.originalCarbohydrateAmount
+        ) *
+          100) /
+        baseWeight,
+      fatInGrams:
+        (parseNumber(ingredient?.fatAmount ?? ingredient?.originalFatAmount) *
+          100) /
+        baseWeight
+    }
+  }
+}
+const mapItemToEditableIngredients = item => {
+  const ingredients = Array.isArray(item?.ingredients) ? item.ingredients : []
+  if (ingredients.length > 0) {
+    return ingredients
+      .map(toEditableIngredientEntry)
+      .filter(entry => entry.name)
+  }
+
+  return Array.isArray(item?.ingredientNames)
+    ? item.ingredientNames
+        .map(entry => ({
+          id: null,
+          name: String(entry || '').trim(),
+          quantity: '',
+          unit: 'g',
+          caloriesPer100: 0,
+          nutrientsPer100: {}
+        }))
+        .filter(entry => entry.name)
+    : []
+}
+const enrichRecipeIngredientsWithDetails = async ingredients => {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) {
+    return []
+  }
+
+  const ingredientIds = ingredients
+    .map(ingredient => ingredient?.id)
+    .filter(Boolean)
+  let detailedMap = {}
+
+  if (ingredientIds.length > 0) {
+    try {
+      const ingredientResp = await getItemsByIds({ ids: ingredientIds })
+      const detailedItems = ingredientResp?.data || ingredientResp?.items || []
+      detailedMap = detailedItems.reduce((acc, item) => {
+        const id = item?.id || item?.itemId || item?._id
+        if (id) {
+          acc[id] = normalizeMenuItemShape(item)
+        }
+        return acc
+      }, {})
+    } catch (error) {
+      console.warn('Failed to enrich recipe ingredients', error)
+    }
+  }
+
+  return ingredients.map(ingredient => {
+    const detailed = ingredient?.id ? detailedMap[ingredient.id] : null
+    const selectedIngredientUnit = ingredient?.unit || 'g'
+    const selectedIngredientQuantity = parseNumber(
+      ingredient?.quantity ?? ingredient?.weight ?? 0
+    )
+    const fallbackPer100 = getPer100FromRecipeIngredientTotals(ingredient)
+
+    return {
+      ...ingredient,
+      id: ingredient?.id || detailed?.id || null,
+      name: ingredient?.name || detailed?.name || '',
+      quantity: selectedIngredientQuantity,
+      weight: selectedIngredientQuantity,
+      unit: selectedIngredientUnit,
+      caloriesPer100:
+        parseNumber(detailed?.caloriesPer100) ||
+        parseNumber(ingredient?.caloriesPer100) ||
+        fallbackPer100.caloriesPer100,
+      nutrientsPer100:
+        (detailed?.nutrientsPer100 &&
+        Object.keys(parseIngredientNutrients(detailed.nutrientsPer100)).length >
+          0
+          ? parseIngredientNutrients(detailed.nutrientsPer100)
+          : null) ||
+        (Object.keys(parseIngredientNutrients(ingredient?.nutrientsPer100))
+          .length > 0
+          ? parseIngredientNutrients(ingredient?.nutrientsPer100)
+          : null) ||
+        fallbackPer100.nutrientsPer100,
+      isLiquid: detailed?.isLiquid ?? ingredient?.isLiquid,
+      servingOptions:
+        detailed?.servingOptions ||
+        parseServingOptions(ingredient?.servingOptions)
+    }
+  })
+}
+const hasIngredientNutritionData = ingredient => {
+  const nutrients = parseIngredientNutrients(ingredient?.nutrientsPer100)
+  return (
+    parseNumber(ingredient?.caloriesPer100) > 0 ||
+    parseNumber(nutrients?.proteinsInGrams) > 0 ||
+    parseNumber(nutrients?.carbohydratesInGrams) > 0 ||
+    parseNumber(nutrients?.fatInGrams) > 0
+  )
+}
+const calculateStructuredMealIngredientNutrition = ingredient => {
+  const amountInBaseUnit = getIngredientAmountInBaseUnit(ingredient)
+  const nutrientsPer100 = parseIngredientNutrients(ingredient?.nutrientsPer100)
+  const ratio = amountInBaseUnit / 100
+
+  return {
+    calories: parseNumber(ingredient?.caloriesPer100) * ratio,
+    proteinsInGrams: parseNumber(nutrientsPer100?.proteinsInGrams) * ratio,
+    carbohydratesInGrams:
+      parseNumber(nutrientsPer100?.carbohydratesInGrams) * ratio,
+    fatInGrams: parseNumber(nutrientsPer100?.fatInGrams) * ratio
+  }
+}
+const calculateStructuredMealDraftSummary = draft =>
+  (draft?.ingredients || []).reduce(
+    (acc, ingredient) => {
+      const ingredientTotals =
+        calculateStructuredMealIngredientNutrition(ingredient)
+      return {
+        calories: acc.calories + ingredientTotals.calories,
+        proteinsInGrams: acc.proteinsInGrams + ingredientTotals.proteinsInGrams,
+        carbohydratesInGrams:
+          acc.carbohydratesInGrams + ingredientTotals.carbohydratesInGrams,
+        fatInGrams: acc.fatInGrams + ingredientTotals.fatInGrams
+      }
+    },
+    {
+      calories: 0,
+      proteinsInGrams: 0,
+      carbohydratesInGrams: 0,
+      fatInGrams: 0
+    }
+  )
+const isStructuredMealRecipeItem = item =>
+  detectIsRecipe(item) &&
+  Array.isArray(item?.ingredients) &&
+  item.ingredients.length > 0
+const calculateStructuredMealItemSummary = item => {
+  const ingredientSummary = calculateStructuredMealDraftSummary({
+    ingredients: item?.ingredients || []
+  })
+
+  if (
+    ingredientSummary.calories > 0 ||
+    ingredientSummary.proteinsInGrams > 0 ||
+    ingredientSummary.carbohydratesInGrams > 0 ||
+    ingredientSummary.fatInGrams > 0
+  ) {
+    return ingredientSummary
+  }
+
+  const calculated = calculateDisplayValues(
+    item,
+    getItemSelectedAmount(item),
+    parseNumber(item?.originalServingAmount) || 100,
+    getItemDisplayUnit(item)
+  )
+  const nutrients = safeNutrients(calculated?.nutrients || {})
+
+  return {
+    calories: parseNumber(calculated?.calories),
+    proteinsInGrams: parseNumber(nutrients?.proteinsInGrams),
+    carbohydratesInGrams: parseNumber(nutrients?.carbohydratesInGrams),
+    fatInGrams: parseNumber(nutrients?.fatInGrams)
+  }
+}
+
+const mapItemToEditableSteps = item =>
+  Array.isArray(item?.recipeSteps?.instructions)
+    ? item.recipeSteps.instructions
+        .map(step => String(step || '').trim())
+        .filter(Boolean)
+    : []
+
+const createStructuredMealDraft = ({
+  mode,
+  mealKey,
+  item = null,
+  itemIndex = null
+}) => ({
+  mode,
+  mealKey,
+  itemIndex,
+  baseItem: item ? normalizeMenuItemShape(item) : null,
+  name: String(item?.name || '').trim(),
+  photoUrl: String(item?.photoUrl || '').trim(),
+  ingredients: mapItemToEditableIngredients(item),
+  steps: mapItemToEditableSteps(item),
+  showRecipeDetailsInPdf: shouldShowRecipeDetailsInPdf(item),
+  recipeSearchText: '',
+  recipeSearchResults: [],
+  searchingRecipes: false,
+  ingredientSearchText: '',
+  ingredientSearchResults: [],
+  searchingIngredients: false,
+  numberOfRecipeServings:
+    parseNumber(item?.numberOfRecipeServings || item?.originalServings) || 1
+})
+
+const applyRecipeToStructuredMealDraft = (draft, item) => {
+  const normalizedItem = normalizeMenuItemShape(item)
+  return {
+    ...draft,
+    baseItem: normalizedItem,
+    name: String(normalizedItem?.name || draft?.name || '').trim(),
+    photoUrl: String(normalizedItem?.photoUrl || '').trim(),
+    ingredients: mapItemToEditableIngredients(normalizedItem),
+    steps: mapItemToEditableSteps(normalizedItem),
+    numberOfRecipeServings:
+      parseNumber(
+        normalizedItem?.numberOfRecipeServings ||
+          normalizedItem?.originalServings
+      ) ||
+      draft?.numberOfRecipeServings ||
+      1
+  }
+}
+
+const buildStructuredMealItemFromDraft = draft => {
+  const ingredients = (draft?.ingredients || [])
+    .map(entry => ({
+      id: entry?.id || null,
+      name: String(entry?.name || '').trim(),
+      quantity:
+        entry?.quantity === '' ||
+        entry?.quantity === null ||
+        entry?.quantity === undefined
+          ? ''
+          : parseNumber(entry.quantity),
+      weight:
+        entry?.quantity === '' ||
+        entry?.quantity === null ||
+        entry?.quantity === undefined
+          ? ''
+          : parseNumber(entry.quantity),
+      unit: String(entry?.unit || 'g').trim() || 'g',
+      caloriesPer100: parseNumber(entry?.caloriesPer100),
+      nutrientsPer100: parseIngredientNutrients(entry?.nutrientsPer100)
+    }))
+    .filter(entry => entry.name)
+  const ingredientNames = ingredients.map(entry => entry.name)
+  const instructions = (draft?.steps || [])
+    .map(entry => String(entry || '').trim())
+    .filter(Boolean)
+  const baseItem = draft?.baseItem ? { ...draft.baseItem } : {}
+  const servings = parseNumber(draft?.numberOfRecipeServings) || 1
+  const recipeTotals = ingredients.reduce(
+    (acc, ingredient) => {
+      const amountInBaseUnit = getIngredientAmountInBaseUnit(ingredient)
+      const nutrientsPer100 = parseIngredientNutrients(
+        ingredient?.nutrientsPer100
+      )
+      return {
+        calories:
+          acc.calories +
+          (parseNumber(ingredient?.caloriesPer100) * amountInBaseUnit) / 100,
+        totalQuantity: acc.totalQuantity + amountInBaseUnit,
+        proteinsInGrams:
+          acc.proteinsInGrams +
+          (amountInBaseUnit * parseNumber(nutrientsPer100?.proteinsInGrams)) /
+            100,
+        carbohydratesInGrams:
+          acc.carbohydratesInGrams +
+          (amountInBaseUnit *
+            parseNumber(nutrientsPer100?.carbohydratesInGrams)) /
+            100,
+        fatInGrams:
+          acc.fatInGrams +
+          (amountInBaseUnit * parseNumber(nutrientsPer100?.fatInGrams)) / 100
+      }
+    },
+    {
+      calories: 0,
+      totalQuantity: 0,
+      proteinsInGrams: 0,
+      carbohydratesInGrams: 0,
+      fatInGrams: 0
+    }
+  )
+  const recipeTotalQuantity = recipeTotals.totalQuantity || 100
+  const caloriesPer100 = (recipeTotals.calories / recipeTotalQuantity) * 100
+  const nutrientsPer100 = {
+    proteinsInGrams: (recipeTotals.proteinsInGrams / recipeTotalQuantity) * 100,
+    carbohydratesInGrams:
+      (recipeTotals.carbohydratesInGrams / recipeTotalQuantity) * 100,
+    fatInGrams: (recipeTotals.fatInGrams / recipeTotalQuantity) * 100
+  }
+
+  return {
+    ...baseItem,
+    type: 'recipe',
+    name: String(draft?.name || '').trim(),
+    photoUrl: String(draft?.photoUrl || '').trim(),
+    ingredientNames,
+    ingredients,
+    recipeSteps: {
+      ...(baseItem?.recipeSteps || {}),
+      instructions
+    },
+    showRecipeDetailsInPdf:
+      draft?.mealKey === 'snackPlan'
+        ? true
+        : draft?.showRecipeDetailsInPdf === true,
+    numberOfRecipeServings: servings,
+    originalServings: servings,
+    caloriesPer100,
+    nutrientsPer100,
+    originalServingAmount: recipeTotalQuantity,
+    originalServingId: null,
+    servingOptions: [],
+    quantity: recipeTotalQuantity,
+    changedServing: null
+  }
+}
 const getMenuItemTotalCalories = item => {
   const calculated = calculateDisplayValues(
     item,
@@ -245,6 +649,33 @@ const getMenuItemTotalCalories = item => {
   )
 
   return parseNumber(calculated?.calories)
+}
+const getPreferredStructuredMealAmount = (item, selectedServing = null) => {
+  if (selectedServing) {
+    return getDefaultAmountForSelectedServing(selectedServing)
+  }
+
+  const changedQuantity = parseOptionalNumber(item?.changedServing?.quantity)
+  if (changedQuantity !== null && changedQuantity > 0) {
+    return changedQuantity
+  }
+
+  const changedValue = parseOptionalNumber(item?.changedServing?.value)
+  if (changedValue !== null && changedValue > 0) {
+    return changedValue
+  }
+
+  const quantity = parseOptionalNumber(item?.quantity)
+  if (quantity !== null && quantity > 0) {
+    return quantity
+  }
+
+  const originalServingAmount = parseOptionalNumber(item?.originalServingAmount)
+  if (originalServingAmount !== null && originalServingAmount > 0) {
+    return originalServingAmount
+  }
+
+  return 100
 }
 const parsePositiveOrder = value => {
   const parsed = Number.parseInt(String(value || '').trim(), 10)
@@ -338,7 +769,9 @@ const getNextContainerMenuLabel = (container, dayLabel = 'Day') => {
   const normalizedDayLabel = String(dayLabel || 'Day').trim() || 'Day'
   const existingMenuNames = new Set(
     (container?.menus || []).map(menu =>
-      splitMenuName(menu?.name || '').menuName.trim().toLowerCase()
+      splitMenuName(menu?.name || '')
+        .menuName.trim()
+        .toLowerCase()
     )
   )
 
@@ -447,12 +880,20 @@ const getItemSelectedAmount = item => {
 const getTemplateMealTotals = items =>
   (items || []).reduce(
     (acc, item) => {
-      const calculated = calculateDisplayValues(
-        item,
-        getItemSelectedAmount(item),
-        parseNumber(item?.originalServingAmount) || 100,
-        getItemDisplayUnit(item)
-      )
+      const structuredMealSummary = isStructuredMealRecipeItem(item)
+        ? calculateStructuredMealItemSummary(item)
+        : null
+      const calculated = structuredMealSummary
+        ? {
+            calories: structuredMealSummary.calories,
+            nutrients: structuredMealSummary
+          }
+        : calculateDisplayValues(
+            item,
+            getItemSelectedAmount(item),
+            parseNumber(item?.originalServingAmount) || 100,
+            getItemDisplayUnit(item)
+          )
 
       return {
         calories: acc.calories + parseNumber(calculated?.calories),
@@ -560,7 +1001,8 @@ const MyMenus = () => {
   const [textToMenuName, setTextToMenuName] = useState('')
   const [textToMenuCountry, setTextToMenuCountry] = useState('RO')
   const [generatingMenu, setGeneratingMenu] = useState(false)
-  const [textToMenuContainerContext, setTextToMenuContainerContext] = useState(null)
+  const [textToMenuContainerContext, setTextToMenuContainerContext] =
+    useState(null)
 
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false)
   const [selectedTemplateForDuplicate, setSelectedTemplateForDuplicate] =
@@ -579,8 +1021,10 @@ const MyMenus = () => {
   const [exportingContainerPdf, setExportingContainerPdf] = useState(false)
   const [copyContainerName, setCopyContainerName] = useState('')
   const [copyingContainer, setCopyingContainer] = useState(false)
-  const [isCopyContainerToCountryModalOpen, setIsCopyContainerToCountryModalOpen] =
-    useState(false)
+  const [
+    isCopyContainerToCountryModalOpen,
+    setIsCopyContainerToCountryModalOpen
+  ] = useState(false)
   const [selectedContainerForCountryCopy, setSelectedContainerForCountryCopy] =
     useState(null)
   const [copyContainerToCountryName, setCopyContainerToCountryName] =
@@ -602,6 +1046,7 @@ const MyMenus = () => {
   const [studioOnlyRecipes, setStudioOnlyRecipes] = useState(false)
   const [studioEditingItemKey, setStudioEditingItemKey] = useState(null)
   const [studioDraftValues, setStudioDraftValues] = useState({})
+  const [structuredMealEditor, setStructuredMealEditor] = useState(null)
   const [savingStudioMenu, setSavingStudioMenu] = useState(false)
   const [viewingItemServingId, setViewingItemServingId] = useState('')
   const [viewingItemAmount, setViewingItemAmount] = useState('')
@@ -633,6 +1078,133 @@ const MyMenus = () => {
       )
     )
 
+  const openStructuredMealEditor = async ({
+    mode,
+    mealKey,
+    item = null,
+    itemIndex = null
+  }) => {
+    const initialDraft = createStructuredMealDraft({
+      mode,
+      mealKey,
+      item,
+      itemIndex
+    })
+    setStructuredMealEditor(initialDraft)
+
+    if (
+      detectIsRecipe(item) &&
+      Array.isArray(item?.ingredients) &&
+      item.ingredients.some(
+        ingredient => ingredient?.id && !hasIngredientNutritionData(ingredient)
+      )
+    ) {
+      const enrichedIngredients = await enrichRecipeIngredientsWithDetails(
+        item.ingredients
+      )
+      setStructuredMealEditor(prev => {
+        if (!prev) return prev
+        const isSameTarget =
+          prev.mode === mode &&
+          prev.mealKey === mealKey &&
+          prev.itemIndex === itemIndex &&
+          prev.name === initialDraft.name
+        if (!isSameTarget) return prev
+
+        return {
+          ...prev,
+          ingredients: enrichedIngredients
+            .map(toEditableIngredientEntry)
+            .filter(entry => entry.name)
+        }
+      })
+    }
+  }
+
+  const closeStructuredMealEditor = () => setStructuredMealEditor(null)
+
+  const updateStructuredMealEditor = updater =>
+    setStructuredMealEditor(prev =>
+      typeof updater === 'function' ? updater(prev) : updater
+    )
+
+  const handleStructuredMealRecipeSearch = async query => {
+    if (!query?.trim()) return []
+    const data = await searchFoodItems({
+      searchText: query.trim(),
+      userId: nutritionistId,
+      onlyRecipes: true,
+      countryCode
+    })
+    return (Array.isArray(data) ? data : []).filter(
+      item => !shouldHideLowQualitySearchItem(item)
+    )
+  }
+
+  const handleStructuredMealIngredientSearch = async query => {
+    if (!query?.trim()) return []
+    const data = await searchFoodItems({
+      searchText: query.trim(),
+      userId: nutritionistId,
+      onlyRecipes: false,
+      countryCode
+    })
+
+    return (Array.isArray(data) ? data : [])
+      .filter(item => !shouldHideLowQualitySearchItem(item))
+      .filter(item => !detectIsRecipe(item))
+  }
+
+  const importIngredientIntoStructuredMeal = async ingredientItem => {
+    const id =
+      ingredientItem?.id || ingredientItem?.itemId || ingredientItem?._id
+    let normalizedIngredient = normalizeMenuItemShape(ingredientItem)
+
+    if (id) {
+      try {
+        const resp = await getItemsByIds({ ids: [id] })
+        const detailed = resp?.data?.[0] || resp?.items?.[0]
+        if (detailed) {
+          normalizedIngredient = normalizeMenuItemShape(detailed)
+        }
+      } catch (error) {
+        console.warn('Failed to load structured meal ingredient details', error)
+      }
+    }
+
+    updateStructuredMealEditor(prev => ({
+      ...prev,
+      ingredientSearchText: '',
+      ingredientSearchResults: [],
+      searchingIngredients: false,
+      ingredients: [
+        ...prev.ingredients,
+        {
+          id:
+            normalizedIngredient?.id ||
+            normalizedIngredient?.itemId ||
+            normalizedIngredient?._id ||
+            null,
+          name: String(normalizedIngredient?.name || '').trim(),
+          quantity: 100,
+          weight: 100,
+          unit: normalizedIngredient?.isLiquid ? 'ml' : 'g',
+          caloriesPer100: parseNumber(normalizedIngredient?.caloriesPer100),
+          nutrientsPer100: parseIngredientNutrients(
+            normalizedIngredient?.nutrientsPer100
+          )
+        }
+      ]
+    }))
+  }
+
+  const importRecipeIntoStructuredMeal = async item => {
+    const enrichedItem = await prepareItemForMenuPlan(item)
+    updateStructuredMealEditor(prev =>
+      applyRecipeToStructuredMealDraft(prev, enrichedItem)
+    )
+  }
+
   const getInitialServingSelection = item => {
     const servingOptions = buildServingOptionsForMenuItem(
       item,
@@ -660,7 +1232,7 @@ const MyMenus = () => {
     const initialAmount =
       changedQuantity ??
       changedValue ??
-      getDefaultAmountForSelectedServing(selectedServing)
+      getPreferredStructuredMealAmount(item, selectedServing)
 
     return {
       servingOptions,
@@ -983,6 +1555,7 @@ const MyMenus = () => {
                 originalCalories: normalizedDetailed?.caloriesPer100,
                 originalNutrients: normalizedDetailed?.nutrientsPer100,
                 numberOfRecipeServings: originalServings,
+                showRecipeDetailsInPdf: item?.showRecipeDetailsInPdf === true,
                 originalServingAmount,
                 originalServingId
               }
@@ -992,23 +1565,24 @@ const MyMenus = () => {
                 normalizedDetailed?.ingredients &&
                 Array.isArray(normalizedDetailed.ingredients)
               ) {
-                enrichedData.ingredients = normalizedDetailed.ingredients.map(
-                  ingredient => ({
-                    ...ingredient,
-                    originalCalorieAmount: ingredient?.calorieAmount,
-                    originalCarbohydrateAmount: ingredient?.carbohydateAmount,
-                    originalFatAmount: ingredient?.fatAmount,
-                    originalProteinAmount: ingredient?.proteinAmount,
-                    originalWeight: ingredient?.weight,
-                    originalMacronutrientsEx: ingredient?.macronutrientsEx,
-                    calorieAmount: ingredient?.calorieAmount,
-                    carbohydateAmount: ingredient?.carbohydateAmount,
-                    fatAmount: ingredient?.fatAmount,
-                    proteinAmount: ingredient?.proteinAmount,
-                    weight: ingredient?.weight,
-                    macronutrientsEx: ingredient?.macronutrientsEx
-                  })
-                )
+                enrichedData.ingredients =
+                  await enrichRecipeIngredientsWithDetails(
+                    normalizedDetailed.ingredients.map(ingredient => ({
+                      ...ingredient,
+                      originalCalorieAmount: ingredient?.calorieAmount,
+                      originalCarbohydrateAmount: ingredient?.carbohydateAmount,
+                      originalFatAmount: ingredient?.fatAmount,
+                      originalProteinAmount: ingredient?.proteinAmount,
+                      originalWeight: ingredient?.weight,
+                      originalMacronutrientsEx: ingredient?.macronutrientsEx,
+                      calorieAmount: ingredient?.calorieAmount,
+                      carbohydateAmount: ingredient?.carbohydateAmount,
+                      fatAmount: ingredient?.fatAmount,
+                      proteinAmount: ingredient?.proteinAmount,
+                      weight: ingredient?.weight,
+                      macronutrientsEx: ingredient?.macronutrientsEx
+                    }))
+                  )
               }
 
               enriched = enrichedData
@@ -1090,11 +1664,48 @@ const MyMenus = () => {
       }
 
       if (selectionOverride?.servingOption) {
+        const normalizedServingOption = {
+          unitName:
+            selectionOverride.servingOption?.unitName ||
+            selectionOverride.servingOption?.unit ||
+            'g',
+          value: parseNumber(
+            selectionOverride.servingOption?.value ??
+              selectionOverride.servingOption?.amount ??
+              100
+          )
+        }
+        const normalizedQuantity =
+          parseOptionalNumber(selectionOverride.amount) ?? initialServingAmount
+        enriched.changedServing = {
+          value: String(
+            getChangedServingBaseValue(
+              normalizedQuantity,
+              normalizedServingOption.unitName,
+              normalizedServingOption,
+              enriched?.isLiquid
+            )
+          ),
+          quantity: normalizedQuantity,
+          unit: normalizedServingOption.unitName,
+          servingOption: normalizedServingOption
+        }
         initialServingId =
           getServingIdentifier(selectionOverride.servingOption) ||
           initialServingId
         initialServingAmount =
           parseOptionalNumber(selectionOverride.amount) ?? initialServingAmount
+      }
+
+      if (detectIsRecipe(enriched) && activeMealType !== 'snackPlan') {
+        openStructuredMealEditor({
+          mode: 'builder',
+          mealKey: activeMealType,
+          item: enriched
+        })
+        setSearchText('')
+        setSearchResults([])
+        return
       }
 
       setDisplayValues(prev => ({
@@ -1184,6 +1795,7 @@ const MyMenus = () => {
               originalCalories: normalizedDetailed?.caloriesPer100,
               originalNutrients: normalizedDetailed?.nutrientsPer100,
               numberOfRecipeServings: originalServings,
+              showRecipeDetailsInPdf: item?.showRecipeDetailsInPdf === true,
               originalServingAmount,
               originalServingId
             }
@@ -1192,23 +1804,24 @@ const MyMenus = () => {
               normalizedDetailed?.ingredients &&
               Array.isArray(normalizedDetailed.ingredients)
             ) {
-              enrichedData.ingredients = normalizedDetailed.ingredients.map(
-                ingredient => ({
-                  ...ingredient,
-                  originalCalorieAmount: ingredient?.calorieAmount,
-                  originalCarbohydrateAmount: ingredient?.carbohydateAmount,
-                  originalFatAmount: ingredient?.fatAmount,
-                  originalProteinAmount: ingredient?.proteinAmount,
-                  originalWeight: ingredient?.weight,
-                  originalMacronutrientsEx: ingredient?.macronutrientsEx,
-                  calorieAmount: ingredient?.calorieAmount,
-                  carbohydateAmount: ingredient?.carbohydateAmount,
-                  fatAmount: ingredient?.fatAmount,
-                  proteinAmount: ingredient?.proteinAmount,
-                  weight: ingredient?.weight,
-                  macronutrientsEx: ingredient?.macronutrientsEx
-                })
-              )
+              enrichedData.ingredients =
+                await enrichRecipeIngredientsWithDetails(
+                  normalizedDetailed.ingredients.map(ingredient => ({
+                    ...ingredient,
+                    originalCalorieAmount: ingredient?.calorieAmount,
+                    originalCarbohydrateAmount: ingredient?.carbohydateAmount,
+                    originalFatAmount: ingredient?.fatAmount,
+                    originalProteinAmount: ingredient?.proteinAmount,
+                    originalWeight: ingredient?.weight,
+                    originalMacronutrientsEx: ingredient?.macronutrientsEx,
+                    calorieAmount: ingredient?.calorieAmount,
+                    carbohydateAmount: ingredient?.carbohydateAmount,
+                    fatAmount: ingredient?.fatAmount,
+                    proteinAmount: ingredient?.proteinAmount,
+                    weight: ingredient?.weight,
+                    macronutrientsEx: ingredient?.macronutrientsEx
+                  }))
+                )
             }
 
             enriched = enrichedData
@@ -1303,7 +1916,11 @@ const MyMenus = () => {
     }
   }
 
-  const handleStudioAddItem = async (mealKey, item, selectionOverride = null) => {
+  const handleStudioAddItem = async (
+    mealKey,
+    item,
+    selectionOverride = null
+  ) => {
     if (!selectedMenuInContainer) return
 
     try {
@@ -1338,6 +1955,19 @@ const MyMenus = () => {
           servingOption: normalizedServingOption
         }
       }
+
+      if (detectIsRecipe(enrichedItem) && mealKey !== 'snackPlan') {
+        openStructuredMealEditor({
+          mode: 'studio',
+          mealKey,
+          item: enrichedItem
+        })
+        setStudioSearchResults([])
+        setStudioSearchText('')
+        setStudioActiveMealType(null)
+        return
+      }
+
       const updatedMenu = {
         ...selectedMenuInContainer,
         [mealKey]: [...(selectedMenuInContainer?.[mealKey] || []), enrichedItem]
@@ -1407,7 +2037,8 @@ const MyMenus = () => {
           getServingIdentifier(
             item?.changedServing?.servingOption || selectedServing
           ) || '',
-        amount: currentAmount
+        amount: currentAmount,
+        showRecipeDetailsInPdf: shouldShowRecipeDetailsInPdf(item)
       }
     }))
   }
@@ -1419,6 +2050,71 @@ const MyMenus = () => {
       delete next[itemKey]
       return next
     })
+  }
+
+  const handleSaveStructuredMeal = () => {
+    if (!structuredMealEditor?.mealKey || !structuredMealEditor?.name?.trim()) {
+      return
+    }
+
+    const nextItem = buildStructuredMealItemFromDraft(structuredMealEditor)
+
+    if (structuredMealEditor.mode === 'studio') {
+      if (!selectedMenuInContainer) return
+
+      const currentItems =
+        selectedMenuInContainer?.[structuredMealEditor.mealKey] || []
+      const updatedItems =
+        structuredMealEditor.itemIndex === null
+          ? [...currentItems, nextItem]
+          : currentItems.map((item, index) =>
+              index === structuredMealEditor.itemIndex ? nextItem : item
+            )
+
+      stageStudioMenuChanges({
+        ...selectedMenuInContainer,
+        [structuredMealEditor.mealKey]: updatedItems
+      })
+      closeStructuredMealEditor()
+      return
+    }
+
+    if (structuredMealEditor.itemIndex === null) {
+      const newIndex = plans[structuredMealEditor.mealKey].length
+      const initialSelection = getInitialServingSelection(nextItem)
+      setPlans(prev => ({
+        ...prev,
+        [structuredMealEditor.mealKey]: [
+          ...prev[structuredMealEditor.mealKey],
+          nextItem
+        ]
+      }))
+      setDisplayValues(prev => ({
+        ...prev,
+        [`${structuredMealEditor.mealKey}-${newIndex}`]: {
+          selectedServingId: initialSelection?.selectedServingId || '',
+          servingAmount: initialSelection?.amount ?? 100
+        }
+      }))
+    } else {
+      const updatedDisplayValue = getInitialServingSelection(nextItem)
+      setPlans(prev => ({
+        ...prev,
+        [structuredMealEditor.mealKey]: prev[structuredMealEditor.mealKey].map(
+          (item, index) =>
+            index === structuredMealEditor.itemIndex ? nextItem : item
+        )
+      }))
+      setDisplayValues(prev => ({
+        ...prev,
+        [`${structuredMealEditor.mealKey}-${structuredMealEditor.itemIndex}`]: {
+          selectedServingId: updatedDisplayValue?.selectedServingId || '',
+          servingAmount: updatedDisplayValue?.amount ?? 100
+        }
+      }))
+    }
+
+    closeStructuredMealEditor()
   }
 
   const handleSaveTemplate = async e => {
@@ -1574,8 +2270,8 @@ const MyMenus = () => {
         const createdMenus = refreshedTemplates
           .filter(
             template =>
-              splitMenuName(template?.name || '').containerName
-                .trim()
+              splitMenuName(template?.name || '')
+                .containerName.trim()
                 .toLowerCase() === trimmedContainerName.toLowerCase()
           )
           .sort((left, right) => {
@@ -1589,7 +2285,9 @@ const MyMenus = () => {
             ? createdMenus[createdMenus.length - 1]
             : createdMenus[0]
 
-          setSelectedContainerKey(`container:${trimmedContainerName.toLowerCase()}`)
+          setSelectedContainerKey(
+            `container:${trimmedContainerName.toLowerCase()}`
+          )
           setSelectedContainerMenuId(selectedCreatedMenu?.id || null)
           setSelectedContainerModalOpen(true)
         }
@@ -1693,7 +2391,10 @@ const MyMenus = () => {
   }
 
   const handleCopyContainerToCountryConfirm = async () => {
-    if (!selectedContainerForCountryCopy || !copyContainerToCountryName.trim()) {
+    if (
+      !selectedContainerForCountryCopy ||
+      !copyContainerToCountryName.trim()
+    ) {
       return
     }
 
@@ -1878,15 +2579,25 @@ const MyMenus = () => {
     if (textToMenuName.trim()) return textToMenuName.trim()
     const dayLabel = t('pages.myMenus.dayLabel') || 'Day'
     if (textToMenuContainerContext) {
-      const label = getNextContainerMenuLabel(textToMenuContainerContext, dayLabel)
-      return buildStoredMenuName(textToMenuContainerContext.containerName, label, getNextContainerMenuOrder(textToMenuContainerContext))
+      const label = getNextContainerMenuLabel(
+        textToMenuContainerContext,
+        dayLabel
+      )
+      return buildStoredMenuName(
+        textToMenuContainerContext.containerName,
+        label,
+        getNextContainerMenuOrder(textToMenuContainerContext)
+      )
     }
     return null
   }
 
   const handleGenerateFromText = async () => {
     if (!textToMenuInput.trim()) {
-      alert(t('pages.menus.textToMenu.emptyError') || 'Please enter a description for your menu')
+      alert(
+        t('pages.menus.textToMenu.emptyError') ||
+          'Please enter a description for your menu'
+      )
       return
     }
     try {
@@ -1899,7 +2610,9 @@ const MyMenus = () => {
         dayLabel: t('pages.myMenus.dayLabel') || 'Day'
       })
       if (result?.ok && result?.data) {
-        alert(t('pages.menus.textToMenu.success') || 'Menu generated successfully!')
+        alert(
+          t('pages.menus.textToMenu.success') || 'Menu generated successfully!'
+        )
         setIsTextToMenuOpen(false)
         setTextToMenuInput('')
         setTextToMenuName('')
@@ -1911,7 +2624,9 @@ const MyMenus = () => {
       }
     } catch (e) {
       console.error('Failed to generate menu from text', e)
-      alert(`${t('pages.menus.textToMenu.error') || 'Failed to generate menu'}: ${e.message}`)
+      alert(
+        `${t('pages.menus.textToMenu.error') || 'Failed to generate menu'}: ${e.message}`
+      )
     } finally {
       setGeneratingMenu(false)
     }
@@ -2569,17 +3284,23 @@ const MyMenus = () => {
             displayValue?.servingAmount !== undefined &&
             displayValue?.servingAmount !== ''
               ? displayValue.servingAmount
-              : getDefaultAmountForSelectedServing(selectedServing) ||
-                item?.originalServingAmount ||
-                100
-          const calculated = calculateDisplayValues(
-            item,
-            selectedAmount,
-            item?.originalServingAmount || 100,
-            selectedServing?.unitName ||
-              selectedServing?.unit ||
-              getItemDisplayUnit(item)
-          )
+              : getPreferredStructuredMealAmount(item, selectedServing)
+          const structuredMealSummary = isStructuredMealRecipeItem(item)
+            ? calculateStructuredMealItemSummary(item)
+            : null
+          const calculated = structuredMealSummary
+            ? {
+                calories: structuredMealSummary.calories,
+                nutrients: structuredMealSummary
+              }
+            : calculateDisplayValues(
+                item,
+                selectedAmount,
+                item?.originalServingAmount || 100,
+                selectedServing?.unitName ||
+                  selectedServing?.unit ||
+                  getItemDisplayUnit(item)
+              )
 
           return {
             calories: mealTotals.calories + parseNumber(calculated?.calories),
@@ -2638,21 +3359,38 @@ const MyMenus = () => {
               {mealItems.length}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setStudioActiveMealType(
-                studioActiveMealType === mealSection ? null : mealSection
-              )
-              setStudioSearchText('')
-              setStudioSearchResults([])
-              setStudioOnlyRecipes(false)
-            }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            <PlusIcon className="h-4 w-4" />
-            {t('pages.myMenus.addMeal')}
-          </button>
+          <div className="flex items-center gap-2">
+            {mealSection !== 'snackPlan' ? (
+              <button
+                type="button"
+                onClick={() =>
+                  openStructuredMealEditor({
+                    mode: 'studio',
+                    mealKey: mealSection
+                  })
+                }
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Create structured meal
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setStudioActiveMealType(
+                  studioActiveMealType === mealSection ? null : mealSection
+                )
+                setStudioSearchText('')
+                setStudioSearchResults([])
+                setStudioOnlyRecipes(false)
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <PlusIcon className="h-4 w-4" />
+              {t('pages.myMenus.addMeal')}
+            </button>
+          </div>
         </div>
         {studioActiveMealType === mealSection ? (
           <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -2774,21 +3512,24 @@ const MyMenus = () => {
               const currentAmount =
                 draftValue?.amount ??
                 parseOptionalNumber(item?.changedServing?.quantity) ??
-                getDefaultAmountForSelectedServing(selectedServing) ??
-                item?.originalServingAmount ??
-                100
+                getPreferredStructuredMealAmount(item, selectedServing)
               const currentServingForEdit =
                 findServingByIdentifier(servingOptions, currentServingId) ||
                 selectedServing
-              const calculated = calculateDisplayValues(
-                item,
-                currentAmount,
-                parseNumber(item?.originalServingAmount) || 100,
-                item?.changedServing?.unit ||
-                  currentServingForEdit?.unitName ||
-                  currentServingForEdit?.unit ||
-                  getItemDisplayUnit(item)
-              )
+              const calculated = isStructuredMealRecipeItem(item)
+                ? {
+                    calories: calculateStructuredMealItemSummary(item).calories,
+                    nutrients: calculateStructuredMealItemSummary(item)
+                  }
+                : calculateDisplayValues(
+                    item,
+                    currentAmount,
+                    parseNumber(item?.originalServingAmount) || 100,
+                    item?.changedServing?.unit ||
+                      currentServingForEdit?.unitName ||
+                      currentServingForEdit?.unit ||
+                      getItemDisplayUnit(item)
+                  )
 
               if (isEditing) {
                 return (
@@ -2839,6 +3580,7 @@ const MyMenus = () => {
                               setStudioDraftValues(prev => ({
                                 ...prev,
                                 [itemKey]: {
+                                  ...(prev[itemKey] || {}),
                                   selectedServingId: nextServingId || '',
                                   amount: nextAmount
                                 }
@@ -2872,6 +3614,7 @@ const MyMenus = () => {
                                 setStudioDraftValues(prev => ({
                                   ...prev,
                                   [itemKey]: {
+                                    ...(prev[itemKey] || {}),
                                     selectedServingId: currentServingId || '',
                                     amount:
                                       inputAmount === '' ? '' : inputAmount
@@ -2892,13 +3635,37 @@ const MyMenus = () => {
                     ) : null}
 
                     {detectIsRecipe(item) ? (
-                      <div className="mt-3 text-sm text-slate-500">
-                        <span className="font-semibold">
-                          {t('pages.myMenus.originalServing')}:
-                        </span>{' '}
-                        {item?.numberOfRecipeServings ||
-                          item?.originalServings ||
-                          1}
+                      <div className="mt-3 space-y-3">
+                        <div className="text-sm text-slate-500">
+                          <span className="font-semibold">
+                            {t('pages.myMenus.originalServing')}:
+                          </span>{' '}
+                          {item?.numberOfRecipeServings ||
+                            item?.originalServings ||
+                            1}
+                        </div>
+                        <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={
+                              draftValue?.showRecipeDetailsInPdf ??
+                              shouldShowRecipeDetailsInPdf(item)
+                            }
+                            onChange={event => {
+                              setStudioDraftValues(prev => ({
+                                ...prev,
+                                [itemKey]: {
+                                  ...(prev[itemKey] || {}),
+                                  selectedServingId: currentServingId || '',
+                                  amount: currentAmount,
+                                  showRecipeDetailsInPdf: event.target.checked
+                                }
+                              }))
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-400"
+                          />
+                          {t('pages.myMenus.showRecipeDetailsInPdf')}
+                        </label>
                       </div>
                     ) : null}
 
@@ -2957,6 +3724,9 @@ const MyMenus = () => {
                             index,
                             currentItem => ({
                               ...currentItem,
+                              showRecipeDetailsInPdf:
+                                draftValue?.showRecipeDetailsInPdf ??
+                                shouldShowRecipeDetailsInPdf(currentItem),
                               changedServing: {
                                 value:
                                   parsedAmount === ''
@@ -3057,13 +3827,22 @@ const MyMenus = () => {
                       type="button"
                       onClick={event => {
                         event.stopPropagation()
-                        openStudioItemEditor(
-                          mealSection,
-                          index,
-                          item,
-                          selectedServing,
-                          currentAmount
-                        )
+                        if (detectIsRecipe(item)) {
+                          openStructuredMealEditor({
+                            mode: 'studio',
+                            mealKey: mealSection,
+                            item,
+                            itemIndex: index
+                          })
+                        } else {
+                          openStudioItemEditor(
+                            mealSection,
+                            index,
+                            item,
+                            selectedServing,
+                            currentAmount
+                          )
+                        }
                       }}
                       className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-blue-700 transition hover:bg-blue-100"
                       title={t('pages.myMenus.edit')}
@@ -3105,19 +3884,25 @@ const MyMenus = () => {
       null
     const previewAmount =
       parseOptionalNumber(viewingItemAmount) ??
-      getDefaultAmountForSelectedServing(previewServing) ??
-      viewingItem?.originalServingAmount ??
-      100
+      getPreferredStructuredMealAmount(viewingItem, previewServing)
     const previewUnit =
       previewServing?.unitName ||
       previewServing?.unit ||
       (viewingItem?.isLiquid ? 'ml' : 'g')
-    const previewValues = calculateDisplayValues(
-      viewingItem,
-      previewAmount,
-      parseNumber(viewingItem?.originalServingAmount) || 100,
-      previewUnit
-    )
+    const structuredMealSummary = isStructuredMealRecipeItem(viewingItem)
+      ? calculateStructuredMealItemSummary(viewingItem)
+      : null
+    const previewValues = structuredMealSummary
+      ? {
+          calories: structuredMealSummary.calories,
+          nutrients: structuredMealSummary
+        }
+      : calculateDisplayValues(
+          viewingItem,
+          previewAmount,
+          parseNumber(viewingItem?.originalServingAmount) || 100,
+          previewUnit
+        )
     const nutrients = safeNutrients(previewValues?.nutrients || {})
     const ingredients = Array.isArray(viewingItem?.ingredients)
       ? viewingItem.ingredients
@@ -3216,7 +4001,8 @@ const MyMenus = () => {
                         setViewingItemServingId(event.target.value)
                         setViewingItemAmount(
                           String(
-                            getDefaultAmountForSelectedServing(nextServing) || ''
+                            getDefaultAmountForSelectedServing(nextServing) ||
+                              ''
                           )
                         )
                       }}
@@ -3244,7 +4030,9 @@ const MyMenus = () => {
                       min="0"
                       step="0.1"
                       value={viewingItemAmount}
-                      onChange={event => setViewingItemAmount(event.target.value)}
+                      onChange={event =>
+                        setViewingItemAmount(event.target.value)
+                      }
                       className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                     />
                   </div>
@@ -3320,10 +4108,14 @@ const MyMenus = () => {
                 type="button"
                 onClick={async () => {
                   if (previewAddMode === 'studio' && studioActiveMealType) {
-                    await handleStudioAddItem(studioActiveMealType, viewingItem, {
-                      servingOption: previewServing,
-                      amount: previewAmount
-                    })
+                    await handleStudioAddItem(
+                      studioActiveMealType,
+                      viewingItem,
+                      {
+                        servingOption: previewServing,
+                        amount: previewAmount
+                      }
+                    )
                   } else if (previewAddMode === 'builder') {
                     await addItemToPlan(viewingItem, {
                       servingOption: previewServing,
@@ -3344,6 +4136,495 @@ const MyMenus = () => {
             >
               {t('common.close')}
             </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderStructuredMealEditorModal = () => {
+    if (!structuredMealEditor) return null
+
+    const isSnackMeal = structuredMealEditor.mealKey === 'snackPlan'
+    const structuredMealTotals =
+      calculateStructuredMealDraftSummary(structuredMealEditor)
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm">
+        <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-bold text-slate-900">
+                {structuredMealEditor.itemIndex === null
+                  ? 'Create structured meal'
+                  : 'Edit structured meal'}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Recipes prefill ingredients, steps, and photo, but remain fully
+                editable.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={closeStructuredMealEditor}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="relative flex-1">
+                  <MagnifyingGlassIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={structuredMealEditor.recipeSearchText}
+                    onChange={event =>
+                      updateStructuredMealEditor(prev => ({
+                        ...prev,
+                        recipeSearchText: event.target.value
+                      }))
+                    }
+                    placeholder="Search recipe to import"
+                    className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    updateStructuredMealEditor(prev => ({
+                      ...prev,
+                      searchingRecipes: true
+                    }))
+                    try {
+                      const results = await handleStructuredMealRecipeSearch(
+                        structuredMealEditor.recipeSearchText
+                      )
+                      updateStructuredMealEditor(prev => ({
+                        ...prev,
+                        recipeSearchResults: results,
+                        searchingRecipes: false
+                      }))
+                    } catch (error) {
+                      console.error(
+                        'Failed to search recipes for structured meal',
+                        error
+                      )
+                      updateStructuredMealEditor(prev => ({
+                        ...prev,
+                        recipeSearchResults: [],
+                        searchingRecipes: false
+                      }))
+                    }
+                  }}
+                  className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  disabled={structuredMealEditor.searchingRecipes}
+                >
+                  {structuredMealEditor.searchingRecipes
+                    ? 'Searching...'
+                    : 'Import recipe'}
+                </button>
+              </div>
+
+              {structuredMealEditor.recipeSearchResults.length > 0 ? (
+                <div className="mt-3 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white">
+                  {structuredMealEditor.recipeSearchResults.map(
+                    (item, index) => (
+                      <div
+                        key={`structured-recipe-${item?.id || item?.name || index}`}
+                        className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {item?.name ||
+                              item?.title ||
+                              t('pages.myMenus.unnamedItem')}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {t('pages.myMenus.recipeType')}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await importRecipeIntoStructuredMeal(item)
+                          }}
+                          className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                        >
+                          <PlusIcon className="h-4 w-4" />
+                          Use
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {t('pages.myMenus.name')}
+              </label>
+              <input
+                type="text"
+                value={structuredMealEditor.name}
+                onChange={event =>
+                  updateStructuredMealEditor(prev => ({
+                    ...prev,
+                    name: event.target.value
+                  }))
+                }
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Photo URL
+                </label>
+                <input
+                  type="text"
+                  value={structuredMealEditor.photoUrl}
+                  onChange={event =>
+                    updateStructuredMealEditor(prev => ({
+                      ...prev,
+                      photoUrl: event.target.value
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Servings
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={structuredMealEditor.numberOfRecipeServings}
+                  onChange={event =>
+                    updateStructuredMealEditor(prev => ({
+                      ...prev,
+                      numberOfRecipeServings: Math.max(
+                        1,
+                        parseNumber(event.target.value) || 1
+                      )
+                    }))
+                  }
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+            </div>
+
+            {!isSnackMeal ? (
+              <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={structuredMealEditor.showRecipeDetailsInPdf}
+                  onChange={event =>
+                    updateStructuredMealEditor(prev => ({
+                      ...prev,
+                      showRecipeDetailsInPdf: event.target.checked
+                    }))
+                  }
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-400"
+                />
+                {t('pages.myMenus.showRecipeDetailsInPdf')}
+              </label>
+            ) : null}
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div
+                className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+              >
+                {t('pages.myMenus.calories')}:{' '}
+                {Math.round(parseNumber(structuredMealTotals.calories))}
+              </div>
+              <div
+                className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+              >
+                {t('pages.myMenus.proteins')}:{' '}
+                {roundMacro(structuredMealTotals.proteinsInGrams)} g
+              </div>
+              <div
+                className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+              >
+                {t('pages.myMenus.carbs')}:{' '}
+                {roundMacro(structuredMealTotals.carbohydratesInGrams)} g
+              </div>
+              <div
+                className={`${glassSurfaceClass} px-3 py-3 text-center text-sm font-semibold text-slate-900`}
+              >
+                {t('pages.myMenus.fat')}:{' '}
+                {roundMacro(structuredMealTotals.fatInGrams)} g
+              </div>
+            </div>
+
+            <div className="grid gap-5 xl:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    {t('pages.recipes.ingredients')}
+                  </p>
+                </div>
+                <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                    <div className="relative flex-1">
+                      <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={structuredMealEditor.ingredientSearchText}
+                        onChange={event =>
+                          updateStructuredMealEditor(prev => ({
+                            ...prev,
+                            ingredientSearchText: event.target.value
+                          }))
+                        }
+                        placeholder="Search ingredient from database"
+                        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        updateStructuredMealEditor(prev => ({
+                          ...prev,
+                          searchingIngredients: true
+                        }))
+                        try {
+                          const results =
+                            await handleStructuredMealIngredientSearch(
+                              structuredMealEditor.ingredientSearchText
+                            )
+                          updateStructuredMealEditor(prev => ({
+                            ...prev,
+                            ingredientSearchResults: results,
+                            searchingIngredients: false
+                          }))
+                        } catch (error) {
+                          console.error(
+                            'Failed to search structured meal ingredients',
+                            error
+                          )
+                          updateStructuredMealEditor(prev => ({
+                            ...prev,
+                            ingredientSearchResults: [],
+                            searchingIngredients: false
+                          }))
+                        }
+                      }}
+                      className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm"
+                    >
+                      {structuredMealEditor.searchingIngredients
+                        ? 'Searching...'
+                        : 'Add from DB'}
+                    </button>
+                  </div>
+                  {structuredMealEditor.ingredientSearchResults.length > 0 ? (
+                    <div className="mt-3 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50">
+                      {structuredMealEditor.ingredientSearchResults.map(
+                        (ingredientItem, index) => (
+                          <div
+                            key={`structured-ingredient-${ingredientItem?.id || ingredientItem?.name || index}`}
+                            className="flex items-center justify-between gap-3 border-b border-slate-200 px-3 py-2 last:border-b-0"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-slate-900">
+                                {ingredientItem?.name ||
+                                  t('pages.myMenus.unnamedItem')}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {Math.round(
+                                  parseNumber(ingredientItem?.caloriesPer100)
+                                )}{' '}
+                                kcal / 100g
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await importIngredientIntoStructuredMeal(
+                                  ingredientItem
+                                )
+                              }}
+                              className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                            >
+                              Use
+                            </button>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="mt-3 space-y-2">
+                  {structuredMealEditor.ingredients.map((ingredient, index) => (
+                    <div
+                      key={`ingredient-${index}`}
+                      className="rounded-2xl border border-slate-200 bg-white p-3"
+                    >
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(180px,1.8fr)_92px_72px_auto]">
+                        <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-900">
+                          <span className="block truncate">
+                            {ingredient?.name || t('pages.myMenus.unnamedItem')}
+                          </span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={ingredient?.quantity ?? ''}
+                          onChange={event =>
+                            updateStructuredMealEditor(prev => ({
+                              ...prev,
+                              ingredients: prev.ingredients.map(
+                                (entry, entryIndex) =>
+                                  entryIndex === index
+                                    ? {
+                                        ...entry,
+                                        quantity:
+                                          event.target.value === ''
+                                            ? ''
+                                            : event.target.value
+                                      }
+                                    : entry
+                              )
+                            }))
+                          }
+                          placeholder="0"
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        />
+                        <input
+                          type="text"
+                          value={ingredient?.unit || 'g'}
+                          onChange={event =>
+                            updateStructuredMealEditor(prev => ({
+                              ...prev,
+                              ingredients: prev.ingredients.map(
+                                (entry, entryIndex) =>
+                                  entryIndex === index
+                                    ? {
+                                        ...entry,
+                                        unit: event.target.value || 'g'
+                                      }
+                                    : entry
+                              )
+                            }))
+                          }
+                          placeholder="g"
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateStructuredMealEditor(prev => ({
+                              ...prev,
+                              ingredients: prev.ingredients.filter(
+                                (_, entryIndex) => entryIndex !== index
+                              )
+                            }))
+                          }
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        {(() => {
+                          const ingredientTotals =
+                            calculateStructuredMealIngredientNutrition(
+                              ingredient
+                            )
+                          return `${Math.round(ingredientTotals.calories)} kcal · P ${roundMacro(
+                            ingredientTotals.proteinsInGrams
+                          )}g · C ${roundMacro(
+                            ingredientTotals.carbohydratesInGrams
+                          )}g · F ${roundMacro(ingredientTotals.fatInGrams)}g`
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    {t('pages.myMenus.instructions')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateStructuredMealEditor(prev => ({
+                        ...prev,
+                        steps: [...prev.steps, '']
+                      }))
+                    }
+                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {structuredMealEditor.steps.map((step, index) => (
+                    <div
+                      key={`step-${index}`}
+                      className="flex items-start gap-2"
+                    >
+                      <textarea
+                        value={step}
+                        onChange={event =>
+                          updateStructuredMealEditor(prev => ({
+                            ...prev,
+                            steps: prev.steps.map((entry, entryIndex) =>
+                              entryIndex === index ? event.target.value : entry
+                            )
+                          }))
+                        }
+                        rows={2}
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateStructuredMealEditor(prev => ({
+                            ...prev,
+                            steps: prev.steps.filter(
+                              (_, entryIndex) => entryIndex !== index
+                            )
+                          }))
+                        }
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeStructuredMealEditor}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                {t('pages.myMenus.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveStructuredMeal}
+                disabled={!structuredMealEditor.name.trim()}
+                className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:shadow-lg disabled:opacity-60"
+              >
+                {t('pages.myMenus.save')}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -3384,7 +4665,9 @@ const MyMenus = () => {
               <button
                 onClick={() => openTextToMenu()}
                 className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
-                title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                title={
+                  t('pages.menus.generateFromText') || 'Generate from Text'
+                }
               >
                 <SparklesIcon className="h-4 w-4" />
                 {t('pages.menus.generateFromText') || 'Generate from Text'}
@@ -3504,10 +4787,14 @@ const MyMenus = () => {
                     <button
                       onClick={() => openTextToMenu()}
                       className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-                      title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                      title={
+                        t('pages.menus.generateFromText') ||
+                        'Generate from Text'
+                      }
                     >
                       <SparklesIcon className="w-4 h-4" />
-                      {t('pages.menus.generateFromText') || 'Generate from Text'}
+                      {t('pages.menus.generateFromText') ||
+                        'Generate from Text'}
                     </button>
                     <button
                       onClick={loadTemplates}
@@ -3588,7 +4875,10 @@ const MyMenus = () => {
                                     onClick={() => openTextToMenu(container)}
                                     disabled={isContainerActionBusy}
                                     className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-                                    title={t('pages.menus.generateFromText') || 'Generate from Text'}
+                                    title={
+                                      t('pages.menus.generateFromText') ||
+                                      'Generate from Text'
+                                    }
                                   >
                                     <SparklesIcon className="h-4 w-4" />
                                   </button>
@@ -3611,29 +4901,46 @@ const MyMenus = () => {
                                         labelKey: 'common.controls.rename',
                                         colorClass: 'text-blue-700',
                                         disabled: isContainerActionBusy,
-                                        onClick: () => handleOpenRenameContainerModal(container)
+                                        onClick: () =>
+                                          handleOpenRenameContainerModal(
+                                            container
+                                          )
                                       },
                                       {
                                         icon: DocumentDuplicateIcon,
-                                        labelKey: 'common.controls.copyContainer',
+                                        labelKey:
+                                          'common.controls.copyContainer',
                                         colorClass: 'text-violet-700',
                                         disabled: isContainerActionBusy,
-                                        onClick: () => handleOpenCopyContainerModal(container)
+                                        onClick: () =>
+                                          handleOpenCopyContainerModal(
+                                            container
+                                          )
                                       },
-                                      ...(isAdmin ? [{
-                                        icon: GlobeAltIcon,
-                                        labelKey: 'common.controls.copyToCountry',
-                                        colorClass: 'text-emerald-700',
-                                        disabled: isContainerActionBusy,
-                                        onClick: () => handleOpenCopyContainerToCountryModal(container)
-                                      }] : []),
+                                      ...(isAdmin
+                                        ? [
+                                            {
+                                              icon: GlobeAltIcon,
+                                              labelKey:
+                                                'common.controls.copyToCountry',
+                                              colorClass: 'text-emerald-700',
+                                              disabled: isContainerActionBusy,
+                                              onClick: () =>
+                                                handleOpenCopyContainerToCountryModal(
+                                                  container
+                                                )
+                                            }
+                                          ]
+                                        : []),
                                       {
                                         icon: TrashIcon,
-                                        labelKey: 'pages.myMenus.deleteContainer',
+                                        labelKey:
+                                          'pages.myMenus.deleteContainer',
                                         colorClass: 'text-red-600',
                                         disabled: isContainerActionBusy,
                                         loading: isContainerDeleting,
-                                        onClick: () => handleDeleteContainer(container)
+                                        onClick: () =>
+                                          handleDeleteContainer(container)
                                       }
                                     ]}
                                   />
@@ -3894,469 +5201,566 @@ const MyMenus = () => {
                     {editingTemplateId ? (
                       <>
                         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-white/70 bg-white/75 p-4 md:grid-cols-5">
-                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:col-span-1">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          {t('pages.myMenus.totalMenu')}
-                        </p>
-                        <p className="mt-2 text-2xl font-bold text-slate-900">
-                          {Math.round(builderTotals.total.calories)} kcal
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          P {roundMacro(builderTotals.total.proteinsInGrams)}g ·
-                          C{' '}
-                          {roundMacro(builderTotals.total.carbohydratesInGrams)}
-                          g · F {roundMacro(builderTotals.total.fatInGrams)}g
-                        </p>
-                      </div>
-                      {mealTypeOptions.map(meal => {
-                        const totals = builderTotals.perMeal[meal.id]
-                        return (
-                          <div
-                            key={meal.id}
-                            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
-                          >
+                          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm md:col-span-1">
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                              {t(
-                                `pages.myMenus.${meal.id.replace('Plan', '')}`
-                              )}
+                              {t('pages.myMenus.totalMenu')}
                             </p>
-                            <p className="mt-2 text-xl font-bold text-slate-900">
-                              {Math.round(totals?.calories || 0)} kcal
+                            <p className="mt-2 text-2xl font-bold text-slate-900">
+                              {Math.round(builderTotals.total.calories)} kcal
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
-                              P {roundMacro(totals?.proteinsInGrams || 0)}g · C{' '}
-                              {roundMacro(totals?.carbohydratesInGrams || 0)}g ·
-                              F {roundMacro(totals?.fatInGrams || 0)}g
+                              P{' '}
+                              {roundMacro(builderTotals.total.proteinsInGrams)}g
+                              · C{' '}
+                              {roundMacro(
+                                builderTotals.total.carbohydratesInGrams
+                              )}
+                              g · F {roundMacro(builderTotals.total.fatInGrams)}
+                              g
                             </p>
                           </div>
-                        )
-                      })}
+                          {mealTypeOptions.map(meal => {
+                            const totals = builderTotals.perMeal[meal.id]
+                            return (
+                              <div
+                                key={meal.id}
+                                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                              >
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                  {t(
+                                    `pages.myMenus.${meal.id.replace('Plan', '')}`
+                                  )}
+                                </p>
+                                <p className="mt-2 text-xl font-bold text-slate-900">
+                                  {Math.round(totals?.calories || 0)} kcal
+                                </p>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  P {roundMacro(totals?.proteinsInGrams || 0)}g
+                                  · C{' '}
+                                  {roundMacro(
+                                    totals?.carbohydratesInGrams || 0
+                                  )}
+                                  g · F {roundMacro(totals?.fatInGrams || 0)}g
+                                </p>
+                              </div>
+                            )
+                          })}
                         </div>
 
                         {/* Search for items */}
                         <form onSubmit={handleSearch} className="space-y-3">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                        <div className="relative flex-1">
-                          <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-                          <input
-                            type="text"
-                            value={searchText}
-                            onChange={e => setSearchText(e.target.value)}
-                            placeholder={t('pages.myMenus.searchFoodsRecipes')}
-                            className="w-full rounded-2xl border border-white/70 bg-white/90 py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                          />
-                        </div>
-                        <label className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm">
-                          <input
-                            type="checkbox"
-                            checked={onlyRecipes}
-                            onChange={e => setOnlyRecipes(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
-                          />
-                          {t('pages.myMenus.recipesOnly')}
-                        </label>
-                        <button
-                          type="submit"
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:opacity-60"
-                          disabled={searching}
-                        >
-                          {searching
-                            ? t('pages.myMenus.searching')
-                            : t('pages.myMenus.search')}
-                        </button>
-                      </div>
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                            <div className="relative flex-1">
+                              <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                              <input
+                                type="text"
+                                value={searchText}
+                                onChange={e => setSearchText(e.target.value)}
+                                placeholder={t(
+                                  'pages.myMenus.searchFoodsRecipes'
+                                )}
+                                className="w-full rounded-2xl border border-white/70 bg-white/90 py-3 pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                              />
+                            </div>
+                            <label className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm">
+                              <input
+                                type="checkbox"
+                                checked={onlyRecipes}
+                                onChange={e => setOnlyRecipes(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                              />
+                              {t('pages.myMenus.recipesOnly')}
+                            </label>
+                            <button
+                              type="submit"
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:opacity-60"
+                              disabled={searching}
+                            >
+                              {searching
+                                ? t('pages.myMenus.searching')
+                                : t('pages.myMenus.search')}
+                            </button>
+                          </div>
                         </form>
 
                         {/* Meal type selector */}
                         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/70 bg-white/70 p-2 backdrop-blur">
-                      {mealTypeOptions.map(meal => (
-                        <button
-                          key={meal.id}
-                          onClick={() => setActiveMealType(meal.id)}
-                          className={`group rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                            activeMealType === meal.id
-                              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                              : 'text-gray-700 hover:bg-white hover:shadow'
-                          }`}
-                        >
-                          {meal.label}
-                        </button>
-                      ))}
+                          {mealTypeOptions.map(meal => (
+                            <button
+                              key={meal.id}
+                              onClick={() => setActiveMealType(meal.id)}
+                              className={`group rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                activeMealType === meal.id
+                                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                                  : 'text-gray-700 hover:bg-white hover:shadow'
+                              }`}
+                            >
+                              {meal.label}
+                            </button>
+                          ))}
                         </div>
+
+                        {activeMealType !== 'snackPlan' ? (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openStructuredMealEditor({
+                                  mode: 'builder',
+                                  mealKey: activeMealType
+                                })
+                              }
+                              className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white"
+                            >
+                              <PlusIcon className="h-4 w-4" />
+                              Create structured meal
+                            </button>
+                          </div>
+                        ) : null}
 
                         {/* Search results */}
                         {searchResults.length > 0 && (
-                      <div className="max-h-64 overflow-y-auto rounded-2xl border border-white/70 bg-white/80 backdrop-blur divide-y divide-white/70">
-                        {searchResults.map((item, idx) => {
-                          const isRecipeItem = detectIsRecipe(item)
-                          const servingOptions = buildServingOptionsForMenuItem(
-                            item,
-                            includeImperialServingOptions
-                          )
-                          const selectedServing =
-                            findDefaultServing(servingOptions)
-                          const servingAmount =
-                            getServingAmount(selectedServing) || 100
-                          const servingUnit =
-                            selectedServing?.unitName ||
-                            selectedServing?.unit ||
-                            (item?.isLiquid ? 'ml' : 'g')
-                          const numberOfRecipeServings = isRecipeItem
-                            ? item?.numberOfRecipeServings ||
-                              item?.originalServings ||
-                              1
-                            : 1
-                          const newAmount = isRecipeItem
-                            ? servingAmount * numberOfRecipeServings
-                            : servingAmount
-                          const roundedAmount =
-                            roundServingAmountByUnitSystem(newAmount)
+                          <div className="max-h-64 overflow-y-auto rounded-2xl border border-white/70 bg-white/80 backdrop-blur divide-y divide-white/70">
+                            {searchResults.map((item, idx) => {
+                              const isRecipeItem = detectIsRecipe(item)
+                              const servingOptions =
+                                buildServingOptionsForMenuItem(
+                                  item,
+                                  includeImperialServingOptions
+                                )
+                              const selectedServing =
+                                findDefaultServing(servingOptions)
+                              const servingAmount =
+                                getServingAmount(selectedServing) || 100
+                              const servingUnit =
+                                selectedServing?.unitName ||
+                                selectedServing?.unit ||
+                                (item?.isLiquid ? 'ml' : 'g')
+                              const numberOfRecipeServings = isRecipeItem
+                                ? item?.numberOfRecipeServings ||
+                                  item?.originalServings ||
+                                  1
+                                : 1
+                              const newAmount = isRecipeItem
+                                ? servingAmount * numberOfRecipeServings
+                                : servingAmount
+                              const roundedAmount =
+                                roundServingAmountByUnitSystem(newAmount)
 
-                          return (
-                            <div
-                              key={idx}
-                              onClick={() => setViewingItem(item)}
-                              className="flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-white"
-                            >
-                              <div className="min-w-0">
-                                <div className="text-sm font-semibold text-gray-900 truncate">
-                                  {item?.name || item?.title || 'Unnamed'}
+                              return (
+                                <div
+                                  key={idx}
+                                  onClick={() => setViewingItem(item)}
+                                  className="flex cursor-pointer items-center justify-between px-4 py-3 transition hover:bg-white"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-semibold text-gray-900 truncate">
+                                      {item?.name || item?.title || 'Unnamed'}
+                                    </div>
+                                    <div className="text-xs text-gray-600">
+                                      {detectIsRecipe(item) ? 'Recipe' : 'Food'}
+                                      {typeof item?.caloriesPer100 === 'number'
+                                        ? ` • ${item.caloriesPer100} cal/${roundedAmount}${servingUnit}`
+                                        : ''}
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={event => {
+                                      event.stopPropagation()
+                                      addItemToPlan(item)
+                                    }}
+                                    className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:shadow-lg"
+                                  >
+                                    <PlusIcon className="h-4 w-4" />{' '}
+                                    {t('pages.myMenus.addItem')}
+                                  </button>
                                 </div>
-                                <div className="text-xs text-gray-600">
-                                  {detectIsRecipe(item) ? 'Recipe' : 'Food'}
-                                  {typeof item?.caloriesPer100 === 'number'
-                                    ? ` • ${item.caloriesPer100} cal/${roundedAmount}${servingUnit}`
-                                    : ''}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={event => {
-                                  event.stopPropagation()
-                                  addItemToPlan(item)
-                                }}
-                                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition hover:shadow-lg"
-                              >
-                                <PlusIcon className="h-4 w-4" />{' '}
-                                {t('pages.myMenus.addItem')}
-                              </button>
-                            </div>
-                          )
-                        })}
-                      </div>
+                              )
+                            })}
+                          </div>
                         )}
 
                         {/* Current meal items */}
                         {plans[activeMealType]?.length > 0 && (
-                      <div className="space-y-3 rounded-2xl border border-white/70 bg-white/80 p-4 backdrop-blur">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-gray-800">
-                            {t('pages.myMenus.itemsIn', {
-                              mealType: mealTypeOptions.find(
-                                m => m.id === activeMealType
-                              )?.label
-                            })}
-                          </p>
-                          <span className={softBadgeClass}>
-                            {plans[activeMealType].length}{' '}
-                            {t('pages.myMenus.items')}
-                          </span>
-                        </div>
-                        {plans[activeMealType].map((item, idx) => {
-                          const isRecipeItem = detectIsRecipe(item)
-                          const itemKey = `${activeMealType}-${idx}`
-                          const displayValue = displayValues[itemKey]
+                          <div className="space-y-3 rounded-2xl border border-white/70 bg-white/80 p-4 backdrop-blur">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-semibold text-gray-800">
+                                {t('pages.myMenus.itemsIn', {
+                                  mealType: mealTypeOptions.find(
+                                    m => m.id === activeMealType
+                                  )?.label
+                                })}
+                              </p>
+                              <span className={softBadgeClass}>
+                                {plans[activeMealType].length}{' '}
+                                {t('pages.myMenus.items')}
+                              </span>
+                            </div>
+                            {plans[activeMealType].map((item, idx) => {
+                              const isRecipeItem = detectIsRecipe(item)
+                              const itemKey = `${activeMealType}-${idx}`
+                              const displayValue = displayValues[itemKey]
 
-                          const servingOptions = buildServingOptionsForMenuItem(
-                            item,
-                            includeImperialServingOptions
-                          )
-                          const hasServings = servingOptions.length > 0
+                              const servingOptions =
+                                buildServingOptionsForMenuItem(
+                                  item,
+                                  includeImperialServingOptions
+                                )
+                              const hasServings = servingOptions.length > 0
 
-                          const defaultServingIdentifier =
-                            getServingIdentifier(servingOptions[0]) || null
-                          const currentServingId =
-                            displayValue?.selectedServingId ||
-                            item?.originalServingId ||
-                            defaultServingIdentifier
-                          const selectedServingForCurrent =
-                            findServingByIdentifier(
-                              servingOptions,
-                              currentServingId
-                            ) ||
-                            servingOptions[0] ||
-                            null
-                          const fallbackServingAmount =
-                            selectedServingForCurrent
-                              ? getDefaultAmountForSelectedServing(
+                              const defaultServingIdentifier =
+                                getServingIdentifier(servingOptions[0]) || null
+                              const currentServingId =
+                                displayValue?.selectedServingId ||
+                                item?.originalServingId ||
+                                defaultServingIdentifier
+                              const selectedServingForCurrent =
+                                findServingByIdentifier(
+                                  servingOptions,
+                                  currentServingId
+                                ) ||
+                                servingOptions[0] ||
+                                null
+                              const fallbackServingAmount =
+                                getPreferredStructuredMealAmount(
+                                  item,
                                   selectedServingForCurrent
                                 )
-                              : item?.originalServingAmount || 100
-                          const currentServingAmount =
-                            displayValue?.servingAmount !== undefined
-                              ? displayValue.servingAmount
-                              : fallbackServingAmount
+                              const currentServingAmount =
+                                displayValue?.servingAmount !== undefined
+                                  ? displayValue.servingAmount
+                                  : fallbackServingAmount
 
-                          let originalServingAmount =
-                            item?.originalServingAmount
-                          if (
-                            !originalServingAmount &&
-                            servingOptions.length > 0
-                          ) {
-                            if (isRecipeItem) {
-                              const portionServing =
-                                findPortionServing(servingOptions)
-                              if (portionServing) {
-                                const numberOfRecipeServings =
-                                  item?.numberOfRecipeServings ||
-                                  item?.originalServings ||
-                                  1
-                                originalServingAmount =
-                                  getServingAmount(portionServing) *
-                                  numberOfRecipeServings
-                              } else {
-                                const totalWeight =
-                                  item?.nutrientsPer100?.totalQuantity ||
-                                  item?.nutrientsPer100?.weightAfterCooking ||
-                                  null
-                                if (totalWeight) {
-                                  originalServingAmount = totalWeight
+                              let originalServingAmount =
+                                item?.originalServingAmount
+                              if (
+                                !originalServingAmount &&
+                                servingOptions.length > 0
+                              ) {
+                                if (isRecipeItem) {
+                                  const portionServing =
+                                    findPortionServing(servingOptions)
+                                  if (portionServing) {
+                                    const numberOfRecipeServings =
+                                      item?.numberOfRecipeServings ||
+                                      item?.originalServings ||
+                                      1
+                                    originalServingAmount =
+                                      getServingAmount(portionServing) *
+                                      numberOfRecipeServings
+                                  } else {
+                                    const totalWeight =
+                                      item?.nutrientsPer100?.totalQuantity ||
+                                      item?.nutrientsPer100
+                                        ?.weightAfterCooking ||
+                                      null
+                                    if (totalWeight) {
+                                      originalServingAmount = totalWeight
+                                    } else {
+                                      const defaultServing =
+                                        findDefaultServing(servingOptions)
+                                      const numberOfRecipeServings =
+                                        item?.numberOfRecipeServings ||
+                                        item?.originalServings ||
+                                        1
+                                      originalServingAmount =
+                                        (getServingAmount(defaultServing) ||
+                                          100) * numberOfRecipeServings
+                                    }
+                                  }
                                 } else {
                                   const defaultServing =
                                     findDefaultServing(servingOptions)
-                                  const numberOfRecipeServings =
-                                    item?.numberOfRecipeServings ||
-                                    item?.originalServings ||
-                                    1
                                   originalServingAmount =
-                                    (getServingAmount(defaultServing) || 100) *
-                                    numberOfRecipeServings
+                                    getServingAmount(defaultServing) || 100
                                 }
                               }
-                            } else {
-                              const defaultServing =
-                                findDefaultServing(servingOptions)
                               originalServingAmount =
-                                getServingAmount(defaultServing) || 100
-                            }
-                          }
-                          originalServingAmount = originalServingAmount || 100
+                                originalServingAmount || 100
 
-                          const servingAmountForCalc =
-                            currentServingAmount === '' ||
-                            currentServingAmount === undefined
-                              ? originalServingAmount
-                              : currentServingAmount
-                          const calculated = calculateDisplayValues(
-                            item,
-                            servingAmountForCalc,
-                            originalServingAmount,
-                            findServingByIdentifier(
-                              servingOptions,
-                              currentServingId
-                            )?.unitName ||
-                              findServingByIdentifier(
-                                servingOptions,
-                                currentServingId
-                              )?.unit ||
-                              (item?.isLiquid ? 'ml' : 'g')
-                          )
-                          const adjustedCalories = calculated.calories
-                          const adjustedNutrients = calculated.nutrients
-
-                          return (
-                            <div
-                              key={idx}
-                              className="relative rounded-2xl border border-white/60 bg-white/90 p-4 shadow-sm"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="text-sm font-semibold text-gray-900 truncate">
-                                    {item?.name || item?.title || 'Unnamed'}
-                                  </div>
-                                  <div className="text-xs text-gray-600 truncate">
-                                    {isRecipeItem ? 'Recipe' : 'Food'}
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() =>
-                                    removeItemFromPlan(activeMealType, idx)
+                              const servingAmountForCalc =
+                                currentServingAmount === '' ||
+                                currentServingAmount === undefined
+                                  ? originalServingAmount
+                                  : currentServingAmount
+                              const structuredMealSummary =
+                                isStructuredMealRecipeItem(item)
+                                  ? calculateStructuredMealItemSummary(item)
+                                  : null
+                              const calculated = structuredMealSummary
+                                ? {
+                                    calories: structuredMealSummary.calories,
+                                    nutrients: structuredMealSummary
                                   }
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
+                                : calculateDisplayValues(
+                                    item,
+                                    servingAmountForCalc,
+                                    originalServingAmount,
+                                    findServingByIdentifier(
+                                      servingOptions,
+                                      currentServingId
+                                    )?.unitName ||
+                                      findServingByIdentifier(
+                                        servingOptions,
+                                        currentServingId
+                                      )?.unit ||
+                                      (item?.isLiquid ? 'ml' : 'g')
+                                  )
+                              const adjustedCalories = calculated.calories
+                              const adjustedNutrients = calculated.nutrients
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className="relative rounded-2xl border border-white/60 bg-white/90 p-4 shadow-sm"
                                 >
-                                  <TrashIcon className="h-4 w-4" />
-                                </button>
-                              </div>
-
-                              {hasServings && (
-                                <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
-                                  <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                    {t('pages.myMenus.servingOptions')}
-                                  </label>
-                                  <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
-                                    <select
-                                      value={currentServingId || ''}
-                                      onChange={e => {
-                                        const selectedIdentifier =
-                                          e.target.value || null
-                                        const selectedServing =
-                                          findServingByIdentifier(
-                                            servingOptions,
-                                            selectedIdentifier
-                                          )
-                                        const servingAmount =
-                                          getDefaultAmountForSelectedServing(
-                                            selectedServing
-                                          )
-
-                                        setDisplayValues(prev => ({
-                                          ...prev,
-                                          [itemKey]: {
-                                            selectedServingId:
-                                              selectedIdentifier,
-                                            servingAmount:
-                                              roundServingAmountByUnitSystem(
-                                                servingAmount
-                                              ) || currentServingAmount
-                                          }
-                                        }))
-                                      }}
-                                      className="w-full rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-medium text-gray-800 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 md:w-48"
-                                    >
-                                      {servingOptions.map((serving, sIdx) => {
-                                        const servingId =
-                                          getServingIdentifier(serving)
-                                        return (
-                                          <option
-                                            key={servingId || sIdx}
-                                            value={servingId}
-                                          >
-                                            {serving.name ||
-                                              serving.innerName ||
-                                              serving.unitName ||
-                                              serving.unit}
-                                          </option>
-                                        )
-                                      })}
-                                    </select>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-semibold text-gray-900 truncate">
+                                        {item?.name || item?.title || 'Unnamed'}
+                                      </div>
+                                      <div className="text-xs text-gray-600 truncate">
+                                        {isRecipeItem ? 'Recipe' : 'Food'}
+                                      </div>
+                                    </div>
                                     <div className="flex items-center gap-2">
-                                      <input
-                                        type="text"
-                                        value={currentServingAmount}
-                                        onChange={e => {
-                                          const inputValue = e.target.value
-                                          const newAmount =
-                                            inputValue === ''
-                                              ? ''
-                                              : inputValue || 0
+                                      {isRecipeItem ? (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            openStructuredMealEditor({
+                                              mode: 'builder',
+                                              mealKey: activeMealType,
+                                              item,
+                                              itemIndex: idx
+                                            })
+                                          }
+                                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-700 transition hover:bg-blue-100"
+                                        >
+                                          <PencilIcon className="h-4 w-4" />
+                                        </button>
+                                      ) : null}
+                                      <button
+                                        onClick={() =>
+                                          removeItemFromPlan(
+                                            activeMealType,
+                                            idx
+                                          )
+                                        }
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
+                                      >
+                                        <TrashIcon className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </div>
 
-                                          setDisplayValues(prev => ({
-                                            ...prev,
-                                            [itemKey]: {
-                                              selectedServingId:
-                                                currentServingId,
-                                              servingAmount:
-                                                newAmount === ''
-                                                  ? ''
-                                                  : newAmount
-                                            }
-                                          }))
-                                        }}
-                                        onBlur={e => {
-                                          const inputValue = e.target.value
-                                          if (inputValue === '') {
-                                            const selectedServingOnBlur =
+                                  {hasServings && (
+                                    <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center">
+                                      <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        {t('pages.myMenus.servingOptions')}
+                                      </label>
+                                      <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
+                                        <select
+                                          value={currentServingId || ''}
+                                          onChange={e => {
+                                            const selectedIdentifier =
+                                              e.target.value || null
+                                            const selectedServing =
                                               findServingByIdentifier(
                                                 servingOptions,
-                                                currentServingId
+                                                selectedIdentifier
                                               )
-                                            const fallbackAmount =
+                                            const servingAmount =
                                               getDefaultAmountForSelectedServing(
-                                                selectedServingOnBlur
+                                                selectedServing
                                               )
+
                                             setDisplayValues(prev => ({
                                               ...prev,
                                               [itemKey]: {
                                                 selectedServingId:
-                                                  currentServingId,
-                                                servingAmount: fallbackAmount
+                                                  selectedIdentifier,
+                                                servingAmount:
+                                                  roundServingAmountByUnitSystem(
+                                                    servingAmount
+                                                  ) || currentServingAmount
                                               }
                                             }))
-                                          }
-                                        }}
-                                        className="w-24 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                                        placeholder={t('pages.myMenus.amount')}
-                                      />
-                                      <span className="text-xs font-medium text-gray-600">
-                                        {findServingByIdentifier(
-                                          servingOptions,
-                                          currentServingId
-                                        )?.unitName ||
-                                          findServingByIdentifier(
-                                            servingOptions,
-                                            currentServingId
-                                          )?.unit ||
-                                          (item?.isLiquid ? 'ml' : 'g')}
-                                      </span>
+                                          }}
+                                          className="w-full rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-medium text-gray-800 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 md:w-48"
+                                        >
+                                          {servingOptions.map(
+                                            (serving, sIdx) => {
+                                              const servingId =
+                                                getServingIdentifier(serving)
+                                              return (
+                                                <option
+                                                  key={servingId || sIdx}
+                                                  value={servingId}
+                                                >
+                                                  {serving.name ||
+                                                    serving.innerName ||
+                                                    serving.unitName ||
+                                                    serving.unit}
+                                                </option>
+                                              )
+                                            }
+                                          )}
+                                        </select>
+                                        <div className="flex items-center gap-2">
+                                          <input
+                                            type="text"
+                                            value={currentServingAmount}
+                                            onChange={e => {
+                                              const inputValue = e.target.value
+                                              const newAmount =
+                                                inputValue === ''
+                                                  ? ''
+                                                  : inputValue || 0
+
+                                              setDisplayValues(prev => ({
+                                                ...prev,
+                                                [itemKey]: {
+                                                  selectedServingId:
+                                                    currentServingId,
+                                                  servingAmount:
+                                                    newAmount === ''
+                                                      ? ''
+                                                      : newAmount
+                                                }
+                                              }))
+                                            }}
+                                            onBlur={e => {
+                                              const inputValue = e.target.value
+                                              if (inputValue === '') {
+                                                const selectedServingOnBlur =
+                                                  findServingByIdentifier(
+                                                    servingOptions,
+                                                    currentServingId
+                                                  )
+                                                const fallbackAmount =
+                                                  getDefaultAmountForSelectedServing(
+                                                    selectedServingOnBlur
+                                                  )
+                                                setDisplayValues(prev => ({
+                                                  ...prev,
+                                                  [itemKey]: {
+                                                    selectedServingId:
+                                                      currentServingId,
+                                                    servingAmount:
+                                                      fallbackAmount
+                                                  }
+                                                }))
+                                              }
+                                            }}
+                                            className="w-24 rounded-xl border border-white/80 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-900 shadow-inner focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                            placeholder={t(
+                                              'pages.myMenus.amount'
+                                            )}
+                                          />
+                                          <span className="text-xs font-medium text-gray-600">
+                                            {findServingByIdentifier(
+                                              servingOptions,
+                                              currentServingId
+                                            )?.unitName ||
+                                              findServingByIdentifier(
+                                                servingOptions,
+                                                currentServingId
+                                              )?.unit ||
+                                              (item?.isLiquid ? 'ml' : 'g')}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {isRecipeItem && (
+                                    <div className="mt-2 text-xs text-gray-600">
+                                      <span className="font-semibold">
+                                        {t('pages.myMenus.originalServing')}:
+                                      </span>{' '}
+                                      {item?.numberOfRecipeServings ||
+                                        item?.originalServings ||
+                                        1}
+                                    </div>
+                                  )}
+
+                                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-4">
+                                    <div
+                                      className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
+                                    >
+                                      {t('pages.myMenus.calories')}:{' '}
+                                      {adjustedCalories}
+                                    </div>
+                                    <div
+                                      className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
+                                    >
+                                      {t('pages.myMenus.proteins')}:{' '}
+                                      {roundMacro(
+                                        Number(
+                                          adjustedNutrients?.proteinsInGrams
+                                        ) || 0
+                                      )}{' '}
+                                      g
+                                    </div>
+                                    <div
+                                      className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
+                                    >
+                                      {t('pages.myMenus.carbs')}:{' '}
+                                      {roundMacro(
+                                        Number(
+                                          adjustedNutrients?.carbohydratesInGrams
+                                        ) || 0
+                                      )}{' '}
+                                      g
+                                    </div>
+                                    <div
+                                      className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
+                                    >
+                                      {t('pages.myMenus.fat')}:{' '}
+                                      {roundMacro(
+                                        Number(adjustedNutrients?.fatInGrams) ||
+                                          0
+                                      )}{' '}
+                                      g
                                     </div>
                                   </div>
-                                </div>
-                              )}
 
-                              {isRecipeItem && (
-                                <div className="mt-2 text-xs text-gray-600">
-                                  <span className="font-semibold">
-                                    {t('pages.myMenus.originalServing')}:
-                                  </span>{' '}
-                                  {item?.numberOfRecipeServings ||
-                                    item?.originalServings ||
-                                    1}
+                                  {isRecipeItem ? (
+                                    <label className="mt-3 inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                                      <input
+                                        type="checkbox"
+                                        checked={shouldShowRecipeDetailsInPdf(
+                                          item
+                                        )}
+                                        onChange={event => {
+                                          setPlans(prev => ({
+                                            ...prev,
+                                            [activeMealType]: prev[
+                                              activeMealType
+                                            ].map((planItem, planIndex) =>
+                                              planIndex === idx
+                                                ? {
+                                                    ...planItem,
+                                                    showRecipeDetailsInPdf:
+                                                      event.target.checked
+                                                  }
+                                                : planItem
+                                            )
+                                          }))
+                                        }}
+                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-400"
+                                      />
+                                      {t(
+                                        'pages.myMenus.showRecipeDetailsInPdf'
+                                      )}
+                                    </label>
+                                  ) : null}
                                 </div>
-                              )}
-
-                              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 sm:grid-cols-4">
-                                <div
-                                  className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
-                                >
-                                  {t('pages.myMenus.calories')}:{' '}
-                                  {adjustedCalories}
-                                </div>
-                                <div
-                                  className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
-                                >
-                                  {t('pages.myMenus.proteins')}:{' '}
-                                  {roundMacro(
-                                    Number(
-                                      adjustedNutrients?.proteinsInGrams
-                                    ) || 0
-                                  )}{' '}
-                                  g
-                                </div>
-                                <div
-                                  className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
-                                >
-                                  {t('pages.myMenus.carbs')}:{' '}
-                                  {roundMacro(
-                                    Number(
-                                      adjustedNutrients?.carbohydratesInGrams
-                                    ) || 0
-                                  )}{' '}
-                                  g
-                                </div>
-                                <div
-                                  className={`${glassSurfaceClass} px-3 py-2 text-center font-semibold text-gray-900`}
-                                >
-                                  {t('pages.myMenus.fat')}:{' '}
-                                  {roundMacro(
-                                    Number(adjustedNutrients?.fatInGrams) || 0
-                                  )}{' '}
-                                  g
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
+                              )
+                            })}
+                          </div>
                         )}
                       </>
                     ) : null}
@@ -4396,6 +5800,7 @@ const MyMenus = () => {
         )}
 
         {renderItemPreviewModal()}
+        {renderStructuredMealEditorModal()}
 
         {/* Text-to-Menu Modal */}
         {isTextToMenuOpen && (
@@ -4404,7 +5809,10 @@ const MyMenus = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <SparklesIcon className="w-5 h-5 text-violet-500" />
-                  <h3 className="text-xl font-bold text-gray-900">{t('pages.menus.textToMenu.title') || 'Generate Menu from Text'}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {t('pages.menus.textToMenu.title') ||
+                      'Generate Menu from Text'}
+                  </h3>
                 </div>
                 <button
                   onClick={() => {
@@ -4423,26 +5831,34 @@ const MyMenus = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {t('pages.menus.textToMenu.describe') || 'Describe the menu'}
+                    {t('pages.menus.textToMenu.describe') ||
+                      'Describe the menu'}
                   </label>
                   <textarea
                     value={textToMenuInput}
                     onChange={e => setTextToMenuInput(e.target.value)}
                     rows={5}
-                    placeholder={t('pages.menus.textToMenu.placeholder') || 'e.g. A 1800 calorie Mediterranean day: oatmeal and banana for breakfast, grilled chicken with salad for lunch, salmon with vegetables for dinner, Greek yogurt as snack.'}
+                    placeholder={
+                      t('pages.menus.textToMenu.placeholder') ||
+                      'e.g. A 1800 calorie Mediterranean day: oatmeal and banana for breakfast, grilled chicken with salad for lunch, salmon with vegetables for dinner, Greek yogurt as snack.'
+                    }
                     className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 resize-none text-sm"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {t('pages.menus.textToMenu.menuName') || 'Menu name (optional)'}
+                    {t('pages.menus.textToMenu.menuName') ||
+                      'Menu name (optional)'}
                   </label>
                   <input
                     type="text"
                     value={textToMenuName}
                     onChange={e => setTextToMenuName(e.target.value)}
-                    placeholder={t('pages.menus.textToMenu.menuNamePlaceholder') || 'Leave blank to auto-generate'}
+                    placeholder={
+                      t('pages.menus.textToMenu.menuNamePlaceholder') ||
+                      'Leave blank to auto-generate'
+                    }
                     className="w-full border border-gray-300 bg-white rounded-lg px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 text-sm"
                   />
                 </div>
@@ -4468,7 +5884,8 @@ const MyMenus = () => {
                 </div>
 
                 <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg text-sm text-violet-800">
-                  {t('pages.menus.textToMenu.hint') || 'The AI will generate a menu from your description and match items against the existing food database. Items not found in the database will be skipped.'}
+                  {t('pages.menus.textToMenu.hint') ||
+                    'The AI will generate a menu from your description and match items against the existing food database. Items not found in the database will be skipped.'}
                 </div>
               </div>
 
@@ -4836,7 +6253,8 @@ const MyMenus = () => {
           </div>
         ) : null}
 
-        {isCopyContainerToCountryModalOpen && selectedContainerForCountryCopy ? (
+        {isCopyContainerToCountryModalOpen &&
+        selectedContainerForCountryCopy ? (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className={`${glassCardClass} max-w-md w-full p-6`}>
               <div className="flex items-center justify-between mb-4">
@@ -5067,116 +6485,130 @@ const MyMenus = () => {
                 exportingContainerPdf
 
               return (
-            <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4">
-                <button
-                  type="button"
-                  onClick={() => setSelectedContainerModalOpen(false)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
-                >
-                  <ArrowLeftIcon className="h-5 w-5" />
-                </button>
-                <div>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">
-                    {selectedContainer?.containerName}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {selectedContainer?.menus?.length || 0}{' '}
-                    {t('pages.myMenus.menus')}
-                  </p>
+                <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-start md:justify-between">
+                  <div className="flex items-start gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedContainerModalOpen(false)}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50"
+                    >
+                      <ArrowLeftIcon className="h-5 w-5" />
+                    </button>
+                    <div>
+                      <h3 className="mt-2 text-2xl font-semibold text-slate-900">
+                        {selectedContainer?.containerName}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {selectedContainer?.menus?.length || 0}{' '}
+                        {t('pages.myMenus.menus')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openTextToMenu(selectedContainer)}
+                      disabled={isSelectedContainerActionBusy}
+                      className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                      title={
+                        t('pages.menus.generateFromText') ||
+                        'Generate from Text'
+                      }
+                    >
+                      <SparklesIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => openBuilderForContainer(selectedContainer)}
+                      disabled={isSelectedContainerActionBusy}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                      {t('pages.myMenus.addDay')}
+                    </button>
+                    <ControlsDropdown
+                      actions={[
+                        {
+                          icon: DocumentTextIcon,
+                          labelKey: 'pages.myMenus.exportPdf',
+                          disabled: isSelectedContainerActionBusy,
+                          loading: exportingContainerPdf,
+                          onClick: () =>
+                            handleExportContainerPdf(selectedContainer)
+                        },
+                        {
+                          icon: PencilIcon,
+                          labelKey: 'common.controls.rename',
+                          colorClass: 'text-blue-700',
+                          disabled: isSelectedContainerActionBusy,
+                          onClick: () =>
+                            handleOpenRenameContainerModal(selectedContainer)
+                        },
+                        {
+                          icon: DocumentDuplicateIcon,
+                          labelKey: 'common.controls.copyContainer',
+                          colorClass: 'text-violet-700',
+                          disabled: isSelectedContainerActionBusy,
+                          onClick: () =>
+                            handleOpenCopyContainerModal(selectedContainer)
+                        },
+                        ...(isAdmin
+                          ? [
+                              {
+                                icon: GlobeAltIcon,
+                                labelKey: 'common.controls.copyToCountry',
+                                colorClass: 'text-emerald-700',
+                                disabled: isSelectedContainerActionBusy,
+                                onClick: () =>
+                                  handleOpenCopyContainerToCountryModal(
+                                    selectedContainer
+                                  )
+                              }
+                            ]
+                          : []),
+                        {
+                          icon: TrashIcon,
+                          labelKey: 'pages.myMenus.deleteContainer',
+                          colorClass: 'text-red-600',
+                          disabled: isSelectedContainerActionBusy,
+                          loading: isSelectedContainerDeleting,
+                          onClick: () =>
+                            handleDeleteContainer(selectedContainer)
+                        }
+                      ]}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openTextToMenu(selectedContainer)}
-                  disabled={isSelectedContainerActionBusy}
-                  className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-                  title={t('pages.menus.generateFromText') || 'Generate from Text'}
-                >
-                  <SparklesIcon className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => openBuilderForContainer(selectedContainer)}
-                  disabled={isSelectedContainerActionBusy}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  {t('pages.myMenus.addDay')}
-                </button>
-                <ControlsDropdown
-                  actions={[
-                    {
-                      icon: DocumentTextIcon,
-                      labelKey: 'pages.myMenus.exportPdf',
-                      disabled: isSelectedContainerActionBusy,
-                      loading: exportingContainerPdf,
-                      onClick: () => handleExportContainerPdf(selectedContainer)
-                    },
-                    {
-                      icon: PencilIcon,
-                      labelKey: 'common.controls.rename',
-                      colorClass: 'text-blue-700',
-                      disabled: isSelectedContainerActionBusy,
-                      onClick: () => handleOpenRenameContainerModal(selectedContainer)
-                    },
-                    {
-                      icon: DocumentDuplicateIcon,
-                      labelKey: 'common.controls.copyContainer',
-                      colorClass: 'text-violet-700',
-                      disabled: isSelectedContainerActionBusy,
-                      onClick: () => handleOpenCopyContainerModal(selectedContainer)
-                    },
-                    ...(isAdmin ? [{
-                      icon: GlobeAltIcon,
-                      labelKey: 'common.controls.copyToCountry',
-                      colorClass: 'text-emerald-700',
-                      disabled: isSelectedContainerActionBusy,
-                      onClick: () => handleOpenCopyContainerToCountryModal(selectedContainer)
-                    }] : []),
-                    {
-                      icon: TrashIcon,
-                      labelKey: 'pages.myMenus.deleteContainer',
-                      colorClass: 'text-red-600',
-                      disabled: isSelectedContainerActionBusy,
-                      loading: isSelectedContainerDeleting,
-                      onClick: () => handleDeleteContainer(selectedContainer)
-                    }
-                  ]}
-                />
-              </div>
-            </div>
               )
             })()}
 
             <div className="mt-5 flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-slate-50 p-2">
               {selectedContainer.menus.map(menu => (
                 <div key={menu.id} className="relative">
-                <button
-                  type="button"
-                  draggable
-                  onClick={() => setSelectedContainerMenuId(menu.id)}
-                  onDragStart={() => setDraggedContainerMenuId(menu.id)}
-                  onDragOver={event => event.preventDefault()}
-                  onDrop={async event => {
-                    event.preventDefault()
-                    await handleReorderContainerMenus(
-                      selectedContainer,
-                      draggedContainerMenuId,
-                      menu.id
-                    )
-                  }}
-                  className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                    selectedMenuInContainer?.id === menu.id
-                      ? 'border-blue-200 bg-white text-blue-700 shadow-sm'
-                      : 'border-transparent bg-transparent text-slate-600 hover:border-slate-200 hover:bg-white'
-                  } ${reorderingContainer ? 'opacity-60' : ''}`}
-                  disabled={reorderingContainer}
-                >
-                  {menu.parsedMenuName}
-                </button>
-                {menuStudioDrafts[menu.id] ? (
-                  <span className="pointer-events-none absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_4px_rgba(251,191,36,0.18)]" />
-                ) : null}
+                  <button
+                    type="button"
+                    draggable
+                    onClick={() => setSelectedContainerMenuId(menu.id)}
+                    onDragStart={() => setDraggedContainerMenuId(menu.id)}
+                    onDragOver={event => event.preventDefault()}
+                    onDrop={async event => {
+                      event.preventDefault()
+                      await handleReorderContainerMenus(
+                        selectedContainer,
+                        draggedContainerMenuId,
+                        menu.id
+                      )
+                    }}
+                    className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                      selectedMenuInContainer?.id === menu.id
+                        ? 'border-blue-200 bg-white text-blue-700 shadow-sm'
+                        : 'border-transparent bg-transparent text-slate-600 hover:border-slate-200 hover:bg-white'
+                    } ${reorderingContainer ? 'opacity-60' : ''}`}
+                    disabled={reorderingContainer}
+                  >
+                    {menu.parsedMenuName}
+                  </button>
+                  {menuStudioDrafts[menu.id] ? (
+                    <span className="pointer-events-none absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_4px_rgba(251,191,36,0.18)]" />
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -5234,6 +6666,7 @@ const MyMenus = () => {
                         isSelectedMenuDeleting || savingStudioMenu
 
                       return (
+<<<<<<< Updated upstream
                     <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
                       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div>
@@ -5243,60 +6676,94 @@ const MyMenus = () => {
                           <p className="mt-2 text-2xl font-semibold text-slate-900">
                             {selectedMenuInContainer.parsedMenuName}
                           </p>
+=======
+                        <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
+                          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                {t('pages.myMenus.menuName')}
+                              </p>
+                              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                {selectedMenuInContainer.parsedMenuName}
+                              </p>
+                              <p className="mt-1 text-sm text-slate-500">
+                                {t('pages.myMenus.id')}:{' '}
+                                {selectedMenuInContainer.id}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={handleSaveSelectedMenuDraft}
+                                disabled={
+                                  !selectedMenuHasDraft || savingStudioMenu
+                                }
+                                className={`inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none ${
+                                  selectedMenuHasDraft
+                                    ? 'animate-pulse bg-gradient-to-r from-amber-500 to-orange-500'
+                                    : 'bg-slate-200'
+                                }`}
+                                title={t('common.save')}
+                              >
+                                <DocumentTextIcon className="h-4 w-4" />
+                                {savingStudioMenu
+                                  ? t('pages.myMenus.saving')
+                                  : t('common.save')}
+                              </button>
+                              <ControlsDropdown
+                                absolute
+                                actions={[
+                                  {
+                                    icon: DocumentDuplicateIcon,
+                                    labelKey: 'pages.menus.duplicate',
+                                    colorClass: 'text-violet-700',
+                                    disabled: isSelectedMenuActionBusy,
+                                    onClick: () =>
+                                      handleOpenDuplicateModal(
+                                        selectedMenuInContainer
+                                      )
+                                  },
+                                  {
+                                    icon: PencilIcon,
+                                    labelKey: 'common.edit',
+                                    colorClass: 'text-blue-700',
+                                    disabled: isSelectedMenuActionBusy,
+                                    onClick: () =>
+                                      handleLoadTemplateForEditing(
+                                        selectedMenuInContainer
+                                      )
+                                  },
+                                  ...(isAdmin
+                                    ? [
+                                        {
+                                          icon: GlobeAltIcon,
+                                          labelKey:
+                                            'common.controls.copyToCountry',
+                                          colorClass: 'text-emerald-700',
+                                          disabled: isSelectedMenuActionBusy,
+                                          onClick: () =>
+                                            handleOpenCopyModal(
+                                              selectedMenuInContainer
+                                            )
+                                        }
+                                      ]
+                                    : []),
+                                  {
+                                    icon: TrashIcon,
+                                    labelKey: 'common.delete',
+                                    colorClass: 'text-red-600',
+                                    disabled: isSelectedMenuActionBusy,
+                                    loading: isSelectedMenuDeleting,
+                                    onClick: () =>
+                                      handleDeleteTemplate(
+                                        selectedMenuInContainer.id
+                                      )
+                                  }
+                                ]}
+                              />
+                            </div>
+                          </div>
+>>>>>>> Stashed changes
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={handleSaveSelectedMenuDraft}
-                            disabled={!selectedMenuHasDraft || savingStudioMenu}
-                            className={`inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none ${
-                              selectedMenuHasDraft
-                                ? 'animate-pulse bg-gradient-to-r from-amber-500 to-orange-500'
-                                : 'bg-slate-200'
-                            }`}
-                            title={t('common.save')}
-                          >
-                            <DocumentTextIcon className="h-4 w-4" />
-                            {savingStudioMenu
-                              ? t('pages.myMenus.saving')
-                              : t('common.save')}
-                          </button>
-                          <ControlsDropdown
-                            absolute
-                            actions={[
-                              {
-                                icon: DocumentDuplicateIcon,
-                                labelKey: 'pages.menus.duplicate',
-                                colorClass: 'text-violet-700',
-                                disabled: isSelectedMenuActionBusy,
-                                onClick: () => handleOpenDuplicateModal(selectedMenuInContainer)
-                              },
-                              {
-                                icon: PencilIcon,
-                                labelKey: 'common.edit',
-                                colorClass: 'text-blue-700',
-                                disabled: isSelectedMenuActionBusy,
-                                onClick: () => handleLoadTemplateForEditing(selectedMenuInContainer)
-                              },
-                              ...(isAdmin ? [{
-                                icon: GlobeAltIcon,
-                                labelKey: 'common.controls.copyToCountry',
-                                colorClass: 'text-emerald-700',
-                                disabled: isSelectedMenuActionBusy,
-                                onClick: () => handleOpenCopyModal(selectedMenuInContainer)
-                              }] : []),
-                              {
-                                icon: TrashIcon,
-                                labelKey: 'common.delete',
-                                colorClass: 'text-red-600',
-                                disabled: isSelectedMenuActionBusy,
-                                loading: isSelectedMenuDeleting,
-                                onClick: () => handleDeleteTemplate(selectedMenuInContainer.id)
-                              }
-                            ]}
-                          />
-                        </div>
-                      </div>
-                    </div>
                       )
                     })()}
 
@@ -5488,7 +6955,8 @@ const MyMenus = () => {
                               : client?.user?.userId
                             return (
                               <option key={clientId} value={clientId}>
-                                {clientName}{clientEmail ? ` - ${clientEmail}` : ''}
+                                {clientName}
+                                {clientEmail ? ` - ${clientEmail}` : ''}
                               </option>
                             )
                           })}

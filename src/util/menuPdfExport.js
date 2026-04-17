@@ -1,12 +1,14 @@
+/* global Image, btoa, fetch */
+
 import { jsPDF } from 'jspdf'
 
 import { calculateDisplayValues, safeNutrients } from './menuDisplay'
 
 const MENU_MEAL_SECTIONS = [
-  { id: 'breakfastPlan', labelKey: 'pages.myMenus.breakfast' },
-  { id: 'lunchPlan', labelKey: 'pages.myMenus.lunch' },
-  { id: 'dinnerPlan', labelKey: 'pages.myMenus.dinner' },
-  { id: 'snackPlan', labelKey: 'pages.myMenus.snack' }
+  { id: 'breakfastPlan', labelKey: 'pages.myMenus.breakfast', pdfLabel: 'Mic dejun' },
+  { id: 'lunchPlan', labelKey: 'pages.myMenus.lunch', pdfLabel: 'Prânz' },
+  { id: 'dinnerPlan', labelKey: 'pages.myMenus.dinner', pdfLabel: 'Cină' },
+  { id: 'snackPlan', labelKey: 'pages.myMenus.snack', pdfLabel: 'Gustare' }
 ]
 
 const PDF_FONT_NAME = 'ArialUnicodeSafe'
@@ -19,10 +21,31 @@ const TITLE_FONT_ASSET_URL = `${FONT_ASSET_BASE_URL}/Verdana.ttf`
 const TITLE_FONT_BOLD_ASSET_URL = `${FONT_ASSET_BASE_URL}/Verdana-Bold.ttf`
 const LOGO_ASSET_URL = `${import.meta.env.BASE_URL || '/'}assets/logo.png`
 
+const STITCH_PDF_THEME = {
+  page: [255, 255, 255],
+  pageOrbPrimary: [255, 255, 255],
+  pageOrbSecondary: [255, 255, 255],
+  surface: [255, 255, 255],
+  surfaceLow: [246, 238, 255],
+  surfaceHigh: [228, 215, 255],
+  primary: [83, 71, 200],
+  primaryDim: [71, 58, 187],
+  primaryFixed: [155, 148, 255],
+  text: [51, 40, 79],
+  textMuted: [97, 85, 127],
+  textSoft: [124, 112, 156],
+  inverseSurface: [18, 6, 45],
+  inversePrimary: [137, 128, 255],
+  accentWarm: [255, 241, 224],
+  accentWarmText: [181, 91, 15],
+  outlineGhost: [180, 166, 213]
+}
+
 let fontLoadPromise = null
 let titleFontLoadPromise = null
 let titleFontBoldLoadPromise = null
 let logoLoadPromise = null
+const pdfImageLoadCache = new Map()
 
 const parseNumber = value => {
   const n = Number(value)
@@ -47,6 +70,14 @@ const arrayBufferToBase64 = buffer => {
 
 const arrayBufferToDataUrl = (buffer, mimeType) =>
   `data:${mimeType};base64,${arrayBufferToBase64(buffer)}`
+
+const stripControlChars = value =>
+  Array.from(String(value || ''))
+    .map(char => {
+      const code = char.charCodeAt(0)
+      return code < 32 || code === 127 ? ' ' : char
+    })
+    .join('')
 
 const createRoundedImageDataUrl = (sourceUrl, size, radius) =>
   new Promise((resolve, reject) => {
@@ -117,7 +148,9 @@ const ensurePdfTitleFonts = async doc => {
     titleFontBoldLoadPromise = fetch(TITLE_FONT_BOLD_ASSET_URL)
       .then(response => {
         if (!response.ok) {
-          throw new Error(`Failed to load PDF bold title font: ${response.status}`)
+          throw new Error(
+            `Failed to load PDF bold title font: ${response.status}`
+          )
         }
         return response.arrayBuffer()
       })
@@ -132,7 +165,11 @@ const ensurePdfTitleFonts = async doc => {
   doc.addFileToVFS('Verdana.ttf', titleFontBase64)
   doc.addFont('Verdana.ttf', PDF_TITLE_FONT_NAME, 'normal')
   doc.addFileToVFS('Verdana-Bold.ttf', titleFontBoldBase64)
-  doc.addFont('Verdana-Bold.ttf', PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
+  doc.addFont(
+    'Verdana-Bold.ttf',
+    PDF_TITLE_FONT_NAME,
+    PDF_TITLE_FONT_BOLD_STYLE
+  )
 }
 
 const ensurePdfLogo = async () => {
@@ -151,8 +188,36 @@ const ensurePdfLogo = async () => {
   return logoLoadPromise
 }
 
+const ensurePdfContentImage = async sourceUrl => {
+  const normalized = String(sourceUrl || '').trim()
+  if (!normalized) return null
+
+  if (!pdfImageLoadCache.has(normalized)) {
+    pdfImageLoadCache.set(
+      normalized,
+      fetch(normalized)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(
+              `Failed to load PDF content image: ${response.status}`
+            )
+          }
+          return response.arrayBuffer()
+        })
+        .then(buffer => {
+          const lower = normalized.toLowerCase()
+          const mimeType = lower.includes('.png') ? 'image/png' : 'image/jpeg'
+          return arrayBufferToDataUrl(buffer, mimeType)
+        })
+        .catch(() => null)
+    )
+  }
+
+  return pdfImageLoadCache.get(normalized)
+}
+
 const sanitizePdfText = value =>
-  String(value || '')
+  stripControlChars(value)
     .normalize('NFC')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
@@ -163,7 +228,6 @@ const sanitizePdfText = value =>
     .replace(/&#39;/gi, "'")
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
-    .replace(/[\u0000-\u001F\u007F]/g, ' ')
     .replace(/\u00A0/g, ' ')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n\s+/g, '\n')
@@ -224,12 +288,12 @@ const normalizeInstructionEntries = entries => {
   return sanitized.reduce((acc, entry) => {
     const previous = acc[acc.length - 1]
 
-    if (/^\d+[\.\)]?$/.test(entry)) {
+    if (/^\d+[.)]?$/.test(entry)) {
       acc.push(`${entry} `)
       return acc
     }
 
-    if (previous && /^\d+[\.\)]?\s*$/.test(previous)) {
+    if (previous && /^\d+[.)]?\s*$/.test(previous)) {
       acc[acc.length - 1] = `${previous}${entry}`.trim()
       return acc
     }
@@ -249,7 +313,9 @@ const normalizeInstructionEntries = entries => {
 }
 
 const formatInstructionEntry = entry =>
-  sanitizePdfText(entry).replace(/^\d+[\.\)]\s*/, '').trim()
+  sanitizePdfText(entry)
+    .replace(/^\d+[.)]\s*/, '')
+    .trim()
 
 const getItemDisplayUnit = item => {
   const changedServingUnit =
@@ -343,19 +409,31 @@ const getTemplateNutritionSummary = template => {
 }
 
 const drawRoundedBlock = (doc, x, y, width, height, fill = [255, 255, 255]) => {
-  doc.setDrawColor(222, 226, 234)
+  doc.setDrawColor(...STITCH_PDF_THEME.outlineGhost)
   doc.setFillColor(...fill)
   doc.roundedRect(x, y, width, height, 12, 12, 'FD')
+}
+
+const drawPageBackground = (doc, pageWidth, pageHeight) => {
+  doc.setFillColor(...STITCH_PDF_THEME.page)
+  doc.rect(0, 0, pageWidth, pageHeight, 'F')
 }
 
 const isRecipeItem = item =>
   String(item?.type || '').toLowerCase() === 'recipe' ||
   Boolean(item?.recipeSteps || item?.ingredients)
 
-const isLinkLikeLine = line =>
-  /https?:\/\/|www\.|youtu\.be|youtube\.com|instagram\.com|facebook\.com|tiktok\.com/i.test(
-    String(line || '')
-  )
+const shouldShowRecipeDetailsInPdf = item =>
+  isRecipeItem(item) ? item?.showRecipeDetailsInPdf === true : false
+const isStructuredRecipeItem = item =>
+  isRecipeItem(item) &&
+  (!Array.isArray(item?.servingOptions) || item.servingOptions.length === 0) &&
+  Array.isArray(item?.ingredients) &&
+  item.ingredients.length > 0
+const shouldRenderDetailedRecipeBlock = (item, sectionId) =>
+  sectionId === 'snackPlan'
+    ? isRecipeItem(item)
+    : shouldShowRecipeDetailsInPdf(item) || isStructuredRecipeItem(item)
 
 const sanitizeFilename = value =>
   String(value || 'menu-builder')
@@ -363,11 +441,44 @@ const sanitizeFilename = value =>
     .replace(/[\\/:*?"<>|]+/g, '-')
     .replace(/\s+/g, ' ')
 
+const localizeGeneratedDayLabel = (value, t) => {
+  const text = sanitizePdfText(value)
+  const match = text.match(/^day\s+(\d+)$/i)
+  if (!match) return text
+  return `${t('pages.myMenus.dayLabel')} ${match[1]}`
+}
+
+const MEAL_SECTION_STYLES = {
+  breakfastPlan: {
+    fill: [251, 228, 237],
+    text: [167, 86, 119]
+  },
+  lunchPlan: {
+    fill: [241, 223, 255],
+    text: [138, 99, 178]
+  },
+  snackPlan: {
+    fill: [252, 236, 180],
+    text: [154, 121, 21]
+  },
+  dinnerPlan: {
+    fill: [219, 243, 225],
+    text: [91, 142, 101]
+  }
+}
+
+const getMealSectionStyle = sectionId =>
+  MEAL_SECTION_STYLES[sectionId] || {
+    fill: STITCH_PDF_THEME.surfaceHigh,
+    text: STITCH_PDF_THEME.primaryDim
+  }
+
 export const exportMenuBuilderToPdf = async ({ container, t }) => {
   const menus = (Array.isArray(container?.menus) ? container.menus : []).filter(
     menu =>
       MENU_MEAL_SECTIONS.some(
-        section => Array.isArray(menu?.[section.id]) && menu[section.id].length > 0
+        section =>
+          Array.isArray(menu?.[section.id]) && menu[section.id].length > 0
       )
   )
   if (!menus.length) return
@@ -384,287 +495,638 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
 
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const marginX = 48
-  const marginTop = 42
+  const marginTop = 32
   const marginBottom = 42
-  const usableWidth = pageWidth - marginX * 2
-  const lineHeight = 13
-  const summaryGap = 8
-  const summaryWidth = (usableWidth - summaryGap * 4) / 5
-  const summaryHeight = 78
+  const contentWidth = 430
+  const contentX = (pageWidth - contentWidth) / 2
+  const footerY = pageHeight - marginBottom + 22
 
   let y = marginTop
   let hasRenderedFirstMenuPage = false
+  drawPageBackground(doc, pageWidth, pageHeight)
 
   const ensureSpace = neededHeight => {
     if (y + neededHeight <= pageHeight - marginBottom) return
     doc.addPage()
+    drawPageBackground(doc, pageWidth, pageHeight)
     y = marginTop
   }
 
   const drawHeader = menu => {
-    const innerX = marginX + 16
-    const contentWidth = usableWidth - 32
-    const brandTop = y
-    const logoSize = 28
-    const logoTextGap = 12
-    const brandTextX = innerX + logoSize + logoTextGap
-
-    const titleLines = doc.splitTextToSize(
-      sanitizePdfText(
-        container?.containerName || t('pages.myMenus.menuBuilder')
-      ),
-      contentWidth
+    const menuTitle = sanitizePdfText(
+      container?.containerName || t('pages.myMenus.menuBuilder')
     )
-    const subtitleLines = doc.splitTextToSize(
-      sanitizePdfText(menu?.parsedMenuName || menu?.name || t('pages.myMenus.menuName')),
-      contentWidth
+    const menuSubtitle = sanitizePdfText(
+      localizeGeneratedDayLabel(
+        menu?.parsedMenuName || menu?.name || t('pages.myMenus.menuName'),
+        t
+      )
     )
 
-    const titleY = brandTop + logoSize + 30
-    const subtitleY = titleY + titleLines.length * 28
-    const idY = subtitleY + subtitleLines.length * 18 + 14
-    const dividerY = idY + 14
-    const headerHeight = dividerY - (y - 14) + 8
+    doc.setFont(PDF_FONT_NAME, 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(201, 189, 184)
+    doc.text('ALEXAFIT MENU', contentX, y + 6)
 
-    drawRoundedBlock(doc, marginX, y - 14, usableWidth, headerHeight, [255, 255, 255])
+    doc.addImage(
+      logoDataUrl,
+      'PNG',
+      contentX + contentWidth - 28,
+      y - 4,
+      18,
+      18
+    )
 
-    doc.addImage(logoDataUrl, 'PNG', innerX, brandTop - 2, logoSize, logoSize)
-
+    // Day label — full-width background strip, large bold text
+    const dayBgY = y + 18
+    const dayBgH = 52
+    doc.setFillColor(...STITCH_PDF_THEME.surfaceHigh)
+    doc.roundedRect(contentX, dayBgY, contentWidth, dayBgH, 16, 16, 'F')
     doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
-    doc.setFontSize(13)
-    doc.setTextColor(15, 23, 42)
-    doc.text('AlexaFit', brandTextX, brandTop + 16)
+    doc.setFontSize(32)
+    doc.setTextColor(...STITCH_PDF_THEME.primaryDim)
+    doc.text(menuSubtitle, contentX + 20, dayBgY + 35)
 
-    doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
-    doc.setFontSize(28)
-    doc.text(titleLines, innerX, titleY)
-
-    doc.setFont(PDF_TITLE_FONT_NAME, 'normal')
-    doc.setFontSize(17)
-    doc.setTextColor(71, 85, 105)
-    doc.text(subtitleLines, innerX, subtitleY)
-
-    doc.setFontSize(9)
-    doc.setTextColor(100, 116, 139)
-    doc.text(`${t('pages.myMenus.id')}: ${menu?.id || '-'}`, innerX, idY)
-
-    doc.setDrawColor(226, 232, 240)
-    doc.line(innerX, dividerY, pageWidth - marginX - 16, dividerY)
-
-    y = dividerY + 18
+    y += 88
   }
 
   const drawSummaryCards = menuSummary => {
-    const cards = [
-      { title: t('pages.myMenus.totalMenu'), values: menuSummary.total },
-      ...MENU_MEAL_SECTIONS.map(section => ({
-        title: t(section.labelKey),
-        values: menuSummary.perMeal[section.id]
-      }))
+    const summaryHeight = 54
+    drawRoundedBlock(
+      doc,
+      contentX,
+      y,
+      contentWidth,
+      summaryHeight,
+      [248, 242, 243]
+    )
+
+    const metrics = [
+      {
+        label: 'TOTAL ZI',
+        value: `${Math.round(menuSummary.total.calories)} kcal`
+      },
+      {
+        label: 'PROTEINE',
+        value: `${Math.round(menuSummary.total.proteinsInGrams)}g`
+      },
+      {
+        label: 'CARBOHIDRAȚI',
+        value: `${Math.round(menuSummary.total.carbohydratesInGrams)}g`
+      },
+      {
+        label: 'GRĂSIMI',
+        value: `${Math.round(menuSummary.total.fatInGrams)}g`
+      }
     ]
+    const metricWidth = contentWidth / metrics.length
 
-    cards.forEach((card, index) => {
-      const x = marginX + index * (summaryWidth + summaryGap)
-      drawRoundedBlock(doc, x, y, summaryWidth, summaryHeight, [249, 250, 255])
-
+    metrics.forEach((metric, index) => {
+      const x = contentX + index * metricWidth
       doc.setFont(PDF_FONT_NAME, 'bold')
-      doc.setFontSize(8)
-      doc.setTextColor(100, 116, 139)
-      doc.text(String(card.title).toUpperCase(), x + 10, y + 14)
+      doc.setFontSize(6)
+      doc.setTextColor(169, 154, 154)
+      doc.text(metric.label, x + 12, y + 16)
 
-      doc.setFont(PDF_FONT_NAME, 'bold')
-      doc.setFontSize(17)
-      doc.setTextColor(15, 23, 42)
-      doc.text(`${Math.round(card.values.calories)} kcal`, x + 10, y + 38)
-
-      doc.setFont(PDF_FONT_NAME, 'normal')
-      doc.setFontSize(8)
-      doc.setTextColor(71, 85, 105)
-      const macroLines = doc.splitTextToSize(
-        `P ${roundMacro(card.values.proteinsInGrams)}g · C ${roundMacro(card.values.carbohydratesInGrams)}g · F ${roundMacro(card.values.fatInGrams)}g`,
-        summaryWidth - 20
-      )
-      doc.text(macroLines, x + 10, y + 56)
+      doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
+      doc.setFontSize(index === 0 ? 16 : 14)
+      doc.setTextColor(88, 79, 96)
+      doc.text(metric.value, x + 12, y + 38)
     })
 
     y += summaryHeight + 18
   }
 
-  const estimateItemLayout = item => {
+  const estimateSimpleItemLayout = item => {
     const calculated = getItemCalculatedValues(item)
     const selectedAmount = getItemSelectedAmount(item)
     const selectedUnit = getItemDisplayUnit(item)
+    const titleWidth = contentWidth - 140
+    const nameLines = doc.splitTextToSize(
+      sanitizePdfText(item?.name || t('pages.myMenus.unnamedItem')),
+      titleWidth
+    )
+    const caloriesText = `${selectedAmount}${selectedUnit ? ` ${selectedUnit} ${Math.round(parseNumber(calculated?.calories))} kcal` : ''}`
+    return {
+      nameLines,
+      caloriesText,
+      height: Math.max(18, nameLines.length * 12 + 2)
+    }
+  }
+
+  const estimateRecipeLayout = item => {
     const ingredients = Array.isArray(item?.ingredients) ? item.ingredients : []
     const ingredientNames = Array.isArray(item?.ingredientNames)
       ? item.ingredientNames.filter(Boolean)
       : []
-    const instructions = normalizeInstructionEntries(item?.recipeSteps?.instructions)
-
-    const ingredientText =
+    const instructions = normalizeInstructionEntries(
+      item?.recipeSteps?.instructions
+    )
+    const ingredientEntries =
       ingredients.length > 0
         ? ingredients
             .map(ingredient => {
               const quantity = parseNumber(ingredient?.quantity)
               const quantityText =
-                quantity > 0 ? `${quantity} ${ingredient?.unit || ''}`.trim() : ''
+                quantity > 0
+                  ? `${quantity} ${ingredient?.unit || ''}`.trim()
+                  : ''
               return quantityText
                 ? `${ingredient?.name || '-'} (${quantityText})`
                 : ingredient?.name || '-'
             })
-            .join(', ')
+            .filter(Boolean)
         : ingredientNames.length > 0
-        ? ingredientNames.join(', ')
-        : ''
-
-    const textWidth = usableWidth - 32
+          ? ingredientNames
+          : []
+    const hasPhoto = Boolean(item?.photoUrl)
+    const servingsCount = Math.max(
+      1,
+      parseNumber(item?.numberOfRecipeServings || item?.originalServings || 1)
+    )
     const nameLines = doc.splitTextToSize(
       sanitizePdfText(item?.name || t('pages.myMenus.unnamedItem')),
-      textWidth
+      contentWidth - 28
     )
-    const metaLines = doc.splitTextToSize(
-      `${isRecipeItem(item) ? t('pages.myMenus.recipeType') : t('pages.myMenus.foodType')} · ${selectedAmount} ${selectedUnit}`,
-      textWidth
+    const columnGap = 18
+    const columnWidth = (contentWidth - 28 - columnGap) / 2
+    const ingredientsWidth = Math.max(120, columnWidth - 4)
+    const instructionsWidth = Math.max(120, columnWidth - 4)
+    const ingredientLines = ingredientEntries.flatMap(entry =>
+      doc.splitTextToSize(`- ${sanitizePdfText(entry)}`, ingredientsWidth)
     )
-    const macroLines = doc.splitTextToSize(
-      `${t('pages.myMenus.calories')}: ${Math.round(calculated.calories)} kcal · P ${roundMacro(calculated.nutrients.proteinsInGrams)}g · C ${roundMacro(calculated.nutrients.carbohydratesInGrams)}g · F ${roundMacro(calculated.nutrients.fatInGrams)}g`,
-      textWidth
-    )
-    const ingredientLines = ingredientText
-      ? doc.splitTextToSize(
-          `${t('pages.recipes.ingredients')}: ${sanitizePdfText(ingredientText)}`,
-          textWidth
-        )
+    const instructionText = instructions
+      .map(formatInstructionEntry)
+      .filter(Boolean)
+      .join(' ')
+    const instructionLines = instructionText
+      ? doc.splitTextToSize(instructionText, instructionsWidth)
       : []
-    const instructionLines = instructions.flatMap(line =>
-      doc.splitTextToSize(`- ${formatInstructionEntry(line)}`, textWidth)
-    )
-
+    const titleHeight = nameLines.length * 16
+    const detailMetaHeight = 16
+    const photoHeight = hasPhoto ? 156 : 0
+    const columnHeight =
+      26 + Math.max(ingredientLines.length * 9, instructionLines.length * 9, 18)
     const height =
-      16 +
-      nameLines.length * lineHeight +
-      metaLines.length * lineHeight +
-      macroLines.length * lineHeight +
-      (ingredientLines.length ? 10 + ingredientLines.length * lineHeight : 0) +
-      (instructionLines.length ? 10 + instructionLines.length * lineHeight : 0) +
-      12
+      18 +
+      titleHeight +
+      detailMetaHeight +
+      (hasPhoto ? photoHeight + 14 : 10) +
+      columnHeight +
+      18
 
     return {
+      hasPhoto,
+      servingsCount,
       nameLines,
-      metaLines,
-      macroLines,
       ingredientLines,
       instructionLines,
-      height
+      columnGap,
+      columnWidth,
+      photoHeight,
+      height,
+      photoUrl: item?.photoUrl || null
     }
   }
 
-  const drawItem = item => {
-    const layout = estimateItemLayout(item)
-    ensureSpace(layout.height)
-    drawRoundedBlock(doc, marginX, y, usableWidth, layout.height, [248, 250, 252])
+  const estimateStructuredRecipeLayout = item => {
+    const ingredients = Array.isArray(item?.ingredients) ? item.ingredients : []
+    const ingredientNames = Array.isArray(item?.ingredientNames)
+      ? item.ingredientNames.filter(Boolean)
+      : []
+    const instructions = normalizeInstructionEntries(
+      item?.recipeSteps?.instructions
+    )
+    const ingredientEntries =
+      ingredients.length > 0
+        ? ingredients
+            .map(ingredient => {
+              const quantity = parseNumber(ingredient?.quantity)
+              const quantityText =
+                quantity > 0
+                  ? `${quantity} ${ingredient?.unit || ''}`.trim()
+                  : ''
+              return quantityText
+                ? `${ingredient?.name || '-'} (${quantityText})`
+                : ingredient?.name || '-'
+            })
+            .filter(Boolean)
+        : ingredientNames
 
-    let cursorY = y + 18
+    const calculated = getItemCalculatedValues(item)
+    const hasPhoto = Boolean(item?.photoUrl)
 
+    // 2-column layout below the title:
+    //   left (ingredients box): 62%  →  267pt
+    //   gap: 16pt
+    //   right (image): 38%  →  147pt
+    const IMG_W = 147
+    const COL_GAP = 16
+    const BOX_W = contentWidth - IMG_W - COL_GAP     // 267pt — ingredients container width
+    const BOX_PAD = 12                                // horizontal padding inside the box
+    const BOX_INNER_W = BOX_W - BOX_PAD * 2          // 243pt — text width inside the box
+    const IMG_H = IMG_W                              // square crop
+
+    // Title spans full content width (no image beside it)
     doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
-    doc.setFontSize(13)
-    doc.setTextColor(15, 23, 42)
-    doc.text(layout.nameLines, marginX + 16, cursorY)
-    cursorY += layout.nameLines.length * lineHeight + 2
+    doc.setFontSize(14)
+    const rawNameLines = doc.splitTextToSize(
+      sanitizePdfText(item?.name || t('pages.myMenus.unnamedItem')),
+      contentWidth - 4
+    )
+    const nameLines =
+      rawNameLines.length > 2
+        ? [rawNameLines[0], `${rawNameLines[1].slice(0, -1)}\u2026`]
+        : rawNameLines
 
+    // Ingredients measured against the box inner width
+    doc.setFont(PDF_FONT_NAME, 'normal')
+    doc.setFontSize(10)
+    const ingredientLineData = ingredientEntries.map(entry =>
+      doc.splitTextToSize(`- ${sanitizePdfText(entry)}`, BOX_INNER_W)
+    )
+    const ingredientsHeight = ingredientLineData.reduce(
+      (acc, lines) => acc + Math.max(13, lines.length * 11 + 4),
+      0
+    )
+
+    // Instructions measured against full width
     doc.setFont(PDF_FONT_NAME, 'normal')
     doc.setFontSize(9)
-    doc.setTextColor(100, 116, 139)
-    doc.text(layout.metaLines, marginX + 16, cursorY)
-    cursorY += layout.metaLines.length * lineHeight + 2
+    const instructionStepLines = instructions
+      .map(formatInstructionEntry)
+      .filter(Boolean)
+      .map((entry, index) =>
+        doc.splitTextToSize(`${index + 1}.  ${entry}`, contentWidth - 40)
+      )
 
-    doc.setTextColor(51, 65, 85)
-    doc.text(layout.macroLines, marginX + 16, cursorY)
-    cursorY += layout.macroLines.length * lineHeight
+    // ── Height accounting (must mirror draw coordinates exactly) ──
+    //
+    // Title section (full-width):
+    //   titleY = startY + 11  (14pt baseline offset)
+    //   macroY = titleY + N×16 + 8
+    //   containerTopY = macroY + 12 (macro h) + 12 (gap) = startY + N×16 + 43
+    //
+    // Container section (2-col):
+    //   ingredientsBoxH = 12 (pad) + 10 (label) + 6 (gap) + ingH + 14 (pad-bottom) = 42 + ingH
+    //   imageH = IMG_H (when photo)
+    //   containerSectionH = max(ingredientsBoxH, hasPhoto ? IMG_H : 0)
 
-    if (layout.ingredientLines.length) {
-      cursorY += 10
-      doc.text(layout.ingredientLines, marginX + 16, cursorY)
-      cursorY += layout.ingredientLines.length * lineHeight
+    const titleSectionH = 11 + nameLines.length * 16 + 8 + 12 + 12  // = N×16 + 43
+    const ingredientsBoxH = 42 + ingredientsHeight
+    const containerSectionH = Math.max(ingredientsBoxH, hasPhoto ? IMG_H : 0)
+    const topBlockHeight = titleSectionH + containerSectionH
+
+    // label(22) + step rows + padding-bottom(18)
+    const instructionsBlockHeight = instructionStepLines.length
+      ? 22 +
+        instructionStepLines.reduce(
+          (acc, lines) => acc + Math.max(17, lines.length * 11 + 5),
+          0
+        ) +
+        18
+      : 0
+
+    return {
+      calculated,
+      hasPhoto,
+      photoUrl: item?.photoUrl || null,
+      nameLines,
+      ingredientLineData,
+      instructionStepLines,
+      boxWidth: BOX_W,
+      boxPad: BOX_PAD,
+      imageWidth: IMG_W,
+      imageGap: COL_GAP,
+      imageHeight: IMG_H,
+      ingredientsBoxH,
+      topBlockHeight,
+      instructionsBlockHeight,
+      height:
+        topBlockHeight +
+        (instructionsBlockHeight ? 20 + instructionsBlockHeight : 0) +
+        14
+    }
+  }
+
+  const drawSimpleItem = item => {
+    const layout = estimateSimpleItemLayout(item)
+    ensureSpace(layout.height + 4)
+
+    doc.setFont(PDF_FONT_NAME, 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(108, 96, 110)
+    doc.text(layout.nameLines, contentX + 4, y + 10)
+
+    doc.setFont(PDF_FONT_NAME, 'bold')
+    doc.setFontSize(7)
+    doc.setTextColor(148, 128, 123)
+    doc.text(layout.caloriesText, contentX + contentWidth - 2, y + 10, {
+      align: 'right'
+    })
+
+    doc.setDrawColor(238, 228, 225)
+    doc.line(
+      contentX,
+      y + layout.height,
+      contentX + contentWidth,
+      y + layout.height
+    )
+    y += layout.height + 6
+  }
+
+  const drawRecipeItem = async item => {
+    const layout = estimateRecipeLayout(item)
+    ensureSpace(layout.height + 8)
+
+    drawRoundedBlock(
+      doc,
+      contentX,
+      y,
+      contentWidth,
+      layout.height,
+      [247, 240, 238]
+    )
+    const titleY = y + 28
+    doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
+    doc.setFontSize(18)
+    doc.setTextColor(71, 64, 66)
+    doc.text(layout.nameLines, contentX + 14, titleY)
+
+    const metaY = titleY + layout.nameLines.length * 16 + 8
+    doc.setFont(PDF_FONT_NAME, 'bold')
+    doc.setFontSize(7)
+    doc.setTextColor(142, 121, 103)
+    doc.text(
+      `${layout.servingsCount} ${t('pages.recipes.servings')}`,
+      contentX + 14,
+      metaY
+    )
+
+    let currentY = metaY + 12
+
+    if (layout.hasPhoto) {
+      const imageDataUrl = await ensurePdfContentImage(layout.photoUrl)
+      const imageWidth = contentWidth - 28
+      const imageHeight = layout.photoHeight
+      const imageX = contentX + 14
+      const imageY = currentY + 6
+      if (imageDataUrl) {
+        doc.addImage(
+          imageDataUrl,
+          'JPEG',
+          imageX,
+          imageY,
+          imageWidth,
+          imageHeight
+        )
+      } else {
+        doc.setFillColor(...STITCH_PDF_THEME.surfaceHigh)
+        doc.roundedRect(imageX, imageY, imageWidth, imageHeight, 16, 16, 'F')
+      }
+      currentY = imageY + imageHeight + 18
     }
 
+    const leftColumnX = contentX + 14
+    const rightColumnX = leftColumnX + layout.columnWidth + layout.columnGap
+
+    doc.setFont(PDF_FONT_NAME, 'bold')
+    doc.setFontSize(5.5)
+    doc.setTextColor(178, 145, 165)
+    doc.text(
+      t('pages.recipes.ingredients').toUpperCase(),
+      leftColumnX,
+      currentY
+    )
+    doc.text(
+      t('pages.myMenus.instructions').toUpperCase(),
+      rightColumnX,
+      currentY
+    )
+
+    doc.setFont(PDF_FONT_NAME, 'normal')
+    doc.setFontSize(6.7)
+    doc.setTextColor(115, 103, 108)
+    if (layout.ingredientLines.length) {
+      doc.text(layout.ingredientLines, leftColumnX, currentY + 13)
+    }
     if (layout.instructionLines.length) {
-      cursorY += 10
-      layout.instructionLines.forEach(line => {
-        doc.setTextColor(...(isLinkLikeLine(line) ? [37, 99, 235] : [71, 85, 105]))
-        doc.text(line, marginX + 16, cursorY)
-        cursorY += lineHeight
-      })
+      doc.text(layout.instructionLines, rightColumnX, currentY + 13)
     }
 
     y += layout.height + 10
   }
 
-  const drawMealSection = (section, items) => {
-    const firstItemHeight = items.length ? estimateItemLayout(items[0]).height : 44
-    ensureSpace(30 + firstItemHeight)
+  const drawStructuredRecipeItem = async item => {
+    const layout = estimateStructuredRecipeLayout(item)
+    ensureSpace(layout.height + 8)
 
-    doc.setFillColor(255, 247, 237)
-    doc.roundedRect(marginX, y - 6, usableWidth, 24, 10, 10, 'F')
+    const startY = y
+    const leftX = contentX
+
+    // ── TITLE — full width, 14pt Verdana Bold ──
+    // titleY = startY + 11  (14pt font baseline offset)
+    const titleY = startY + 11
+    doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
+    doc.setFontSize(14)
+    doc.setTextColor(...STITCH_PDF_THEME.text)
+    doc.text(layout.nameLines, leftX, titleY)
+
+    // ── MACROS — single set, full width, under title ──
+    // macroY = titleY + N×16 + 8
+    const macroY = titleY + layout.nameLines.length * 16 + 8
+    const macroText = `${Math.round(layout.calculated.calories)} kcal  ·  P ${roundMacro(layout.calculated.nutrients.proteinsInGrams)}g  ·  C ${roundMacro(layout.calculated.nutrients.carbohydratesInGrams)}g  ·  F ${roundMacro(layout.calculated.nutrients.fatInGrams)}g`
     doc.setFont(PDF_FONT_NAME, 'bold')
-    doc.setFontSize(13)
-    doc.setTextColor(15, 23, 42)
-    doc.text(t(section.labelKey), marginX + 12, y + 10)
+    doc.setFontSize(9)
+    doc.setTextColor(...STITCH_PDF_THEME.textMuted)
+    doc.text(macroText, leftX, macroY)
 
+    // containerTopY = macroY + macro-height(12) + gap(12) = macroY + 24
+    const containerTopY = macroY + 24
+
+    // ── LEFT COLUMN: ingredients box ──
+    // Light container: very subtle purple-grey background, border-radius 8
+    doc.setFillColor(247, 245, 252)
+    doc.roundedRect(leftX, containerTopY, layout.boxWidth, layout.ingredientsBoxH, 8, 8, 'F')
+
+    // INGREDIENTS section label
+    // ingLabelBaseline = containerTopY + 12 (pad) + 8 (7pt baseline offset) = containerTopY + 20
     doc.setFont(PDF_FONT_NAME, 'bold')
-    doc.setFontSize(10)
-    doc.setTextColor(249, 115, 22)
-    doc.text(String(items.length), pageWidth - marginX - 12, y + 10, {
-      align: 'right'
-    })
+    doc.setFontSize(7)
+    doc.setTextColor(...STITCH_PDF_THEME.textSoft)
+    doc.text('INGREDIENTS', leftX + layout.boxPad, containerTopY + 20)
 
-    y += 28
-
-    if (!items.length) {
-      drawRoundedBlock(doc, marginX, y, usableWidth, 38, [248, 250, 252])
+    // Ingredient rows
+    // ingY = containerTopY + 20 (label baseline) + 10 (label h) + 6 (gap) = containerTopY + 36
+    let ingY = containerTopY + 36
+    for (const lines of layout.ingredientLineData) {
       doc.setFont(PDF_FONT_NAME, 'normal')
       doc.setFontSize(10)
-      doc.setTextColor(100, 116, 139)
-      doc.text(t('pages.myMenus.noItems'), marginX + 16, y + 24)
-      y += 50
+      doc.setTextColor(...STITCH_PDF_THEME.text)
+      doc.text(lines, leftX + layout.boxPad, ingY)
+      ingY += Math.max(13, lines.length * 11 + 4)
+    }
+
+    // ── RIGHT COLUMN: image aligned with ingredients box top ──
+    if (layout.hasPhoto) {
+      const imgX = contentX + layout.boxWidth + layout.imageGap
+      const imageDataUrl = await ensurePdfContentImage(layout.photoUrl)
+      doc.setFillColor(...STITCH_PDF_THEME.surfaceHigh)
+      doc.roundedRect(imgX, containerTopY, layout.imageWidth, layout.imageHeight, 8, 8, 'F')
+      if (imageDataUrl) {
+        doc.addImage(
+          imageDataUrl,
+          'JPEG',
+          imgX,
+          containerTopY,
+          layout.imageWidth,
+          layout.imageHeight
+        )
+      }
+    }
+
+    // Advance past the full top block
+    y = startY + layout.topBlockHeight
+
+    // ── INSTRUCTIONS — full width, light background, numbered steps ──
+    if (layout.instructionStepLines.length) {
+      y += 20
+
+      // Lighter, less saturated background than surfaceLow
+      drawRoundedBlock(doc, contentX, y, contentWidth, layout.instructionsBlockHeight, [248, 246, 252])
+
+      doc.setFont(PDF_FONT_NAME, 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(...STITCH_PDF_THEME.textSoft)
+      doc.text('INSTRUCTIONS', contentX + 16, y + 14)
+
+      // Steps start at y + 26; each step gets generous line spacing
+      let stepY = y + 26
+      for (const lines of layout.instructionStepLines) {
+        doc.setFont(PDF_FONT_NAME, 'normal')
+        doc.setFontSize(9)
+        doc.setTextColor(...STITCH_PDF_THEME.text)
+        doc.text(lines, contentX + 16, stepY)
+        stepY += Math.max(17, lines.length * 11 + 5)
+      }
+
+      y += layout.instructionsBlockHeight
+    }
+
+    y += 14
+  }
+
+  const drawMealSection = async (section, items, menuSummary) => {
+    const style = getMealSectionStyle(section.id)
+    const sectionTotals = menuSummary.perMeal[section.id]
+    const hasItems = items.length > 0
+    const structuredRecipeItems = items.filter(isStructuredRecipeItem)
+    const regularItems = items.filter(item => !isStructuredRecipeItem(item))
+    const detailedRecipes = items.filter(
+      item =>
+        shouldRenderDetailedRecipeBlock(item, section.id) &&
+        !isStructuredRecipeItem(item)
+    )
+    const sectionIntroHeight =
+      26 +
+      (hasItems
+        ? items.length === 1 &&
+          shouldRenderDetailedRecipeBlock(items[0], section.id)
+          ? 120
+          : 22
+        : 38)
+    ensureSpace(sectionIntroHeight)
+
+    doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
+    doc.setFontSize(12)
+    const sectionLabel = section.pdfLabel.toUpperCase()
+    const sectionChipWidth = Math.max(96, doc.getTextWidth(sectionLabel) + 32)
+    doc.setFillColor(...style.fill)
+    doc.roundedRect(contentX, y, sectionChipWidth, 26, 13, 13, 'F')
+    doc.setTextColor(...style.text)
+    doc.text(sectionLabel, contentX + 16, y + 18)
+
+    y += 32
+
+    if (!hasItems) {
+      drawRoundedBlock(doc, contentX, y, contentWidth, 34, [255, 252, 252])
+      doc.setFont(PDF_FONT_NAME, 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(144, 131, 138)
+      doc.text(t('pages.myMenus.noItems'), contentX + 14, y + 20)
+      y += 42
       return
     }
 
-    items.forEach(drawItem)
-    y += 6
+    for (const item of structuredRecipeItems) {
+      await drawStructuredRecipeItem({
+        ...item,
+        mealSectionId: section.id
+      })
+    }
+
+    for (const item of regularItems) {
+      drawSimpleItem(item)
+    }
+
+    if (detailedRecipes.length > 0) {
+      y += 6
+
+      for (const item of detailedRecipes) {
+        await drawRecipeItem(item)
+      }
+    }
+
+    y += 10
   }
 
-  menus.forEach(menu => {
-    if (hasRenderedFirstMenuPage) {
-      doc.addPage()
-      y = marginTop
-    }
-    hasRenderedFirstMenuPage = true
-
+  menus.forEach
+  const drawMenu = async menu => {
     const menuSummary = getTemplateNutritionSummary(menu)
     drawHeader(menu)
     drawSummaryCards(menuSummary)
 
-    MENU_MEAL_SECTIONS.forEach(section => {
-      drawMealSection(section, Array.isArray(menu?.[section.id]) ? menu[section.id] : [])
-    })
-  })
+    for (const section of MENU_MEAL_SECTIONS) {
+      await drawMealSection(
+        section,
+        Array.isArray(menu?.[section.id]) ? menu[section.id] : [],
+        menuSummary
+      )
+    }
+  }
+
+  for (const menu of menus) {
+    if (hasRenderedFirstMenuPage) {
+      doc.addPage()
+      drawPageBackground(doc, pageWidth, pageHeight)
+      y = marginTop
+    }
+    hasRenderedFirstMenuPage = true
+    await drawMenu(menu)
+  }
 
   const totalPages = doc.getNumberOfPages()
   for (let page = 1; page <= totalPages; page += 1) {
     doc.setPage(page)
-    doc.setDrawColor(226, 232, 240)
-    doc.line(marginX, pageHeight - marginBottom + 6, pageWidth - marginX, pageHeight - marginBottom + 6)
+    doc.setDrawColor(236, 227, 225)
+    doc.line(
+      contentX,
+      pageHeight - marginBottom + 6,
+      contentX + contentWidth,
+      pageHeight - marginBottom + 6
+    )
     doc.setFont(PDF_FONT_NAME, 'normal')
     doc.setFontSize(8)
-    doc.setTextColor(148, 163, 184)
+    doc.setTextColor(171, 160, 159)
     doc.text(
       `${sanitizePdfText(container?.containerName || t('pages.myMenus.menuBuilder'))} · ${page}/${totalPages}`,
-      pageWidth - marginX,
-      pageHeight - marginBottom + 22,
+      contentX + contentWidth,
+      footerY,
       { align: 'right' }
     )
   }
 
-  doc.save(`${sanitizeFilename(container?.containerName || 'menu-builder')}.pdf`)
+  doc.save(
+    `${sanitizeFilename(container?.containerName || 'menu-builder')}.pdf`
+  )
 }

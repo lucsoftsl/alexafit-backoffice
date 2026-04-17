@@ -1337,6 +1337,8 @@
       "tip3": "Activați asignarea utilizatorului dacă este relevant.",
       "menuBuilder": "Constructor de meniuri",
       "curateMeals": "Selectați mese, ajustați porțiile și salvați ca șabloane reutilizabile.",
+      "showRecipeDetailsInPdf": "Afișează detaliile rețetei în PDF",
+      "recipeDetailsSection": "Detalii rețetă",
       "totalMenu": "Meniu total",
       "breakfast": "Mic dejun",
       "lunch": "Prânz",

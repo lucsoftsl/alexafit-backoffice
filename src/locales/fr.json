@@ -1335,6 +1335,8 @@
       "tip3": "Activez l'assignation d'utilisateur si pertinent.",
       "menuBuilder": "Générateur de menus",
       "curateMeals": "Conservez les repas, ajustez les portions et enregistrez sous forme de modèles réutilisables.",
+      "showRecipeDetailsInPdf": "Afficher les détails de la recette dans le PDF",
+      "recipeDetailsSection": "Détails de la recette",
       "totalMenu": "Menu total",
       "breakfast": "Petit-déjeuner",
       "lunch": "Déjeuner",

@@ -1367,6 +1367,8 @@
       "tip3": "Habilita la asignación de usuarios cuando sea relevante.",
       "menuBuilder": "Constructor de menú",
       "curateMeals": "Cura comidas, ajusta porciones y guarda como plantillas reutilizables.",
+      "showRecipeDetailsInPdf": "Mostrar detalles de la receta en el PDF",
+      "recipeDetailsSection": "Detalles de la receta",
       "totalMenu": "Menú total",
       "breakfast": "Desayuno",
       "lunch": "Almuerzo",
