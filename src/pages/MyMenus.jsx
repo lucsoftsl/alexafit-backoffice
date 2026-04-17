@@ -5243,10 +5243,6 @@ const MyMenus = () => {
                           <p className="mt-2 text-2xl font-semibold text-slate-900">
                             {selectedMenuInContainer.parsedMenuName}
                           </p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {t('pages.myMenus.id')}:{' '}
-                            {selectedMenuInContainer.id}
-                          </p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button

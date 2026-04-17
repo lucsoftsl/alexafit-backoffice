@@ -16,7 +16,6 @@ import LZString from 'lz-string'
 
 const UnapprovedItems = () => {
   const { t } = useTranslation()
-  const ADMIN_USER_ID = 'BACKOFFICE_ADMIN'
   const [sharedCountry, setSharedCountry] = useSelectedCountry()
   const [foodItems, setFoodItems] = useState([])
   const [exerciseItems, setExerciseItems] = useState([])
@@ -527,7 +526,7 @@ const UnapprovedItems = () => {
       await deleteItem({
         itemId,
         itemType,
-        userId: userId || ADMIN_USER_ID
+        userId
       })
 
       localStorage.removeItem('unapprovedItems')
@@ -545,7 +544,7 @@ const UnapprovedItems = () => {
     const currentItems = activeTab === 'food' ? foodItems : exerciseItems
     const selectedItems = currentItems.filter((item) => selectedItemIds.includes(item.id))
     const selectedUserIds = [...new Set(selectedItems.map((item) => item.createdByUserId).filter(Boolean))]
-    const bulkDeleteUserId = selectedUserIds.length === 1 ? selectedUserIds[0] : ADMIN_USER_ID
+    const bulkDeleteUserId = selectedUserIds.length === 1 ? selectedUserIds[0] : null
 
     if (!selectedItemIds.length) {
       alert('Select at least one item to delete')

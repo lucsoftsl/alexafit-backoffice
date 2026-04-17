@@ -23,6 +23,7 @@ import ClientNotes from './pages/ClientNotes'
 import Chat from './pages/Chat'
 import Tutorials from './pages/Tutorials'
 import BugHunting from './pages/BugHunting'
+import SearchItems from './pages/SearchItems'
 import Messages from './pages/Messages'
 import Surveys from './pages/Surveys'
 import Login from './components/Login'
@@ -253,6 +254,8 @@ function App() {
         return <Subscribers onOpenChat={handleOpenAdminChat} />
       case 'unapprovedItems':
         return <UnapprovedItems />
+      case 'searchItems':
+        return <SearchItems />
       case 'analytics':
         return <Analytics />
       case 'menus':

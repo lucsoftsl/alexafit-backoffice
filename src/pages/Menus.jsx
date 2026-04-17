@@ -2725,9 +2725,6 @@ const Menus = () => {
                               <th className="px-4 py-4 text-center text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
                                 {t('pages.myMenus.menuName')}
                               </th>
-                              <th className="w-[110px] px-4 py-4 text-center text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-                                {t('pages.myMenus.id')}
-                              </th>
                               <th className="px-4 py-4 text-center text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
                                 {t('pages.menus.creator') || 'Creator'}
                               </th>
@@ -2773,11 +2770,6 @@ const Menus = () => {
                                 >
                                   <td className="px-4 py-4 text-center text-sm font-semibold text-slate-900">
                                     {menu.parsedMenuName || menu?.name || 'Untitled'}
-                                  </td>
-                                  <td className="w-[110px] max-w-[110px] px-4 py-4 text-center">
-                                    <span className="inline-block max-w-[100px] truncate rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                                      {id}
-                                    </span>
                                   </td>
                                   <td
                                     className="px-4 py-4 text-center"
@@ -3406,9 +3398,6 @@ const Menus = () => {
                         ))}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Template ID
-                  </th>
                   <th
                     onClick={() => handleUserMenusSort('dateApplied')}
                     className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-white/20"
@@ -3509,9 +3498,6 @@ const Menus = () => {
                     >
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {templateName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {templateId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {menu?.dateApplied

@@ -12,7 +12,8 @@ import {
   ClipboardDocumentListIcon,
   ArrowUturnLeftIcon,
   ChatBubbleLeftIcon,
-  BugAntIcon
+  BugAntIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
@@ -45,6 +46,7 @@ const Sidebar = ({
     { id: 'myfooditems', labelKey: 'sidebar.myFoodItems', icon: ListBulletIcon, nutritionistOnly: true },
     { id: 'recipes', labelKey: 'sidebar.allRecipes', icon: BookOpenIcon, adminOnly: true },
     { id: 'unapprovedItems', labelKey: 'sidebar.unapprovedItems', icon: ListBulletIcon, adminOnly: true },
+    { id: 'searchItems', labelKey: 'sidebar.searchItems', icon: MagnifyingGlassIcon, adminOnly: true },
     { id: 'menus', labelKey: 'sidebar.menus', icon: CakeIcon, adminOnly: true },
     { id: 'users', labelKey: 'sidebar.users', icon: UsersIcon, adminOnly: true },
     { id: 'subscribers', labelKey: 'sidebar.subscribers', icon: UserGroupIcon, adminOnly: true },

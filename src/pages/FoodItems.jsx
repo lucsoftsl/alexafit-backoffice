@@ -13,7 +13,8 @@ import {
   GlobeAltIcon,
   CheckBadgeIcon,
   DocumentTextIcon,
-  ChevronUpDownIcon
+  ChevronUpDownIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
 import {
   addNutritionistFoodItem,
@@ -450,6 +451,57 @@ const FoodItems = () => {
     setIsModalOpen(true)
   }
 
+  const handleDuplicate = item => {
+    resetForm()
+    setName(item.name || '')
+    setBrand(item.brand || '')
+    setBarcode(item.barcode || '')
+    setCategory(item.category || '')
+    setSelectedCountryCode(item.countryCode || sharedCountry)
+    setIsPublic(Boolean(item.isPublic))
+    setExistingPhotoUrl(item.brandPhotoUrl || item.photoUrl || null)
+    setPhotoPreview(item.brandPhotoUrl || item.photoUrl || null)
+    setIsCategoryDropdownOpen(false)
+
+    const nextUnit = item.selectedUnit || (item.isLiquid ? 'ml' : 'g')
+    setSelectedUnit(nextUnit)
+    setIsLiquid(Boolean(item.isLiquid))
+
+    const servingOptions = parseServingOptions(item.servingOptions)
+    const servingOption = servingOptions[0]
+    if (servingOption) {
+      const baseAmount = parseNumber(servingOption.value || 100)
+      const displayValue = convertBaseAmountToUnit(baseAmount, nextUnit)
+      const multiplier = baseAmount / 100
+      setServingName(servingOption.unitName === 'serving' ? '' : servingOption.unitName || '')
+      setServingValue(String(Number(displayValue.toFixed(2))))
+      setCalories(String(Number((parseNumber(item.caloriesPer100) * multiplier).toFixed(2))))
+      const nutrients = item.nutrientsPer100 || {}
+      setProtein(String(Number((parseNumber(nutrients.proteinsInGrams) * multiplier).toFixed(2))))
+      setCarbs(String(Number((parseNumber(nutrients.carbohydratesInGrams) * multiplier).toFixed(2))))
+      setFat(String(Number((parseNumber(nutrients.fatInGrams) * multiplier).toFixed(2))))
+      setSugar(String(Number((parseNumber(nutrients.sugarsInGrams) * multiplier).toFixed(2))))
+      setFiber(String(Number((parseNumber(nutrients.fibreInGrams) * multiplier).toFixed(2))))
+      setSalt(String(Number((parseNumber(nutrients.saltInGrams) * multiplier).toFixed(2))))
+      setSaturatedFat(String(Number((parseNumber(nutrients.fattyAcidsTotalSaturatedInGrams) * multiplier).toFixed(2))))
+      setUnsaturatedFat(String(Number((parseNumber(nutrients.fattyAcidsTotalUnSaturatedInGrams) * multiplier).toFixed(2))))
+    } else {
+      setServingValue(defaultServingValue(nextUnit))
+      const nutrients = item.nutrientsPer100 || {}
+      setCalories(String(parseNumber(item.caloriesPer100)))
+      setProtein(String(parseNumber(nutrients.proteinsInGrams)))
+      setCarbs(String(parseNumber(nutrients.carbohydratesInGrams)))
+      setFat(String(parseNumber(nutrients.fatInGrams)))
+      setSugar(String(parseNumber(nutrients.sugarsInGrams)))
+      setFiber(String(parseNumber(nutrients.fibreInGrams)))
+      setSalt(String(parseNumber(nutrients.saltInGrams)))
+      setSaturatedFat(String(parseNumber(nutrients.fattyAcidsTotalSaturatedInGrams)))
+      setUnsaturatedFat(String(parseNumber(nutrients.fattyAcidsTotalUnSaturatedInGrams)))
+    }
+
+    setIsModalOpen(true)
+  }
+
   const handleDelete = async item => {
     if (!confirm(t('pages.foodItems.confirmDeleteWithName', { name: item?.name || '' }))) {
       return
@@ -756,6 +808,16 @@ const FoodItems = () => {
                         <button
                           onClick={event => {
                             event.stopPropagation()
+                            handleDuplicate(item)
+                          }}
+                          className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 p-2 text-violet-700 transition hover:bg-violet-100"
+                          title={t('pages.foodItems.duplicate')}
+                        >
+                          <DocumentDuplicateIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={event => {
+                            event.stopPropagation()
                             handleDelete(item)
                           }}
                           disabled={deleting}
@@ -787,6 +849,16 @@ const FoodItems = () => {
                   <div className="mt-1 text-sm text-slate-500">{item.caloriesPer100 || 0} cal/100g</div>
                 </div>
                 <div className="flex gap-2">
+                  <button
+                    onClick={event => {
+                      event.stopPropagation()
+                      handleDuplicate(item)
+                    }}
+                    className="text-violet-600"
+                    title={t('pages.foodItems.duplicate')}
+                  >
+                    <DocumentDuplicateIcon className="h-5 w-5" />
+                  </button>
                   <button
                     onClick={event => {
                       event.stopPropagation()
@@ -1002,15 +1074,28 @@ const FoodItems = () => {
                     )}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    <input value={calories} onChange={e => setCalories(e.target.value)} placeholder={t('pages.recipes.calories')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={protein} onChange={e => setProtein(e.target.value)} placeholder={t('pages.recipes.protein')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={carbs} onChange={e => setCarbs(e.target.value)} placeholder={t('pages.recipes.carbs')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={fat} onChange={e => setFat(e.target.value)} placeholder={t('pages.recipes.fat')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={sugar} onChange={e => setSugar(e.target.value)} placeholder={t('pages.foodItems.sugar')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={fiber} onChange={e => setFiber(e.target.value)} placeholder={t('pages.foodItems.fiber')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={salt} onChange={e => setSalt(e.target.value)} placeholder={t('pages.foodItems.salt')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={saturatedFat} onChange={e => setSaturatedFat(e.target.value)} placeholder={t('pages.foodItems.saturatedFat')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={unsaturatedFat} onChange={e => setUnsaturatedFat(e.target.value)} placeholder={t('pages.foodItems.unsaturatedFat')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300 sm:col-span-2" />
+                    {[
+                      { label: t('pages.recipes.calories'), value: calories, onChange: e => setCalories(e.target.value) },
+                      { label: t('pages.recipes.protein'), value: protein, onChange: e => setProtein(e.target.value) },
+                      { label: t('pages.recipes.carbs'), value: carbs, onChange: e => setCarbs(e.target.value) },
+                      { label: t('pages.recipes.fat'), value: fat, onChange: e => setFat(e.target.value) },
+                      { label: t('pages.foodItems.sugar'), value: sugar, onChange: e => setSugar(e.target.value) },
+                      { label: t('pages.foodItems.fiber'), value: fiber, onChange: e => setFiber(e.target.value) },
+                      { label: t('pages.foodItems.salt'), value: salt, onChange: e => setSalt(e.target.value) },
+                      { label: t('pages.foodItems.saturatedFat'), value: saturatedFat, onChange: e => setSaturatedFat(e.target.value) },
+                      { label: t('pages.foodItems.unsaturatedFat'), value: unsaturatedFat, onChange: e => setUnsaturatedFat(e.target.value), colSpan: true },
+                    ].map(({ label, value, onChange, colSpan }) => (
+                      <div key={label} className={`relative${colSpan ? ' col-span-2' : ''}`}>
+                        <label className="absolute left-4 top-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400 pointer-events-none">
+                          {label}
+                        </label>
+                        <input
+                          value={value}
+                          onChange={onChange}
+                          className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 pb-2 pt-6 text-sm outline-none focus:border-violet-300"
+                        />
+                      </div>
+                    ))}
                   </div>
                   <div className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-700 shadow-sm">
                     {t('pages.foodItems.displaySummary', {

@@ -13,7 +13,8 @@ import {
   FunnelIcon,
   CheckBadgeIcon,
   GlobeAltIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
 import {
   getRecipesByCountryCode,
@@ -45,7 +46,7 @@ const AVAILABLE_COUNTRY_CODES = {
   UK: 'UK',
   US: 'US'
 }
-const ADMIN_USER_ID = 'BACKOFFICE_ADMIN'
+
 const DEFAULT_SERVING_OPTIONS = [
   { unitName: 'g', value: 100 },
   { unitName: 'oz', value: 28.34 },
@@ -534,7 +535,7 @@ const Recipes = ({ mode = 'admin' }) => {
       // Search with onlyRecipes = false
       const results = await searchFoodItems({
         searchText,
-        userId: currentUser?.uid || ADMIN_USER_ID,
+        userId: currentUser?.uid,
         onlyRecipes: false,
         countryCode: selectedCountryCode
       })
@@ -812,7 +813,7 @@ const Recipes = ({ mode = 'admin' }) => {
 
       setEditingRecipeId(recipeId)
       setEditingUserId(
-        resolvedRecipe.createdByUserId || currentUser?.uid || ADMIN_USER_ID
+        resolvedRecipe.createdByUserId || currentUser?.uid
       )
       setRecipeName(resolvedRecipe.name || '')
       setSelectedCountryCode(resolvedRecipe.countryCode || sharedCountry)
@@ -906,6 +907,115 @@ const Recipes = ({ mode = 'admin' }) => {
     }
   }
 
+  const handleDuplicateRecipe = async recipe => {
+    try {
+      setLoadingEdit(true)
+      const recipeId = recipe.id || recipe.itemId || recipe._id
+      if (!recipeId) {
+        alert(t('pages.recipes.recipeIdNotFound'))
+        setLoadingEdit(false)
+        return
+      }
+
+      const fetchedRecipe = isNutritionistMode
+        ? null
+        : await getItemsByIds({ ids: [recipeId] })
+      const resolvedRecipe =
+        (isNutritionistMode ? recipe : null) ||
+        fetchedRecipe?.data?.[0] ||
+        fetchedRecipe?.items?.[0]
+
+      if (!resolvedRecipe) {
+        alert(t('pages.recipes.failedLoadRecipeData'))
+        setLoadingEdit(false)
+        return
+      }
+
+      setEditingRecipeId(null)
+      setEditingUserId(null)
+      setRecipeName(resolvedRecipe.name || '')
+      setSelectedCountryCode(resolvedRecipe.countryCode || sharedCountry)
+      setIsRecipePublic(Boolean(resolvedRecipe.isPublic))
+      setRecipeInstructions(
+        resolvedRecipe.recipeSteps?.instructions?.join('\n') || ''
+      )
+      setTotalTimeInMinutes(resolvedRecipe.totalTimeInMinutes?.toString() || '')
+      setNumberOfRecipeServings(resolvedRecipe.numberOfRecipeServings || 1)
+      setExistingPhotoUrl(resolvedRecipe.photoUrl || null)
+      setPhotoPreview(resolvedRecipe.photoUrl || null)
+
+      const ingredients = resolvedRecipe.ingredients || []
+      if (ingredients.length > 0) {
+        try {
+          const ingredientIds = ingredients.map(ing => ing.id).filter(id => id)
+          if (ingredientIds.length > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1500))
+            const ingredientResp = await getItemsByIds({ ids: ingredientIds })
+            const detailedItems =
+              ingredientResp?.data || ingredientResp?.items || []
+
+            const detailedMap = {}
+            detailedItems.forEach(item => {
+              const id = item.id || item.itemId || item._id
+              if (id) {
+                detailedMap[id] = item
+              }
+            })
+
+            const enrichedIngredients = ingredients.map(ing => {
+              const detailed = detailedMap[ing.id]
+              const selectedIngredientUnit = ing.unit || 'g'
+              const selectedIngredientQuantity = parseNumber(
+                ing.quantity ?? ing.weight ?? 100
+              )
+              if (detailed) {
+                return {
+                  id: ing.id,
+                  name: ing.name || detailed.name,
+                  quantity: selectedIngredientQuantity,
+                  weight: selectedIngredientQuantity,
+                  unit: selectedIngredientUnit,
+                  category: ing.category || detailed.category || null,
+                  caloriesPer100: parseNumber(detailed.caloriesPer100),
+                  nutrientsPer100: parseNutrients(detailed.nutrientsPer100),
+                  isLiquid: detailed.isLiquid,
+                  servingOptions: parseServingOptions(detailed.servingOptions)
+                }
+              }
+              return {
+                id: ing.id,
+                name: ing.name,
+                quantity: selectedIngredientQuantity,
+                weight: selectedIngredientQuantity,
+                unit: selectedIngredientUnit,
+                category: ing.category || null,
+                caloriesPer100: parseNumber(ing.caloriesPer100),
+                nutrientsPer100: parseNutrients(ing.nutrientsPer100),
+                isLiquid: ing.isLiquid,
+                servingOptions: parseServingOptions(ing.servingOptions)
+              }
+            })
+            setSelectedIngredients(enrichedIngredients)
+          } else {
+            setSelectedIngredients(ingredients)
+          }
+        } catch (e) {
+          console.warn('Failed to fetch ingredient details for duplicate', e)
+          setSelectedIngredients(ingredients)
+        }
+      } else {
+        setSelectedIngredients([])
+      }
+
+      setIsCreateModalOpen(true)
+      setLoadingEdit(false)
+    } catch (e) {
+      console.error('Failed to load recipe for duplication', e)
+      alert(t('pages.recipes.failedLoadRecipeDataRetry'))
+      setLoadingEdit(false)
+    }
+  }
+
   const handleDeleteRecipe = async recipe => {
     const confirmed = confirm(
       t('pages.recipes.confirmDeleteWithName', { name: recipe?.name || '' })
@@ -922,7 +1032,7 @@ const Recipes = ({ mode = 'admin' }) => {
         await deleteItem({
           itemId: recipe.id,
           itemType: 'FOOD',
-          userId: recipe.createdByUserId || ADMIN_USER_ID
+          userId: recipe.createdByUserId
         })
       }
       alert(t('pages.recipes.deleteSuccess'))
@@ -977,7 +1087,7 @@ const Recipes = ({ mode = 'admin' }) => {
           await addPhotoToItem({
             itemId: recipe.id,
             itemType: 'FOOD',
-            userId: recipe.createdByUserId || ADMIN_USER_ID,
+            userId: recipe.createdByUserId,
             photoUrl: photoUrl
           })
           alert(t('pages.recipes.photoAddedSuccess'))
@@ -1112,7 +1222,7 @@ const Recipes = ({ mode = 'admin' }) => {
           })
         } else {
           await addItem({
-            userId: ADMIN_USER_ID,
+            userId: currentUser?.uid,
             itemType: 'FOOD',
             data: recipeData,
             countryCode: selectedCountryCode
@@ -1458,6 +1568,17 @@ const Recipes = ({ mode = 'admin' }) => {
                           <CheckBadgeIcon className="w-5 h-5" />
                         </button>
                       ) : null}
+                      <button
+                        onClick={event => {
+                          event.stopPropagation()
+                          handleDuplicateRecipe(item)
+                        }}
+                        disabled={loadingEdit}
+                        className="text-violet-600 hover:text-violet-800 disabled:opacity-50"
+                        title={t('pages.recipes.duplicateRecipe')}
+                      >
+                        <DocumentDuplicateIcon className="w-5 h-5" />
+                      </button>
                       <button
                         onClick={event => {
                           event.stopPropagation()
@@ -1932,6 +2053,17 @@ const Recipes = ({ mode = 'admin' }) => {
                         <button
                           onClick={event => {
                             event.stopPropagation()
+                            handleDuplicateRecipe(item)
+                          }}
+                          disabled={loadingEdit}
+                          className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 p-2 text-violet-700 transition hover:bg-violet-100 disabled:opacity-50"
+                          title={t('pages.recipes.duplicateRecipe')}
+                        >
+                          <DocumentDuplicateIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={event => {
+                            event.stopPropagation()
                             handleDeleteRecipe(item)
                           }}
                           disabled={deleting}
@@ -2257,6 +2389,20 @@ const Recipes = ({ mode = 'admin' }) => {
                             {Math.round(selectedIngredientsTotals.totalFat)}g
                           </div>
                         </div>
+                      </div>
+                      <div className="mt-4 space-y-2.5">
+                        {[
+                          { label: t('pages.foodItems.sugar'), value: selectedIngredientsTotals.totalSugar },
+                          { label: t('pages.foodItems.fiber'), value: selectedIngredientsTotals.totalFiber },
+                          { label: t('pages.foodItems.salt'), value: selectedIngredientsTotals.totalSalt },
+                          { label: t('pages.foodItems.saturatedFat'), value: selectedIngredientsTotals.totalSaturatedFat },
+                          { label: t('pages.foodItems.unsaturatedFat'), value: selectedIngredientsTotals.totalUnSaturatedFat },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">{label}</span>
+                            <span className="font-semibold text-slate-900">{(value || 0).toFixed(1)}g</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
