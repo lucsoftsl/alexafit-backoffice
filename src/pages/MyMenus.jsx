@@ -6666,17 +6666,6 @@ const MyMenus = () => {
                         isSelectedMenuDeleting || savingStudioMenu
 
                       return (
-<<<<<<< Updated upstream
-                    <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
-                      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                            {t('pages.myMenus.menuName')}
-                          </p>
-                          <p className="mt-2 text-2xl font-semibold text-slate-900">
-                            {selectedMenuInContainer.parsedMenuName}
-                          </p>
-=======
                         <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
                           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                             <div>
@@ -6762,7 +6751,6 @@ const MyMenus = () => {
                               />
                             </div>
                           </div>
->>>>>>> Stashed changes
                         </div>
                       )
                     })()}
