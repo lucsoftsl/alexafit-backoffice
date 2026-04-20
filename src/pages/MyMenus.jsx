@@ -236,6 +236,10 @@ const MENU_MEAL_SECTIONS = [
 
 const roundMacro = value =>
   Math.round((parseNumber(value) + Number.EPSILON) * 10) / 10
+const roundStructuredIngredientQuantity = value =>
+  Math.round((parseNumber(value) + Number.EPSILON) * 10) / 10
+const roundStructuredServingsValue = value =>
+  Math.round((parseNumber(value) + Number.EPSILON) * 100) / 100
 const shouldShowRecipeDetailsInPdf = item =>
   detectIsRecipe(item) ? item?.showRecipeDetailsInPdf === true : false
 const parseIngredientNutrients = nutrients => {
@@ -264,14 +268,18 @@ const getIngredientAmountInBaseUnit = ingredient => {
 }
 const toEditableIngredientEntry = ingredient => {
   const fallbackPer100 = getPer100FromRecipeIngredientTotals(ingredient)
+  const selectedQuantity =
+    ingredient?.quantity !== undefined && ingredient?.quantity !== null
+      ? ingredient.quantity
+      : (ingredient?.weight ?? '')
 
   return {
     id: ingredient?.id || null,
     name: String(ingredient?.name || '').trim(),
     quantity:
-      ingredient?.quantity !== undefined && ingredient?.quantity !== null
-        ? ingredient.quantity
-        : (ingredient?.weight ?? ''),
+      selectedQuantity === ''
+        ? ''
+        : roundStructuredIngredientQuantity(selectedQuantity),
     unit: String(ingredient?.unit || 'g').trim() || 'g',
     caloriesPer100:
       parseNumber(ingredient?.caloriesPer100) || fallbackPer100.caloriesPer100,
@@ -461,8 +469,8 @@ const calculateStructuredMealDraftSummary = draft =>
   )
 const isStructuredMealRecipeItem = item =>
   detectIsRecipe(item) &&
-  Array.isArray(item?.ingredients) &&
-  item.ingredients.length > 0
+  (item?.isStructuredMeal === true ||
+    (Array.isArray(item?.ingredients) && item.ingredients.length > 0))
 const calculateStructuredMealItemSummary = item => {
   const ingredientSummary = calculateStructuredMealDraftSummary({
     ingredients: item?.ingredients || []
@@ -514,9 +522,10 @@ const createStructuredMealDraft = ({
   photoUrl: String(item?.photoUrl || '').trim(),
   ingredients: mapItemToEditableIngredients(item),
   steps: mapItemToEditableSteps(item),
-  showRecipeDetailsInPdf: shouldShowRecipeDetailsInPdf(item),
+  showRecipeDetailsInPdf: true,
   recipeSearchText: '',
   recipeSearchResults: [],
+  recipeSelectionDrafts: {},
   searchingRecipes: false,
   ingredientSearchText: '',
   ingredientSearchResults: [],
@@ -616,6 +625,7 @@ const buildStructuredMealItemFromDraft = draft => {
 
   return {
     ...baseItem,
+    isStructuredMeal: true,
     type: 'recipe',
     name: String(draft?.name || '').trim(),
     photoUrl: String(draft?.photoUrl || '').trim(),
@@ -625,10 +635,7 @@ const buildStructuredMealItemFromDraft = draft => {
       ...(baseItem?.recipeSteps || {}),
       instructions
     },
-    showRecipeDetailsInPdf:
-      draft?.mealKey === 'snackPlan'
-        ? true
-        : draft?.showRecipeDetailsInPdf === true,
+    showRecipeDetailsInPdf: true,
     numberOfRecipeServings: servings,
     originalServings: servings,
     caloriesPer100,
@@ -638,6 +645,104 @@ const buildStructuredMealItemFromDraft = draft => {
     servingOptions: [],
     quantity: recipeTotalQuantity,
     changedServing: null
+  }
+}
+const applyRecipeSelectionToStructuredItem = (item, selectionOverride) => {
+  if (!detectIsRecipe(item) || !selectionOverride?.servingOption) {
+    return item
+  }
+
+  const normalizedServingOption = {
+    unitName:
+      selectionOverride.servingOption?.unitName ||
+      selectionOverride.servingOption?.unit ||
+      'g',
+    value: parseNumber(
+      selectionOverride.servingOption?.value ??
+        selectionOverride.servingOption?.amount ??
+        100
+    )
+  }
+  const fallbackAmount =
+    getDefaultAmountForSelectedServing(selectionOverride.servingOption) || 1
+  const selectedQuantity =
+    parseOptionalNumber(selectionOverride.amount) ?? fallbackAmount
+  const selectedBaseAmount = getChangedServingBaseValue(
+    selectedQuantity,
+    normalizedServingOption.unitName,
+    normalizedServingOption,
+    item?.isLiquid
+  )
+  const recipeBaseAmount = parseNumber(item?.originalServingAmount)
+
+  if (selectedBaseAmount <= 0 || recipeBaseAmount <= 0) {
+    return {
+      ...item,
+      changedServing: {
+        value: String(selectedBaseAmount || selectedQuantity || ''),
+        quantity: selectedQuantity,
+        unit: normalizedServingOption.unitName,
+        servingOption: normalizedServingOption
+      }
+    }
+  }
+
+  const scaleFactor = selectedBaseAmount / recipeBaseAmount
+  const scaledIngredients = Array.isArray(item?.ingredients)
+    ? item.ingredients.map(ingredient => {
+        const scaleValue = value => {
+          const numeric = parseOptionalNumber(value)
+          return numeric === null
+            ? value
+            : roundStructuredIngredientQuantity(numeric * scaleFactor)
+        }
+
+        return {
+          ...ingredient,
+          quantity: scaleValue(ingredient?.quantity),
+          weight: scaleValue(ingredient?.weight),
+          calorieAmount: scaleValue(ingredient?.calorieAmount),
+          carbohydateAmount: scaleValue(ingredient?.carbohydateAmount),
+          carbohydrateAmount: scaleValue(ingredient?.carbohydrateAmount),
+          fatAmount: scaleValue(ingredient?.fatAmount),
+          proteinAmount: scaleValue(ingredient?.proteinAmount),
+          originalWeight: scaleValue(ingredient?.originalWeight),
+          originalCalorieAmount: scaleValue(ingredient?.originalCalorieAmount),
+          originalCarbohydrateAmount: scaleValue(
+            ingredient?.originalCarbohydrateAmount
+          ),
+          originalFatAmount: scaleValue(ingredient?.originalFatAmount),
+          originalProteinAmount: scaleValue(ingredient?.originalProteinAmount)
+        }
+      })
+    : item?.ingredients
+
+  const portionServing = findPortionServing(item?.servingOptions || [])
+  const perServingBaseAmount = portionServing
+    ? getServingAmount(portionServing)
+    : recipeBaseAmount / Math.max(1, parseNumber(item?.originalServings) || 1)
+  const scaledServings =
+    perServingBaseAmount > 0 ? selectedBaseAmount / perServingBaseAmount : 1
+
+  return {
+    ...item,
+    ingredients: scaledIngredients,
+    originalServingAmount: selectedBaseAmount,
+    quantity: selectedBaseAmount,
+    numberOfRecipeServings: Math.max(
+      0.01,
+      roundStructuredServingsValue(scaledServings)
+    ),
+    originalServings: Math.max(
+      0.01,
+      roundStructuredServingsValue(scaledServings)
+    ),
+    changedServing: {
+      value: String(selectedBaseAmount),
+      quantity: selectedQuantity,
+      unit: normalizedServingOption.unitName,
+      servingOption: normalizedServingOption
+    }
   }
 }
 const getMenuItemTotalCalories = item => {
@@ -676,6 +781,33 @@ const getPreferredStructuredMealAmount = (item, selectedServing = null) => {
   }
 
   return 100
+}
+const formatStructuredMealSelectionSummary = item => {
+  const selectedServing = item?.changedServing?.servingOption || null
+  const selectedQuantity =
+    parseOptionalNumber(item?.changedServing?.quantity) ??
+    parseOptionalNumber(item?.changedServing?.value)
+
+  if (selectedServing && selectedQuantity !== null && selectedQuantity > 0) {
+    const servingLabel = String(
+      selectedServing?.name ||
+        selectedServing?.innerName ||
+        selectedServing?.unitName ||
+        selectedServing?.unit ||
+        ''
+    ).trim()
+
+    return servingLabel
+      ? `${selectedQuantity} x ${servingLabel}`
+      : String(selectedQuantity)
+  }
+
+  const originalServingAmount = parseOptionalNumber(item?.originalServingAmount)
+  if (originalServingAmount !== null && originalServingAmount > 0) {
+    return `${originalServingAmount} ${item?.isLiquid ? 'ml' : 'g'}`
+  }
+
+  return ''
 }
 const parsePositiveOrder = value => {
   const parsed = Number.parseInt(String(value || '').trim(), 10)
@@ -784,6 +916,40 @@ const getNextContainerMenuLabel = (container, dayLabel = 'Day') => {
   }
 
   return candidateName
+}
+const escapeRegex = value =>
+  String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const extractAutoDayNumber = (name, t) => {
+  const normalizedName = String(name || '').trim()
+  if (!normalizedName) return null
+
+  const localizedDayLabel = String(t('pages.myMenus.dayLabel') || 'Day').trim()
+  const candidateLabels = Array.from(
+    new Set(
+      [localizedDayLabel, 'Day', 'Ziua', 'Día', 'Dia', 'Jour']
+        .map(label => String(label || '').trim())
+        .filter(Boolean)
+    )
+  )
+
+  for (const label of candidateLabels) {
+    const match = normalizedName.match(
+      new RegExp(`^${escapeRegex(label)}\\s+(\\d+)$`, 'i')
+    )
+    if (match) {
+      return Number.parseInt(match[1], 10)
+    }
+  }
+
+  return null
+}
+const localizeMenuDisplayName = (name, t) => {
+  const normalizedName = String(name || '').trim()
+  const dayNumber = extractAutoDayNumber(normalizedName, t)
+
+  if (!dayNumber) return normalizedName
+
+  return `${t('pages.myMenus.dayLabel')} ${dayNumber}`
 }
 
 const moveItemInArray = (items, fromIndex, toIndex) => {
@@ -1198,10 +1364,17 @@ const MyMenus = () => {
     }))
   }
 
-  const importRecipeIntoStructuredMeal = async item => {
+  const importRecipeIntoStructuredMeal = async (
+    item,
+    selectionOverride = null
+  ) => {
     const enrichedItem = await prepareItemForMenuPlan(item)
+    const scaledItem = applyRecipeSelectionToStructuredItem(
+      enrichedItem,
+      selectionOverride
+    )
     updateStructuredMealEditor(prev =>
-      applyRecipeToStructuredMealDraft(prev, enrichedItem)
+      applyRecipeToStructuredMealDraft(prev, scaledItem)
     )
   }
 
@@ -1697,11 +1870,15 @@ const MyMenus = () => {
           parseOptionalNumber(selectionOverride.amount) ?? initialServingAmount
       }
 
-      if (detectIsRecipe(enriched) && activeMealType !== 'snackPlan') {
+      if (detectIsRecipe(enriched)) {
+        const structuredRecipeItem = applyRecipeSelectionToStructuredItem(
+          enriched,
+          selectionOverride
+        )
         openStructuredMealEditor({
           mode: 'builder',
           mealKey: activeMealType,
-          item: enriched
+          item: structuredRecipeItem
         })
         setSearchText('')
         setSearchResults([])
@@ -1956,11 +2133,15 @@ const MyMenus = () => {
         }
       }
 
-      if (detectIsRecipe(enrichedItem) && mealKey !== 'snackPlan') {
+      if (detectIsRecipe(enrichedItem)) {
+        const structuredRecipeItem = applyRecipeSelectionToStructuredItem(
+          enrichedItem,
+          selectionOverride
+        )
         openStructuredMealEditor({
           mode: 'studio',
           mealKey,
-          item: enrichedItem
+          item: structuredRecipeItem
         })
         setStudioSearchResults([])
         setStudioSearchText('')
@@ -2458,8 +2639,15 @@ const MyMenus = () => {
 
     try {
       setExportingContainerPdf(true)
+      const exportContainer = {
+        ...container,
+        menus: (container.menus || []).map(menu => {
+          const draft = menuStudioDrafts[menu?.id]
+          return draft ? { ...menu, ...draft } : menu
+        })
+      }
       await exportMenuBuilderToPdf({
-        container,
+        container: exportContainer,
         t
       })
     } catch (error) {
@@ -2813,7 +3001,10 @@ const MyMenus = () => {
         createdByUserId: nutritionistId,
         menuTemplateOrders: reorderedMenus.map((menu, index) => ({
           menuTemplateId: menu.id,
-          menuName: menu.parsedMenuName,
+          menuName:
+            extractAutoDayNumber(menu.parsedMenuName, t) !== null
+              ? `${t('pages.myMenus.dayLabel')} ${index + 1}`
+              : menu.parsedMenuName,
           order: index + 1
         }))
       })
@@ -2855,7 +3046,7 @@ const MyMenus = () => {
 
     setEditingTemplateId(id)
     setMenuContainerName(containerName)
-    setMenuName(parsedMenuName || '')
+    setMenuName(localizeMenuDisplayName(parsedMenuName || '', t))
     setNumberOfDays('1')
     setAddingToExistingContainer(false)
     setIsAssignableByUser(!!template?.isAssignableByUser && isAdmin)
@@ -3360,21 +3551,19 @@ const MyMenus = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {mealSection !== 'snackPlan' ? (
-              <button
-                type="button"
-                onClick={() =>
-                  openStructuredMealEditor({
-                    mode: 'studio',
-                    mealKey: mealSection
-                  })
-                }
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                <PlusIcon className="h-4 w-4" />
-                Create structured meal
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={() =>
+                openStructuredMealEditor({
+                  mode: 'studio',
+                  mealKey: mealSection
+                })
+              }
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Create structured meal
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -4231,33 +4420,164 @@ const MyMenus = () => {
               {structuredMealEditor.recipeSearchResults.length > 0 ? (
                 <div className="mt-3 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white">
                   {structuredMealEditor.recipeSearchResults.map(
-                    (item, index) => (
-                      <div
-                        key={`structured-recipe-${item?.id || item?.name || index}`}
-                        className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900">
-                            {item?.name ||
-                              item?.title ||
-                              t('pages.myMenus.unnamedItem')}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {t('pages.myMenus.recipeType')}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            await importRecipeIntoStructuredMeal(item)
-                          }}
-                          className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                    (item, index) => {
+                      const recipeKey =
+                        item?.id ||
+                        item?.itemId ||
+                        item?._id ||
+                        item?.name ||
+                        index
+                      const servingOptions = buildServingOptionsForMenuItem(
+                        item,
+                        includeImperialServingOptions
+                      )
+                      const defaultServing =
+                        findPortionServing(servingOptions) ||
+                        findDefaultServing(servingOptions) ||
+                        servingOptions[0] ||
+                        null
+                      const defaultServingId =
+                        getServingIdentifier(defaultServing) || ''
+                      const recipeSelectionDraft =
+                        structuredMealEditor.recipeSelectionDrafts?.[
+                          recipeKey
+                        ] || {}
+                      const currentServingId =
+                        recipeSelectionDraft.selectedServingId ??
+                        defaultServingId
+                      const currentServing =
+                        findServingByIdentifier(
+                          servingOptions,
+                          currentServingId
+                        ) || defaultServing
+                      const currentAmount =
+                        recipeSelectionDraft.amount ??
+                        getDefaultAmountForSelectedServing(currentServing)
+
+                      return (
+                        <div
+                          key={`structured-recipe-${recipeKey}`}
+                          className="border-b border-slate-100 px-4 py-3 last:border-b-0"
                         >
-                          <PlusIcon className="h-4 w-4" />
-                          Use
-                        </button>
-                      </div>
-                    )
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-900">
+                                {item?.name ||
+                                  item?.title ||
+                                  t('pages.myMenus.unnamedItem')}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {t('pages.myMenus.recipeType')}
+                              </p>
+                            </div>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                              {servingOptions.length > 0 ? (
+                                <>
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                      Portion
+                                    </span>
+                                    <select
+                                      value={currentServingId}
+                                      onChange={event => {
+                                        const nextServing =
+                                          findServingByIdentifier(
+                                            servingOptions,
+                                            event.target.value
+                                          ) || defaultServing
+                                        updateStructuredMealEditor(prev => ({
+                                          ...prev,
+                                          recipeSelectionDrafts: {
+                                            ...(prev.recipeSelectionDrafts ||
+                                              {}),
+                                            [recipeKey]: {
+                                              selectedServingId:
+                                                event.target.value || '',
+                                              amount:
+                                                getDefaultAmountForSelectedServing(
+                                                  nextServing
+                                                )
+                                            }
+                                          }
+                                        }))
+                                      }}
+                                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                    >
+                                      {servingOptions.map(
+                                        (serving, servingIndex) => {
+                                          const servingId =
+                                            getServingIdentifier(serving)
+                                          return (
+                                            <option
+                                              key={servingId || servingIndex}
+                                              value={servingId || ''}
+                                            >
+                                              {serving?.name ||
+                                                serving?.innerName ||
+                                                serving?.unitName ||
+                                                serving?.unit}
+                                            </option>
+                                          )
+                                        }
+                                      )}
+                                    </select>
+                                  </div>
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                      Amount
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={currentAmount}
+                                        onChange={event =>
+                                          updateStructuredMealEditor(prev => ({
+                                            ...prev,
+                                            recipeSelectionDrafts: {
+                                              ...(prev.recipeSelectionDrafts ||
+                                                {}),
+                                              [recipeKey]: {
+                                                selectedServingId:
+                                                  currentServingId || '',
+                                                amount:
+                                                  event.target.value === ''
+                                                    ? ''
+                                                    : event.target.value
+                                              }
+                                            }
+                                          }))
+                                        }
+                                        className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                                      />
+                                      <span className="text-xs font-medium text-slate-500">
+                                        {currentServing?.unitName ||
+                                          currentServing?.unit ||
+                                          (item?.isLiquid ? 'ml' : 'g')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await importRecipeIntoStructuredMeal(item, {
+                                    servingOption: currentServing,
+                                    amount: currentAmount
+                                  })
+                                }}
+                                className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500"
+                              >
+                                <PlusIcon className="h-4 w-4" />
+                                Use
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    }
                   )}
                 </div>
               ) : null}
@@ -4320,21 +4640,21 @@ const MyMenus = () => {
               </div>
             </div>
 
-            {!isSnackMeal ? (
-              <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={structuredMealEditor.showRecipeDetailsInPdf}
-                  onChange={event =>
-                    updateStructuredMealEditor(prev => ({
-                      ...prev,
-                      showRecipeDetailsInPdf: event.target.checked
-                    }))
-                  }
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-400"
-                />
-                {t('pages.myMenus.showRecipeDetailsInPdf')}
-              </label>
+            {formatStructuredMealSelectionSummary(
+              structuredMealEditor.baseItem
+            ) ? (
+              <div
+                className={`${glassSurfaceClass} flex items-center justify-between gap-3 px-4 py-3 text-sm`}
+              >
+                <span className="font-semibold text-slate-500">
+                  Imported portion
+                </span>
+                <span className="font-semibold text-slate-900">
+                  {formatStructuredMealSelectionSummary(
+                    structuredMealEditor.baseItem
+                  )}
+                </span>
+              </div>
             ) : null}
 
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -5300,23 +5620,21 @@ const MyMenus = () => {
                           ))}
                         </div>
 
-                        {activeMealType !== 'snackPlan' ? (
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openStructuredMealEditor({
-                                  mode: 'builder',
-                                  mealKey: activeMealType
-                                })
-                              }
-                              className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white"
-                            >
-                              <PlusIcon className="h-4 w-4" />
-                              Create structured meal
-                            </button>
-                          </div>
-                        ) : null}
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openStructuredMealEditor({
+                                mode: 'builder',
+                                mealKey: activeMealType
+                              })
+                            }
+                            className="inline-flex items-center gap-2 rounded-2xl border border-white/80 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-white"
+                          >
+                            <PlusIcon className="h-4 w-4" />
+                            Create structured meal
+                          </button>
+                        </div>
 
                         {/* Search results */}
                         {searchResults.length > 0 && (
@@ -6434,10 +6752,10 @@ const MyMenus = () => {
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900">
-                          {menu.menuName}
+                          {localizeMenuDisplayName(menu.menuName, t)}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Day {index + 1}
+                          {t('pages.myMenus.dayLabel')} {index + 1}
                         </p>
                       </div>
                       <div className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm">
@@ -6604,7 +6922,7 @@ const MyMenus = () => {
                     } ${reorderingContainer ? 'opacity-60' : ''}`}
                     disabled={reorderingContainer}
                   >
-                    {menu.parsedMenuName}
+                    {localizeMenuDisplayName(menu.parsedMenuName, t)}
                   </button>
                   {menuStudioDrafts[menu.id] ? (
                     <span className="pointer-events-none absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_4px_rgba(251,191,36,0.18)]" />
@@ -6673,7 +6991,10 @@ const MyMenus = () => {
                                 {t('pages.myMenus.menuName')}
                               </p>
                               <p className="mt-2 text-2xl font-semibold text-slate-900">
-                                {selectedMenuInContainer.parsedMenuName}
+                                {localizeMenuDisplayName(
+                                  selectedMenuInContainer.parsedMenuName,
+                                  t
+                                )}
                               </p>
                               <p className="mt-1 text-sm text-slate-500">
                                 {t('pages.myMenus.id')}:{' '}
@@ -6781,8 +7102,11 @@ const MyMenus = () => {
                     <div className="rounded-3xl border border-slate-200 bg-white p-5 text-sm text-gray-800 shadow-sm">
                       <div className="mb-2 flex items-center justify-between">
                         <p className="font-semibold text-gray-900">
-                          {selectedMenuInContainer?.parsedMenuName} ·{' '}
-                          {t('pages.myMenus.assignedUsers')}
+                          {localizeMenuDisplayName(
+                            selectedMenuInContainer?.parsedMenuName,
+                            t
+                          )}{' '}
+                          · {t('pages.myMenus.assignedUsers')}
                         </p>
                         <button
                           onClick={loadClients}
@@ -6897,8 +7221,10 @@ const MyMenus = () => {
                               : 'text-slate-600 hover:bg-white'
                           }`}
                         >
-                          {selectedMenuInContainer?.parsedMenuName ||
-                            t('pages.myMenus.menuName')}
+                          {localizeMenuDisplayName(
+                            selectedMenuInContainer?.parsedMenuName,
+                            t
+                          ) || t('pages.myMenus.menuName')}
                         </button>
                         <button
                           type="button"

@@ -5,7 +5,11 @@ import { jsPDF } from 'jspdf'
 import { calculateDisplayValues, safeNutrients } from './menuDisplay'
 
 const MENU_MEAL_SECTIONS = [
-  { id: 'breakfastPlan', labelKey: 'pages.myMenus.breakfast', pdfLabel: 'Mic dejun' },
+  {
+    id: 'breakfastPlan',
+    labelKey: 'pages.myMenus.breakfast',
+    pdfLabel: 'Mic dejun'
+  },
   { id: 'lunchPlan', labelKey: 'pages.myMenus.lunch', pdfLabel: 'Prânz' },
   { id: 'dinnerPlan', labelKey: 'pages.myMenus.dinner', pdfLabel: 'Cină' },
   { id: 'snackPlan', labelKey: 'pages.myMenus.snack', pdfLabel: 'Gustare' }
@@ -312,6 +316,39 @@ const normalizeInstructionEntries = entries => {
   }, [])
 }
 
+const parseJsonValue = value => {
+  if (!value) return null
+  if (typeof value === 'object') return value
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+const getRecipeIngredients = item => {
+  if (Array.isArray(item?.ingredients)) return item.ingredients
+  const parsed = parseJsonValue(item?.ingredients)
+  return Array.isArray(parsed) ? parsed : []
+}
+
+const getRecipeIngredientNames = item => {
+  if (Array.isArray(item?.ingredientNames)) return item.ingredientNames
+  const parsed = parseJsonValue(item?.ingredientNames)
+  return Array.isArray(parsed) ? parsed : []
+}
+
+const getRecipeSteps = item => {
+  if (item?.recipeSteps && typeof item.recipeSteps === 'object') {
+    return item.recipeSteps
+  }
+  const parsed = parseJsonValue(item?.recipeSteps)
+  return parsed && typeof parsed === 'object' ? parsed : {}
+}
+
 const formatInstructionEntry = entry =>
   sanitizePdfText(entry)
     .replace(/^\d+[.)]\s*/, '')
@@ -421,19 +458,20 @@ const drawPageBackground = (doc, pageWidth, pageHeight) => {
 
 const isRecipeItem = item =>
   String(item?.type || '').toLowerCase() === 'recipe' ||
-  Boolean(item?.recipeSteps || item?.ingredients)
+  Boolean(
+    item?.recipeSteps || item?.ingredients || getRecipeIngredients(item).length
+  )
 
 const shouldShowRecipeDetailsInPdf = item =>
   isRecipeItem(item) ? item?.showRecipeDetailsInPdf === true : false
 const isStructuredRecipeItem = item =>
   isRecipeItem(item) &&
-  (!Array.isArray(item?.servingOptions) || item.servingOptions.length === 0) &&
-  Array.isArray(item?.ingredients) &&
-  item.ingredients.length > 0
-const shouldRenderDetailedRecipeBlock = (item, sectionId) =>
-  sectionId === 'snackPlan'
-    ? isRecipeItem(item)
-    : shouldShowRecipeDetailsInPdf(item) || isStructuredRecipeItem(item)
+  (item?.isStructuredMeal === true ||
+    ((!Array.isArray(item?.servingOptions) ||
+      item.servingOptions.length === 0) &&
+      getRecipeIngredients(item).length > 0))
+const shouldRenderDetailedRecipeBlock = item =>
+  shouldShowRecipeDetailsInPdf(item) || isStructuredRecipeItem(item)
 
 const sanitizeFilename = value =>
   String(value || 'menu-builder')
@@ -441,11 +479,30 @@ const sanitizeFilename = value =>
     .replace(/[\\/:*?"<>|]+/g, '-')
     .replace(/\s+/g, ' ')
 
+const escapeRegex = value =>
+  String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 const localizeGeneratedDayLabel = (value, t) => {
   const text = sanitizePdfText(value)
-  const match = text.match(/^day\s+(\d+)$/i)
-  if (!match) return text
-  return `${t('pages.myMenus.dayLabel')} ${match[1]}`
+  const localizedDayLabel = String(t('pages.myMenus.dayLabel') || 'Day').trim()
+  const candidateLabels = Array.from(
+    new Set(
+      [localizedDayLabel, 'Day', 'Ziua', 'Día', 'Dia', 'Jour']
+        .map(label => String(label || '').trim())
+        .filter(Boolean)
+    )
+  )
+
+  for (const label of candidateLabels) {
+    const match = text.match(
+      new RegExp(`^${escapeRegex(label)}\\s+(\\d+)$`, 'i')
+    )
+    if (match) {
+      return `${t('pages.myMenus.dayLabel')} ${match[1]}`
+    }
+  }
+
+  return text
 }
 
 const MEAL_SECTION_STYLES = {
@@ -615,12 +672,10 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
   }
 
   const estimateRecipeLayout = item => {
-    const ingredients = Array.isArray(item?.ingredients) ? item.ingredients : []
-    const ingredientNames = Array.isArray(item?.ingredientNames)
-      ? item.ingredientNames.filter(Boolean)
-      : []
+    const ingredients = getRecipeIngredients(item)
+    const ingredientNames = getRecipeIngredientNames(item).filter(Boolean)
     const instructions = normalizeInstructionEntries(
-      item?.recipeSteps?.instructions
+      getRecipeSteps(item)?.instructions
     )
     const ingredientEntries =
       ingredients.length > 0
@@ -690,12 +745,10 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
   }
 
   const estimateStructuredRecipeLayout = item => {
-    const ingredients = Array.isArray(item?.ingredients) ? item.ingredients : []
-    const ingredientNames = Array.isArray(item?.ingredientNames)
-      ? item.ingredientNames.filter(Boolean)
-      : []
+    const ingredients = getRecipeIngredients(item)
+    const ingredientNames = getRecipeIngredientNames(item).filter(Boolean)
     const instructions = normalizeInstructionEntries(
-      item?.recipeSteps?.instructions
+      getRecipeSteps(item)?.instructions
     )
     const ingredientEntries =
       ingredients.length > 0
@@ -722,10 +775,10 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     //   right (image): 38%  →  147pt
     const IMG_W = 147
     const COL_GAP = 16
-    const BOX_W = contentWidth - IMG_W - COL_GAP     // 267pt — ingredients container width
-    const BOX_PAD = 12                                // horizontal padding inside the box
-    const BOX_INNER_W = BOX_W - BOX_PAD * 2          // 243pt — text width inside the box
-    const IMG_H = IMG_W                              // square crop
+    const BOX_W = contentWidth - IMG_W - COL_GAP // 267pt — ingredients container width
+    const BOX_PAD = 12 // horizontal padding inside the box
+    const BOX_INNER_W = BOX_W - BOX_PAD * 2 // 243pt — text width inside the box
+    const IMG_H = IMG_W // square crop
 
     // Title spans full content width (no image beside it)
     doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
@@ -772,7 +825,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     //   imageH = IMG_H (when photo)
     //   containerSectionH = max(ingredientsBoxH, hasPhoto ? IMG_H : 0)
 
-    const titleSectionH = 11 + nameLines.length * 16 + 8 + 12 + 12  // = N×16 + 43
+    const titleSectionH = 11 + nameLines.length * 16 + 8 + 12 + 12 // = N×16 + 43
     const ingredientsBoxH = 42 + ingredientsHeight
     const containerSectionH = Math.max(ingredientsBoxH, hasPhoto ? IMG_H : 0)
     const topBlockHeight = titleSectionH + containerSectionH
@@ -947,7 +1000,15 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     // ── LEFT COLUMN: ingredients box ──
     // Light container: very subtle purple-grey background, border-radius 8
     doc.setFillColor(247, 245, 252)
-    doc.roundedRect(leftX, containerTopY, layout.boxWidth, layout.ingredientsBoxH, 8, 8, 'F')
+    doc.roundedRect(
+      leftX,
+      containerTopY,
+      layout.boxWidth,
+      layout.ingredientsBoxH,
+      8,
+      8,
+      'F'
+    )
 
     // INGREDIENTS section label
     // ingLabelBaseline = containerTopY + 12 (pad) + 8 (7pt baseline offset) = containerTopY + 20
@@ -972,7 +1033,15 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
       const imgX = contentX + layout.boxWidth + layout.imageGap
       const imageDataUrl = await ensurePdfContentImage(layout.photoUrl)
       doc.setFillColor(...STITCH_PDF_THEME.surfaceHigh)
-      doc.roundedRect(imgX, containerTopY, layout.imageWidth, layout.imageHeight, 8, 8, 'F')
+      doc.roundedRect(
+        imgX,
+        containerTopY,
+        layout.imageWidth,
+        layout.imageHeight,
+        8,
+        8,
+        'F'
+      )
       if (imageDataUrl) {
         doc.addImage(
           imageDataUrl,
@@ -993,7 +1062,14 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
       y += 20
 
       // Lighter, less saturated background than surfaceLow
-      drawRoundedBlock(doc, contentX, y, contentWidth, layout.instructionsBlockHeight, [248, 246, 252])
+      drawRoundedBlock(
+        doc,
+        contentX,
+        y,
+        contentWidth,
+        layout.instructionsBlockHeight,
+        [248, 246, 252]
+      )
 
       doc.setFont(PDF_FONT_NAME, 'bold')
       doc.setFontSize(7)
@@ -1018,23 +1094,23 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
 
   const drawMealSection = async (section, items, menuSummary) => {
     const style = getMealSectionStyle(section.id)
-    const sectionTotals = menuSummary.perMeal[section.id]
     const hasItems = items.length > 0
     const structuredRecipeItems = items.filter(isStructuredRecipeItem)
     const regularItems = items.filter(item => !isStructuredRecipeItem(item))
     const detailedRecipes = items.filter(
       item =>
-        shouldRenderDetailedRecipeBlock(item, section.id) &&
-        !isStructuredRecipeItem(item)
+        shouldRenderDetailedRecipeBlock(item) && !isStructuredRecipeItem(item)
     )
-    const sectionIntroHeight =
-      26 +
-      (hasItems
-        ? items.length === 1 &&
-          shouldRenderDetailedRecipeBlock(items[0], section.id)
-          ? 120
-          : 22
-        : 38)
+    const firstSectionContentHeight = !hasItems
+      ? 34
+      : structuredRecipeItems.length > 0
+        ? estimateStructuredRecipeLayout(structuredRecipeItems[0]).height + 8
+        : regularItems.length > 0
+          ? estimateSimpleItemLayout(regularItems[0]).height + 6
+          : detailedRecipes.length > 0
+            ? estimateRecipeLayout(detailedRecipes[0]).height + 10
+            : 34
+    const sectionIntroHeight = 32 + firstSectionContentHeight
     ensureSpace(sectionIntroHeight)
 
     doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
