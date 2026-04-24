@@ -476,12 +476,26 @@ const calculateStructuredMealItemSummary = item => {
     ingredients: item?.ingredients || []
   })
 
+  const fullRecipeAmount = parseNumber(item?.originalServingAmount)
+  const consumedRecipeAmount =
+    parseNumber(item?.changedServing?.value) || fullRecipeAmount
+
   if (
     ingredientSummary.calories > 0 ||
     ingredientSummary.proteinsInGrams > 0 ||
     ingredientSummary.carbohydratesInGrams > 0 ||
     ingredientSummary.fatInGrams > 0
   ) {
+    if (fullRecipeAmount > 0 && consumedRecipeAmount > 0) {
+      const ratio = consumedRecipeAmount / fullRecipeAmount
+      return {
+        calories: ingredientSummary.calories * ratio,
+        proteinsInGrams: ingredientSummary.proteinsInGrams * ratio,
+        carbohydratesInGrams: ingredientSummary.carbohydratesInGrams * ratio,
+        fatInGrams: ingredientSummary.fatInGrams * ratio
+      }
+    }
+
     return ingredientSummary
   }
 
@@ -508,6 +522,130 @@ const mapItemToEditableSteps = item =>
         .filter(Boolean)
     : []
 
+const parseStructuredMealFromText = input => {
+  const lines = String(input || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+
+  if (lines.length === 0) {
+    return {
+      name: '',
+      photoUrl: '',
+      ingredients: [],
+      steps: []
+    }
+  }
+
+  const photoLine =
+    lines.find(line => /^https?:\/\/\S+/i.test(line)) ||
+    lines.find(line => /photo\s*url\s*:/i.test(line))
+  const photoUrl = photoLine
+    ? String(photoLine)
+        .replace(/^photo\s*url\s*:/i, '')
+        .trim()
+    : ''
+
+  let currentSection = 'intro'
+  const introLines = []
+  const ingredientLines = []
+  const stepLines = []
+
+  lines.forEach(line => {
+    if (/^ingredients?\s*:?\s*$/i.test(line)) {
+      currentSection = 'ingredients'
+      return
+    }
+
+    if (/^(instructions?|steps?|preparation)\s*:?\s*$/i.test(line)) {
+      currentSection = 'steps'
+      return
+    }
+
+    if (/^photo\s*url\s*:/i.test(line) || /^https?:\/\/\S+/i.test(line)) {
+      return
+    }
+
+    if (currentSection === 'ingredients') {
+      ingredientLines.push(line.replace(/^[-•*]\s*/, '').trim())
+      return
+    }
+
+    if (currentSection === 'steps') {
+      stepLines.push(line.replace(/^\d+[.)]\s*/, '').trim())
+      return
+    }
+
+    introLines.push(line)
+  })
+
+  const inferredName =
+    introLines[0]?.replace(/^name\s*:/i, '').trim() ||
+    lines[0]?.replace(/^name\s*:/i, '').trim() ||
+    ''
+
+  const inferredIngredients =
+    ingredientLines.length > 0
+      ? ingredientLines
+      : lines
+          .filter(line => /^[-•*]\s+/.test(line))
+          .map(line => line.replace(/^[-•*]\s*/, '').trim())
+
+  const inferredSteps =
+    stepLines.length > 0
+      ? stepLines
+      : lines
+          .filter(line => /^\d+[.)]\s+/.test(line))
+          .map(line => line.replace(/^\d+[.)]\s*/, '').trim())
+
+  const parseStructuredIngredientLine = line => {
+    const rawLine = String(line || '')
+      .replace(/^[-•*]\s*/, '')
+      .trim()
+
+    const leadingMatch = rawLine.match(
+      /^(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gram|grams|ml|l|tbsp|tsp|cup|cups|lingura|linguri|lingurita|lingurite|buc|bucati|felii?)\s+(.+)$/i
+    )
+    if (leadingMatch) {
+      const [, quantityRaw, unitRaw, nameRaw] = leadingMatch
+      return {
+        ...createEmptyEditableIngredient(),
+        name: nameRaw.trim(),
+        quantity: parseNumber(quantityRaw.replace(',', '.')),
+        unit: unitRaw.toLowerCase()
+      }
+    }
+
+    const trailingMatch = rawLine.match(
+      /^(.+?)\s*\(?\s*(\d+(?:[.,]\d+)?)\s*(kg|g|gr|gram|grams|ml|l|tbsp|tsp|cup|cups|lingura|linguri|lingurita|lingurite|buc|bucati|felii?)\s*\)?$/i
+    )
+    if (trailingMatch) {
+      const [, nameRaw, quantityRaw, unitRaw] = trailingMatch
+      return {
+        ...createEmptyEditableIngredient(),
+        name: nameRaw.trim(),
+        quantity: parseNumber(quantityRaw.replace(',', '.')),
+        unit: unitRaw.toLowerCase()
+      }
+    }
+
+    return {
+      ...createEmptyEditableIngredient(),
+      name: rawLine,
+      unit: 'g'
+    }
+  }
+
+  return {
+    name: inferredName,
+    photoUrl,
+    ingredients: inferredIngredients
+      .filter(Boolean)
+      .map(parseStructuredIngredientLine),
+    steps: inferredSteps.filter(Boolean)
+  }
+}
+
 const createStructuredMealDraft = ({
   mode,
   mealKey,
@@ -526,6 +664,7 @@ const createStructuredMealDraft = ({
   recipeSearchText: '',
   recipeSearchResults: [],
   recipeSelectionDrafts: {},
+  generateFromTextInput: '',
   searchingRecipes: false,
   ingredientSearchText: '',
   ingredientSearchResults: [],
@@ -644,7 +783,7 @@ const buildStructuredMealItemFromDraft = draft => {
     originalServingId: null,
     servingOptions: [],
     quantity: recipeTotalQuantity,
-    changedServing: null
+    changedServing: baseItem?.changedServing || null
   }
 }
 const applyRecipeSelectionToStructuredItem = (item, selectionOverride) => {
@@ -673,9 +812,7 @@ const applyRecipeSelectionToStructuredItem = (item, selectionOverride) => {
     normalizedServingOption,
     item?.isLiquid
   )
-  const recipeBaseAmount = parseNumber(item?.originalServingAmount)
-
-  if (selectedBaseAmount <= 0 || recipeBaseAmount <= 0) {
+  if (selectedBaseAmount <= 0) {
     return {
       ...item,
       changedServing: {
@@ -687,56 +824,8 @@ const applyRecipeSelectionToStructuredItem = (item, selectionOverride) => {
     }
   }
 
-  const scaleFactor = selectedBaseAmount / recipeBaseAmount
-  const scaledIngredients = Array.isArray(item?.ingredients)
-    ? item.ingredients.map(ingredient => {
-        const scaleValue = value => {
-          const numeric = parseOptionalNumber(value)
-          return numeric === null
-            ? value
-            : roundStructuredIngredientQuantity(numeric * scaleFactor)
-        }
-
-        return {
-          ...ingredient,
-          quantity: scaleValue(ingredient?.quantity),
-          weight: scaleValue(ingredient?.weight),
-          calorieAmount: scaleValue(ingredient?.calorieAmount),
-          carbohydateAmount: scaleValue(ingredient?.carbohydateAmount),
-          carbohydrateAmount: scaleValue(ingredient?.carbohydrateAmount),
-          fatAmount: scaleValue(ingredient?.fatAmount),
-          proteinAmount: scaleValue(ingredient?.proteinAmount),
-          originalWeight: scaleValue(ingredient?.originalWeight),
-          originalCalorieAmount: scaleValue(ingredient?.originalCalorieAmount),
-          originalCarbohydrateAmount: scaleValue(
-            ingredient?.originalCarbohydrateAmount
-          ),
-          originalFatAmount: scaleValue(ingredient?.originalFatAmount),
-          originalProteinAmount: scaleValue(ingredient?.originalProteinAmount)
-        }
-      })
-    : item?.ingredients
-
-  const portionServing = findPortionServing(item?.servingOptions || [])
-  const perServingBaseAmount = portionServing
-    ? getServingAmount(portionServing)
-    : recipeBaseAmount / Math.max(1, parseNumber(item?.originalServings) || 1)
-  const scaledServings =
-    perServingBaseAmount > 0 ? selectedBaseAmount / perServingBaseAmount : 1
-
   return {
     ...item,
-    ingredients: scaledIngredients,
-    originalServingAmount: selectedBaseAmount,
-    quantity: selectedBaseAmount,
-    numberOfRecipeServings: Math.max(
-      0.01,
-      roundStructuredServingsValue(scaledServings)
-    ),
-    originalServings: Math.max(
-      0.01,
-      roundStructuredServingsValue(scaledServings)
-    ),
     changedServing: {
       value: String(selectedBaseAmount),
       quantity: selectedQuantity,
@@ -808,6 +897,27 @@ const formatStructuredMealSelectionSummary = item => {
   }
 
   return ''
+}
+const calculateStructuredMealDraftConsumedSummary = draft => {
+  const fullRecipeSummary = calculateStructuredMealDraftSummary(draft)
+  const fullRecipeAmount = parseNumber(
+    draft?.baseItem?.originalServingAmount || draft?.originalServingAmount
+  )
+  const consumedRecipeAmount = parseNumber(
+    draft?.baseItem?.changedServing?.value
+  )
+
+  if (fullRecipeAmount > 0 && consumedRecipeAmount > 0) {
+    const ratio = consumedRecipeAmount / fullRecipeAmount
+    return {
+      calories: fullRecipeSummary.calories * ratio,
+      proteinsInGrams: fullRecipeSummary.proteinsInGrams * ratio,
+      carbohydratesInGrams: fullRecipeSummary.carbohydratesInGrams * ratio,
+      fatInGrams: fullRecipeSummary.fatInGrams * ratio
+    }
+  }
+
+  return fullRecipeSummary
 }
 const parsePositiveOrder = value => {
   const parsed = Number.parseInt(String(value || '').trim(), 10)
@@ -1316,9 +1426,89 @@ const MyMenus = () => {
       countryCode
     })
 
-    return (Array.isArray(data) ? data : [])
-      .filter(item => !shouldHideLowQualitySearchItem(item))
-      .filter(item => !detectIsRecipe(item))
+    return (Array.isArray(data) ? data : []).filter(
+      item => !shouldHideLowQualitySearchItem(item)
+    )
+  }
+
+  const resolveStructuredTextIngredientsFromDb = async ingredients => {
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
+      return []
+    }
+
+    const resolvedIngredients = await Promise.all(
+      ingredients.map(async ingredient => {
+        const ingredientName = String(ingredient?.name || '')
+          .replace(/\([^)]*\)/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        if (!ingredientName) {
+          return ingredient
+        }
+
+        try {
+          const results =
+            await handleStructuredMealIngredientSearch(ingredientName)
+          const bestMatch = (results || []).find(item => !detectIsRecipe(item))
+
+          if (!bestMatch) {
+            return ingredient
+          }
+
+          const bestMatchId =
+            bestMatch?.id || bestMatch?.itemId || bestMatch?._id || null
+
+          if (bestMatchId) {
+            try {
+              const resp = await getItemsByIds({ ids: [bestMatchId] })
+              const detailed = resp?.data?.[0] || resp?.items?.[0]
+              if (detailed) {
+                const normalizedDetailed = normalizeMenuItemShape(detailed)
+                return {
+                  ...ingredient,
+                  id: normalizedDetailed?.id || bestMatchId,
+                  name: ingredientName,
+                  caloriesPer100: parseNumber(
+                    normalizedDetailed?.caloriesPer100
+                  ),
+                  nutrientsPer100: parseIngredientNutrients(
+                    normalizedDetailed?.nutrientsPer100
+                  ),
+                  unit:
+                    ingredient?.unit ||
+                    (normalizedDetailed?.isLiquid ? 'ml' : 'g')
+                }
+              }
+            } catch (detailError) {
+              console.warn(
+                'Failed to load detailed structured meal text ingredient',
+                detailError
+              )
+            }
+          }
+
+          const normalizedMatch = normalizeMenuItemShape(bestMatch)
+          return {
+            ...ingredient,
+            id: normalizedMatch?.id || bestMatchId,
+            name: ingredientName,
+            caloriesPer100: parseNumber(normalizedMatch?.caloriesPer100),
+            nutrientsPer100: parseIngredientNutrients(
+              normalizedMatch?.nutrientsPer100
+            ),
+            unit: ingredient?.unit || (normalizedMatch?.isLiquid ? 'ml' : 'g')
+          }
+        } catch (error) {
+          console.warn(
+            'Failed to match structured meal text ingredient in database',
+            error
+          )
+          return ingredient
+        }
+      })
+    )
+
+    return resolvedIngredients
   }
 
   const importIngredientIntoStructuredMeal = async ingredientItem => {
@@ -2178,6 +2368,30 @@ const MyMenus = () => {
     }
     stageStudioMenuChanges(updatedMenu)
     if (studioEditingItemKey === getStudioItemKey(mealKey, index)) {
+      setStudioEditingItemKey(null)
+    }
+  }
+
+  const handleStudioMoveItemToMeal = (fromMealKey, index, toMealKey) => {
+    if (!selectedMenuInContainer || !toMealKey || fromMealKey === toMealKey) {
+      return
+    }
+
+    const sourceItems = selectedMenuInContainer?.[fromMealKey] || []
+    const targetItems = selectedMenuInContainer?.[toMealKey] || []
+    const itemToMove = sourceItems[index]
+
+    if (!itemToMove) return
+
+    const updatedMenu = {
+      ...selectedMenuInContainer,
+      [fromMealKey]: sourceItems.filter((_, itemIndex) => itemIndex !== index),
+      [toMealKey]: [...targetItems, itemToMove]
+    }
+
+    stageStudioMenuChanges(updatedMenu)
+
+    if (studioEditingItemKey === getStudioItemKey(fromMealKey, index)) {
       setStudioEditingItemKey(null)
     }
   }
@@ -3990,7 +4204,7 @@ const MyMenus = () => {
                 <div
                   key={`${mealSection}-${item?.id || item?.name || index}`}
                   onClick={() => setViewingItem(item)}
-                  className="flex min-w-0 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm transition hover:border-slate-300 hover:bg-white"
+                  className="flex min-w-0 w-full max-w-xl cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm transition hover:border-slate-300 hover:bg-white"
                 >
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-200 text-xs font-semibold text-slate-500">
                     {item?.photoUrl ? (
@@ -4003,13 +4217,44 @@ const MyMenus = () => {
                       <span>{item?.type === 'recipe' ? 'R' : 'F'}</span>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-base font-semibold text-slate-900">
+                  <div className="min-w-0 flex-1 pr-2">
+                    <p className="text-base font-semibold leading-6 text-slate-900 [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden break-words">
                       {item?.name || t('pages.myMenus.unnamedItem')}
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       {Math.round(parseNumber(calculated?.calories))} kcal
                     </p>
+                    <div className="mt-2">
+                      <select
+                        defaultValue=""
+                        onClick={event => event.stopPropagation()}
+                        onChange={event => {
+                          event.stopPropagation()
+                          const nextMealKey = event.target.value
+                          handleStudioMoveItemToMeal(
+                            mealSection,
+                            index,
+                            nextMealKey
+                          )
+                          event.target.value = ''
+                        }}
+                        className="rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-medium text-slate-700 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        title="Move to another meal type"
+                      >
+                        <option value="" disabled>
+                          Move to
+                        </option>
+                        {mealTypeOptions
+                          .filter(option => option.id !== mealSection)
+                          .map(option => (
+                            <option key={option.id} value={option.id}>
+                              {t(
+                                `pages.myMenus.${option.id.replace('Plan', '')}`
+                              )}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -4110,7 +4355,7 @@ const MyMenus = () => {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm">
-        <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h3 className="truncate text-2xl font-bold text-slate-900">
@@ -4334,9 +4579,12 @@ const MyMenus = () => {
   const renderStructuredMealEditorModal = () => {
     if (!structuredMealEditor) return null
 
-    const isSnackMeal = structuredMealEditor.mealKey === 'snackPlan'
     const structuredMealTotals =
-      calculateStructuredMealDraftSummary(structuredMealEditor)
+      calculateStructuredMealDraftConsumedSummary(structuredMealEditor)
+    const importedPortionUnit =
+      structuredMealEditor?.baseItem?.changedServing?.servingOption?.unitName ||
+      structuredMealEditor?.baseItem?.changedServing?.unit ||
+      (structuredMealEditor?.baseItem?.isLiquid ? 'ml' : 'g')
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm">
@@ -4415,6 +4663,56 @@ const MyMenus = () => {
                     ? 'Searching...'
                     : 'Import recipe'}
                 </button>
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Generate from text
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const parsed = parseStructuredMealFromText(
+                        structuredMealEditor.generateFromTextInput
+                      )
+                      const resolvedIngredients =
+                        await resolveStructuredTextIngredientsFromDb(
+                          parsed.ingredients
+                        )
+
+                      updateStructuredMealEditor(prev => ({
+                        ...prev,
+                        name: parsed.name || prev.name,
+                        photoUrl: parsed.photoUrl || prev.photoUrl,
+                        ingredients:
+                          resolvedIngredients.length > 0
+                            ? resolvedIngredients
+                            : prev.ingredients,
+                        steps:
+                          parsed.steps.length > 0 ? parsed.steps : prev.steps
+                      }))
+                    }}
+                    disabled={
+                      !structuredMealEditor.generateFromTextInput.trim()
+                    }
+                    className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-500 disabled:opacity-50"
+                  >
+                    Apply text
+                  </button>
+                </div>
+                <textarea
+                  value={structuredMealEditor.generateFromTextInput}
+                  onChange={event =>
+                    updateStructuredMealEditor(prev => ({
+                      ...prev,
+                      generateFromTextInput: event.target.value
+                    }))
+                  }
+                  rows={5}
+                  placeholder="Paste recipe text here. Example: first line title, then Ingredients:, then Steps:, and optional Photo URL."
+                  className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
               </div>
 
               {structuredMealEditor.recipeSearchResults.length > 0 ? (
@@ -4643,17 +4941,71 @@ const MyMenus = () => {
             {formatStructuredMealSelectionSummary(
               structuredMealEditor.baseItem
             ) ? (
-              <div
-                className={`${glassSurfaceClass} flex items-center justify-between gap-3 px-4 py-3 text-sm`}
-              >
-                <span className="font-semibold text-slate-500">
-                  Imported portion
-                </span>
-                <span className="font-semibold text-slate-900">
-                  {formatStructuredMealSelectionSummary(
-                    structuredMealEditor.baseItem
-                  )}
-                </span>
+              <div className={`${glassSurfaceClass} px-4 py-3 text-sm`}>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <span className="font-semibold text-slate-500">
+                    Imported portion
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={
+                        structuredMealEditor?.baseItem?.changedServing
+                          ?.quantity ?? ''
+                      }
+                      onChange={event =>
+                        updateStructuredMealEditor(prev => {
+                          const currentServingOption =
+                            prev?.baseItem?.changedServing?.servingOption ||
+                            null
+                          const currentUnit =
+                            currentServingOption?.unitName ||
+                            prev?.baseItem?.changedServing?.unit ||
+                            (prev?.baseItem?.isLiquid ? 'ml' : 'g')
+                          const nextQuantity =
+                            event.target.value === '' ? '' : event.target.value
+                          const nextBaseValue =
+                            nextQuantity === ''
+                              ? ''
+                              : getChangedServingBaseValue(
+                                  nextQuantity,
+                                  currentUnit,
+                                  currentServingOption,
+                                  prev?.baseItem?.isLiquid
+                                )
+
+                          return {
+                            ...prev,
+                            baseItem: {
+                              ...(prev?.baseItem || {}),
+                              changedServing: {
+                                ...(prev?.baseItem?.changedServing || {}),
+                                quantity: nextQuantity,
+                                value:
+                                  nextBaseValue === ''
+                                    ? ''
+                                    : String(nextBaseValue),
+                                unit: currentUnit,
+                                servingOption: currentServingOption
+                              }
+                            }
+                          }
+                        })
+                      }
+                      className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                    <span className="text-sm font-semibold text-slate-900">
+                      {importedPortionUnit}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  The recipe stays complete for all servings. This imported
+                  portion is the amount to consume. If you want to cook only
+                  that amount, reduce the ingredients below.
+                </p>
               </div>
             ) : null}
 
@@ -4704,7 +5056,7 @@ const MyMenus = () => {
                             ingredientSearchText: event.target.value
                           }))
                         }
-                        placeholder="Search ingredient from database"
+                        placeholder="Search ingredient or recipe from database"
                         className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </div>
@@ -4758,6 +5110,9 @@ const MyMenus = () => {
                                   t('pages.myMenus.unnamedItem')}
                               </p>
                               <p className="text-xs text-slate-500">
+                                {detectIsRecipe(ingredientItem)
+                                  ? `${t('pages.myMenus.recipeType')} · `
+                                  : ''}
                                 {Math.round(
                                   parseNumber(ingredientItem?.caloriesPer100)
                                 )}{' '}
@@ -4787,9 +5142,9 @@ const MyMenus = () => {
                       key={`ingredient-${index}`}
                       className="rounded-2xl border border-slate-200 bg-white p-3"
                     >
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(180px,1.8fr)_92px_72px_auto]">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_110px] md:items-start">
                         <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-900">
-                          <span className="block truncate">
+                          <span className="block break-words leading-5">
                             {ingredient?.name || t('pages.myMenus.unnamedItem')}
                           </span>
                         </div>
@@ -4818,40 +5173,86 @@ const MyMenus = () => {
                           placeholder="0"
                           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
-                        <input
-                          type="text"
-                          value={ingredient?.unit || 'g'}
-                          onChange={event =>
-                            updateStructuredMealEditor(prev => ({
-                              ...prev,
-                              ingredients: prev.ingredients.map(
-                                (entry, entryIndex) =>
-                                  entryIndex === index
-                                    ? {
-                                        ...entry,
-                                        unit: event.target.value || 'g'
-                                      }
-                                    : entry
-                              )
-                            }))
-                          }
-                          placeholder="g"
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateStructuredMealEditor(prev => ({
-                              ...prev,
-                              ingredients: prev.ingredients.filter(
-                                (_, entryIndex) => entryIndex !== index
-                              )
-                            }))
-                          }
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2 md:col-span-2">
+                          <input
+                            type="text"
+                            value={ingredient?.unit || 'g'}
+                            onChange={event =>
+                              updateStructuredMealEditor(prev => ({
+                                ...prev,
+                                ingredients: prev.ingredients.map(
+                                  (entry, entryIndex) =>
+                                    entryIndex === index
+                                      ? {
+                                          ...entry,
+                                          unit: event.target.value || 'g'
+                                        }
+                                      : entry
+                                )
+                              }))
+                            }
+                            placeholder="g"
+                            className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateStructuredMealEditor(prev => ({
+                                ...prev,
+                                ingredients: moveItemInArray(
+                                  prev.ingredients,
+                                  index,
+                                  Math.max(0, index - 1)
+                                )
+                              }))
+                            }
+                            disabled={index === 0}
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                            title="Mută ingredientul mai sus"
+                          >
+                            <ChevronUpIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateStructuredMealEditor(prev => ({
+                                ...prev,
+                                ingredients: moveItemInArray(
+                                  prev.ingredients,
+                                  index,
+                                  Math.min(
+                                    prev.ingredients.length - 1,
+                                    index + 1
+                                  )
+                                )
+                              }))
+                            }
+                            disabled={
+                              index ===
+                              structuredMealEditor.ingredients.length - 1
+                            }
+                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                            title="Mută ingredientul mai jos"
+                          >
+                            <ChevronDownIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateStructuredMealEditor(prev => ({
+                                ...prev,
+                                ingredients: prev.ingredients.filter(
+                                  (_, entryIndex) => entryIndex !== index
+                                )
+                              }))
+                            }
+                            className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-red-50 px-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                            title="Șterge ingredientul"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                            <span>Șterge</span>
+                          </button>
+                        </div>
                       </div>
                       <div className="mt-2 text-xs text-slate-500">
                         {(() => {
@@ -5831,11 +6232,11 @@ const MyMenus = () => {
                               return (
                                 <div
                                   key={idx}
-                                  className="relative rounded-2xl border border-white/60 bg-white/90 p-4 shadow-sm"
+                                  className="relative w-full max-w-xl rounded-2xl border border-white/60 bg-white/90 p-4 shadow-sm"
                                 >
                                   <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <div className="text-sm font-semibold text-gray-900 truncate">
+                                    <div className="min-w-0 flex-1 pr-2">
+                                      <div className="text-sm font-semibold leading-6 text-gray-900 [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden break-words">
                                         {item?.name || item?.title || 'Unnamed'}
                                       </div>
                                       <div className="text-xs text-gray-600 truncate">

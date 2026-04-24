@@ -379,6 +379,30 @@ const getItemSelectedAmount = item => {
   return 100
 }
 
+const formatRecipeConsumptionSummary = (item, t) => {
+  const servingsCount = Math.max(
+    1,
+    parseNumber(item?.numberOfRecipeServings || item?.originalServings || 1)
+  )
+  const consumeQuantity =
+    parseNumber(item?.changedServing?.quantity) ||
+    parseNumber(item?.changedServing?.value)
+  const consumeUnit =
+    item?.changedServing?.servingOption?.unitName ||
+    item?.changedServing?.unit ||
+    (item?.isLiquid ? 'ml' : 'g')
+
+  const parts = [`${t('pages.recipes.servings')}: ${servingsCount}`]
+
+  if (consumeQuantity > 0) {
+    parts.push(
+      `${t('pages.myMenus.amount')}: ${consumeQuantity} ${consumeUnit}`
+    )
+  }
+
+  return parts.join('  ·  ')
+}
+
 const getItemCalculatedValues = item => {
   const calculated = calculateDisplayValues(
     item,
@@ -456,10 +480,16 @@ const drawPageBackground = (doc, pageWidth, pageHeight) => {
   doc.rect(0, 0, pageWidth, pageHeight, 'F')
 }
 
+const hasRecipeDetailContent = item =>
+  getRecipeIngredients(item).length > 0 ||
+  getRecipeIngredientNames(item).length > 0 ||
+  normalizeInstructionEntries(getRecipeSteps(item)?.instructions).length > 0 ||
+  Boolean(String(item?.photoUrl || '').trim())
+
 const isRecipeItem = item =>
   String(item?.type || '').toLowerCase() === 'recipe' ||
   Boolean(
-    item?.recipeSteps || item?.ingredients || getRecipeIngredients(item).length
+    item?.recipeSteps || item?.ingredients || hasRecipeDetailContent(item)
   )
 
 const shouldShowRecipeDetailsInPdf = item =>
@@ -469,7 +499,7 @@ const isStructuredRecipeItem = item =>
   (item?.isStructuredMeal === true ||
     ((!Array.isArray(item?.servingOptions) ||
       item.servingOptions.length === 0) &&
-      getRecipeIngredients(item).length > 0))
+      hasRecipeDetailContent(item)))
 const shouldRenderDetailedRecipeBlock = item =>
   shouldShowRecipeDetailsInPdf(item) || isStructuredRecipeItem(item)
 
@@ -570,9 +600,6 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
   }
 
   const drawHeader = menu => {
-    const menuTitle = sanitizePdfText(
-      container?.containerName || t('pages.myMenus.menuBuilder')
-    )
     const menuSubtitle = sanitizePdfText(
       localizeGeneratedDayLabel(
         menu?.parsedMenuName || menu?.name || t('pages.myMenus.menuName'),
@@ -768,6 +795,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
 
     const calculated = getItemCalculatedValues(item)
     const hasPhoto = Boolean(item?.photoUrl)
+    const consumptionSummary = formatRecipeConsumptionSummary(item, t)
 
     // 2-column layout below the title:
     //   left (ingredients box): 62%  →  267pt
@@ -806,6 +834,9 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     // Instructions measured against full width
     doc.setFont(PDF_FONT_NAME, 'normal')
     doc.setFontSize(9)
+    const consumptionSummaryLines = consumptionSummary
+      ? doc.splitTextToSize(consumptionSummary, contentWidth - 4)
+      : []
     const instructionStepLines = instructions
       .map(formatInstructionEntry)
       .filter(Boolean)
@@ -825,7 +856,15 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     //   imageH = IMG_H (when photo)
     //   containerSectionH = max(ingredientsBoxH, hasPhoto ? IMG_H : 0)
 
-    const titleSectionH = 11 + nameLines.length * 16 + 8 + 12 + 12 // = N×16 + 43
+    const titleSectionH =
+      11 +
+      nameLines.length * 16 +
+      8 +
+      12 +
+      (consumptionSummaryLines.length
+        ? consumptionSummaryLines.length * 10 + 8
+        : 0) +
+      12
     const ingredientsBoxH = 42 + ingredientsHeight
     const containerSectionH = Math.max(ingredientsBoxH, hasPhoto ? IMG_H : 0)
     const topBlockHeight = titleSectionH + containerSectionH
@@ -845,6 +884,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
       hasPhoto,
       photoUrl: item?.photoUrl || null,
       nameLines,
+      consumptionSummaryLines,
       ingredientLineData,
       instructionStepLines,
       boxWidth: BOX_W,
@@ -994,8 +1034,15 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     doc.setTextColor(...STITCH_PDF_THEME.textMuted)
     doc.text(macroText, leftX, macroY)
 
-    // containerTopY = macroY + macro-height(12) + gap(12) = macroY + 24
-    const containerTopY = macroY + 24
+    let containerTopY = macroY + 24
+
+    if (layout.consumptionSummaryLines.length) {
+      doc.setFont(PDF_FONT_NAME, 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(...STITCH_PDF_THEME.textSoft)
+      doc.text(layout.consumptionSummaryLines, leftX, macroY + 14)
+      containerTopY += layout.consumptionSummaryLines.length * 10 + 8
+    }
 
     // ── LEFT COLUMN: ingredients box ──
     // Light container: very subtle purple-grey background, border-radius 8
@@ -1092,7 +1139,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     y += 14
   }
 
-  const drawMealSection = async (section, items, menuSummary) => {
+  const drawMealSection = async (section, items) => {
     const style = getMealSectionStyle(section.id)
     const hasItems = items.length > 0
     const structuredRecipeItems = items.filter(isStructuredRecipeItem)
@@ -1165,8 +1212,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     for (const section of MENU_MEAL_SECTIONS) {
       await drawMealSection(
         section,
-        Array.isArray(menu?.[section.id]) ? menu[section.id] : [],
-        menuSummary
+        Array.isArray(menu?.[section.id]) ? menu[section.id] : []
       )
     }
   }
