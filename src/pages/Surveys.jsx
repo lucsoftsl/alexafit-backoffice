@@ -32,6 +32,10 @@ const FIELD_LABELS = {
   timestamp: 'Submitted at',
 }
 
+function formatKey(key) {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
   if (Array.isArray(value)) return value.length ? value.join(', ') : '—'
@@ -49,7 +53,7 @@ function SurveyDrawer({ survey, onClose }) {
 
   const data = survey.surveyData || {}
   const metaKeys = ['userId', 'source', 'timestamp']
-  const mainKeys = Object.keys(FIELD_LABELS).filter(k => !metaKeys.includes(k))
+  const mainKeys = Object.keys(data).filter(k => !metaKeys.includes(k))
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -82,7 +86,7 @@ function SurveyDrawer({ survey, onClose }) {
           {/* Survey fields */}
           {mainKeys.filter(k => data[k] !== undefined && data[k] !== '' && !(Array.isArray(data[k]) && data[k].length === 0)).map(k => (
             <div key={k} className="flex gap-3">
-              <span className="text-xs font-semibold text-gray-500 w-36 flex-shrink-0 pt-0.5">{FIELD_LABELS[k] || k}</span>
+              <span className="text-xs font-semibold text-gray-500 w-36 flex-shrink-0 pt-0.5">{FIELD_LABELS[k] || formatKey(k)}</span>
               <span className="text-sm text-gray-800">{formatValue(data[k])}</span>
             </div>
           ))}
