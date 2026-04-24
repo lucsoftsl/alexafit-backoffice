@@ -13,6 +13,7 @@ import {
 import { fetchProgramSubscribers, formatUserData, formatSubscriptionStatus, formatPaymentData } from '../services/api'
 import UserDetailModal from '../components/UserDetailModal'
 import ControlsDropdown from '../components/ControlsDropdown'
+import CreateLeadModal from '../components/CreateLeadModal'
 import { selectIsAdmin } from '../store/userSlice'
 
 const Dashboard = ({ onOpenChat = () => {} }) => {
@@ -31,6 +32,7 @@ const Dashboard = ({ onOpenChat = () => {} }) => {
   const hasLoadedRef = useRef(false)
   const isAdmin = useSelector(selectIsAdmin)
   const { t } = useTranslation()
+  const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false)
 
   const normalizePlanType = planRaw => {
     const plan = String(planRaw || '').trim().toLowerCase()
@@ -274,12 +276,23 @@ const Dashboard = ({ onOpenChat = () => {} }) => {
           <h1 className="text-3xl font-bold text-gray-900">{t('pages.dashboard.title')}</h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">{t('pages.dashboard.welcomeMessage')}</p>
         </div>
-        <button
-          onClick={refreshSubscribers}
-          className="btn-primary"
-        >
-          {t('pages.dashboard.refresh')}
-        </button>
+        <div className="flex gap-2 items-center justify-center sm:justify-end">
+          <button
+            onClick={() => setIsCreateLeadOpen(true)}
+            className="btn-primary flex items-center"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Lead
+          </button>
+          <button
+            onClick={refreshSubscribers}
+            className="btn-secondary"
+          >
+            {t('pages.dashboard.refresh')}
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -573,6 +586,13 @@ const Dashboard = ({ onOpenChat = () => {} }) => {
           setSelectedUser(null)
         }}
       />
+
+      {isCreateLeadOpen && (
+        <CreateLeadModal
+          onClose={() => setIsCreateLeadOpen(false)}
+          onCreated={refreshSubscribers}
+        />
+      )}
     </div>
   )
 }

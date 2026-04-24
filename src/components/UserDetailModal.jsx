@@ -24,7 +24,8 @@ import {
   sendMessageToUser,
   updateMessage,
   deleteMessage,
-  sendPushNotificationToUser
+  sendPushNotificationToUser,
+  setShouldHideNutrientsForUser
 } from '../services/api'
 import { computeAppliedItemTotals } from '../util/menuDisplay'
 
@@ -56,7 +57,23 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   const [notificationBody, setNotificationBody] = useState('')
   const [sendingPushNotification, setSendingPushNotification] = useState(false)
 
-  // Debug logging
+  const [shouldHideNutrients, setShouldHideNutrients] = useState(
+    user?.userData?.shouldHideNutrients === true
+  )
+  const [savingNutrientFlag, setSavingNutrientFlag] = useState(false)
+
+  const handleToggleShouldHideNutrients = async () => {
+    const newValue = !shouldHideNutrients
+    setSavingNutrientFlag(true)
+    try {
+      await setShouldHideNutrientsForUser({ userId: user.userId, shouldHideNutrients: newValue })
+      setShouldHideNutrients(newValue)
+    } catch (err) {
+      alert(t('Failed to update nutrient visibility'))
+    } finally {
+      setSavingNutrientFlag(false)
+    }
+  }
 
   const loadNutritionData = useCallback(async () => {
     if (!user?.userId) {
@@ -302,6 +319,10 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
     }
   }, [isOpen, user, selectedDate, loadNutritionData, fromPage])
 
+  useEffect(() => {
+    setShouldHideNutrients(user?.userData?.shouldHideNutrients === true)
+  }, [user?.userId])
+
   // Load messages when modal opens and messages accordion is expanded
   useEffect(() => {
     if (isOpen && user?.userId && messagesExpanded) {
@@ -337,6 +358,27 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
               {user?.name || t('common.User Details')}
             </h2>
             <p className="text-gray-600 mt-1">{t('common.User ID')}: {user?.userId}</p>
+
+            {user?.userId && <div className="flex items-center mt-3 space-x-3">
+              <span className="text-sm text-gray-600">{t('Hide nutrients for user')}:</span>
+              <button
+                onClick={handleToggleShouldHideNutrients}
+                disabled={savingNutrientFlag}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  shouldHideNutrients ? 'bg-blue-600' : 'bg-gray-300'
+                } ${savingNutrientFlag ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    shouldHideNutrients ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm font-medium text-gray-700">
+                {shouldHideNutrients ? t('common.Yes') : t('common.No')}
+              </span>
+              {savingNutrientFlag && <span className="text-xs text-gray-400">{t('common.Saving...')}</span>}
+            </div>}
 
             {fromPage === 'unapprovedItems' && <>
               <p className="text-gray-600 mt-1">{t('common.Status')}: {user?.status}</p>

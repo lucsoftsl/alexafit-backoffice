@@ -1288,6 +1288,38 @@ export const updateBugStatus = async ({ bugId, bugStatus, bugType, potentialPaym
   }
 }
 
+export const setShouldHideNutrientsForUser = async ({ userId, shouldHideNutrients }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/setShouldHideNutrientsForUser`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId, shouldHideNutrients })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error setting shouldHideNutrients:', error)
+    throw error
+  }
+}
+
+export const createLeadUser = async ({ email, firstName, lastName, phoneNumber, country }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/createLeadUser`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ email, firstName, lastName, phoneNumber, country })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error creating lead user:', error)
+    throw error
+  }
+}
+
 export const setUserSubscriptionWhitelistDetails = async ({ userId, id, subscriptionWhitelistDetails }) => {
   try {
     const headers = await getHeaders()

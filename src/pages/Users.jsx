@@ -25,6 +25,7 @@ import { getUsersCaloriesActivity, sendReminderEmail, getUserCaloriesHistory } f
 import UserDetailModal from '../components/UserDetailModal'
 import ControlsDropdown from '../components/ControlsDropdown'
 import WhitelistModal from '../components/WhitelistModal'
+import CreateLeadModal from '../components/CreateLeadModal'
 import { selectIsAdmin } from '../store/userSlice'
 
 const USERS_CACHE_KEY = 'users'
@@ -286,6 +287,7 @@ const Users = ({ onOpenChat = () => {} }) => {
   const [caloriesHistorySort, setCaloriesHistorySort] = useState('desc')
 
   const [whitelistRow, setWhitelistRow] = useState(null)
+  const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false)
 
   const toggleUsersSort = column => {
     setUsersSort(current =>
@@ -807,26 +809,37 @@ const Users = ({ onOpenChat = () => {} }) => {
             {t('pages.users.subtitle')}
           </p>
         </div>
-        <button
-          onClick={refreshUsers}
-          className="btn-secondary flex items-center"
-          disabled={loading}
-        >
-          <svg
-            className="mr-2 h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex gap-2 items-center justify-center sm:justify-end">
+          <button
+            onClick={() => setIsCreateLeadOpen(true)}
+            className="btn-primary flex items-center"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          {loading ? t('common.loading') : t('pages.users.refresh')}
-        </button>
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Lead
+          </button>
+          <button
+            onClick={refreshUsers}
+            className="btn-secondary flex items-center"
+            disabled={loading}
+          >
+            <svg
+              className="mr-2 h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            {loading ? t('common.loading') : t('pages.users.refresh')}
+          </button>
+        </div>
       </div>
 
       <div className="card p-6">
@@ -1541,6 +1554,13 @@ const Users = ({ onOpenChat = () => {} }) => {
         }}
         user={selectedUser}
       />
+
+      {isCreateLeadOpen && (
+        <CreateLeadModal
+          onClose={() => setIsCreateLeadOpen(false)}
+          onCreated={() => loadPageData({ forceRefresh: true })}
+        />
+      )}
 
       {whitelistRow ? (
         <WhitelistModal
