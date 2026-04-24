@@ -1553,6 +1553,12 @@ const Users = ({ onOpenChat = () => {} }) => {
           setSelectedUser(null)
         }}
         user={selectedUser}
+        onUserUpdate={updatedUser => {
+          setSelectedUser(updatedUser)
+          setUsers(prev => prev.map(u =>
+            (u?.userId || u?.id) === updatedUser.userId ? updatedUser : u
+          ))
+        }}
       />
 
       {isCreateLeadOpen && (

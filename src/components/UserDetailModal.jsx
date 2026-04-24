@@ -29,7 +29,7 @@ import {
 } from '../services/api'
 import { computeAppliedItemTotals } from '../util/menuDisplay'
 
-const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
+const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
   const { t } = useTranslation()
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [nutritionData, setNutritionData] = useState(null)
@@ -68,6 +68,10 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
     try {
       await setShouldHideNutrientsForUser({ userId: user.userId, shouldHideNutrients: newValue })
       setShouldHideNutrients(newValue)
+      onUserUpdate?.({
+        ...user,
+        userData: { ...(user.userData || {}), shouldHideNutrients: newValue }
+      })
     } catch (err) {
       alert(t('Failed to update nutrient visibility'))
     } finally {
@@ -320,6 +324,7 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage }) => {
   }, [isOpen, user, selectedDate, loadNutritionData, fromPage])
 
   useEffect(() => {
+    if (!user?.userId) return
     setShouldHideNutrients(user?.userData?.shouldHideNutrients === true)
   }, [user?.userId])
 
