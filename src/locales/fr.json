@@ -168,7 +168,8 @@
       "typeText": "texte",
       "typeHint": "Cliquer pour changer le type",
       "keyPlaceholder": "clé",
-      "valuePlaceholder": "valeur"
+      "valuePlaceholder": "valeur",
+      "suggestions": "Champs suggérés"
     }
   },
   "login": {

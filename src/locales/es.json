@@ -200,7 +200,8 @@
       "typeText": "texto",
       "typeHint": "Clic para cambiar el tipo",
       "keyPlaceholder": "clave",
-      "valuePlaceholder": "valor"
+      "valuePlaceholder": "valor",
+      "suggestions": "Campos sugeridos"
     }
   },
   "login": {

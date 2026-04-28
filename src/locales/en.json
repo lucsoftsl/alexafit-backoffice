@@ -168,7 +168,8 @@
       "typeText": "text",
       "typeHint": "Click to change type",
       "keyPlaceholder": "key",
-      "valuePlaceholder": "value"
+      "valuePlaceholder": "value",
+      "suggestions": "Suggested fields"
     }
   },
   "login": {

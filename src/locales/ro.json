@@ -168,7 +168,8 @@
       "typeText": "text",
       "typeHint": "Clic pentru a schimba tipul",
       "keyPlaceholder": "cheie",
-      "valuePlaceholder": "valoare"
+      "valuePlaceholder": "valoare",
+      "suggestions": "Câmpuri sugerate"
     }
   },
   "login": {

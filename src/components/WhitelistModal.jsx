@@ -2,6 +2,16 @@ import { useState } from 'react'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 
+// ─── known fields ────────────────────────────────────────────────────────────
+
+const SUGGESTED_FIELDS = [
+  { key: 'activeSince',       type: 'date',   defaultValue: new Date().toISOString().split('T')[0] },
+  { key: 'activeUntil',       type: 'date',   defaultValue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { key: 'isPro',             type: 'toggle', defaultValue: 'true' },
+  { key: 'isProgramPlan',     type: 'toggle', defaultValue: 'true' },
+  { key: 'isCustomFreeTrial', type: 'toggle', defaultValue: 'true' },
+]
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -158,6 +168,13 @@ const WhitelistModal = ({ userMeta, currentDetails, onSave, onClose }) => {
     setFields(prev => [...prev, { id: crypto.randomUUID(), key: '', value: '', type: 'text' }])
   }
 
+  const addSuggestion = ({ key, type, defaultValue }) => {
+    if (fields.some(f => f.key === key)) return
+    setFields(prev => [...prev, { id: crypto.randomUUID(), key, value: defaultValue, type }])
+  }
+
+  const activeKeys = new Set(fields.map(f => f.key))
+
   const handleSave = async () => {
     const keys = fields.map(f => f.key.trim()).filter(Boolean)
     if (new Set(keys).size !== keys.length) {
@@ -263,6 +280,34 @@ const WhitelistModal = ({ userMeta, currentDetails, onSave, onClose }) => {
             <PlusIcon className="h-4 w-4" />
             {t(`${wm}.addField`)}
           </button>
+
+          {/* suggested fields */}
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              {t(`${wm}.suggestions`)}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {SUGGESTED_FIELDS.map(s => {
+                const added = activeKeys.has(s.key)
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    disabled={added}
+                    onClick={() => addSuggestion(s)}
+                    className={`rounded-full border px-2.5 py-1 font-mono text-xs transition-colors ${
+                      added
+                        ? 'cursor-default border-slate-200 bg-slate-50 text-slate-300'
+                        : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
+                    }`}
+                  >
+                    {s.key}
+                    {added && <span className="ml-1 text-[10px]">✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
         {/* feedback */}
