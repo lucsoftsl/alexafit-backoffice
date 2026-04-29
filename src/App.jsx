@@ -23,6 +23,7 @@ import ClientNotes from './pages/ClientNotes'
 import Chat from './pages/Chat'
 import Tutorials from './pages/Tutorials'
 import BugHunting from './pages/BugHunting'
+import DeletedUsers from './pages/DeletedUsers'
 import SearchItems from './pages/SearchItems'
 import Messages from './pages/Messages'
 import Surveys from './pages/Surveys'
@@ -169,7 +170,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting', 'admin-chat']
+    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting', 'admin-chat']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems', 'messages', 'surveys']
     // Nutritionist-only pages
@@ -270,6 +271,8 @@ function App() {
         return <UserProgress />
       case 'tutorials':
         return <Tutorials />
+      case 'deleted-users':
+        return <DeletedUsers />
       case 'bug-hunting':
         return <BugHunting />
       case 'messages':

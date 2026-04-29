@@ -13,7 +13,8 @@ import {
   ArrowUturnLeftIcon,
   ChatBubbleLeftIcon,
   BugAntIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
@@ -49,6 +50,7 @@ const Sidebar = ({
     { id: 'searchItems', labelKey: 'sidebar.searchItems', icon: MagnifyingGlassIcon, adminOnly: true },
     { id: 'menus', labelKey: 'sidebar.menus', icon: CakeIcon, adminOnly: true },
     { id: 'users', labelKey: 'sidebar.users', icon: UsersIcon, adminOnly: true },
+    { id: 'deleted-users', labelKey: 'sidebar.deletedUsers', icon: TrashIcon, adminOnly: true },
     { id: 'subscribers', labelKey: 'sidebar.subscribers', icon: UserGroupIcon, adminOnly: true },
     { id: 'analytics', labelKey: 'sidebar.analytics', icon: ChartBarIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },

@@ -180,6 +180,7 @@
       "calorieHistory": "Historial de calorías",
       "reminderEmail": "Enviar recordatorio",
       "whitelist": "Lista blanca",
+      "requestDeletion": "Eliminar usuario",
       "rename": "Renombrar",
       "copyContainer": "Copiar contenedor",
       "copyToCountry": "Copiar al país"
@@ -303,6 +304,7 @@
     "myFoodItems": "Mis alimentos",
     "foodItems": "Alimentos",
     "users": "Usuarios",
+    "deletedUsers": "Usuarios eliminados",
     "unapprovedItems": "⏳ Elementos",
     "searchItems": "Buscar elementos",
     "menus": "Menús",

@@ -10,7 +10,8 @@ import {
   EnvelopeIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
 import {
   getUsers,
@@ -19,7 +20,8 @@ import {
   updateUserPurchaseStatus,
   formatUserData,
   formatSubscriptionStatus,
-  setUserSubscriptionWhitelistDetails
+  setUserSubscriptionWhitelistDetails,
+  requestUserDeletion
 } from '../services/api'
 import { getUsersCaloriesActivity, sendReminderEmail, getUserCaloriesHistory } from '../services/loggedinApi'
 import UserDetailModal from '../components/UserDetailModal'
@@ -188,13 +190,16 @@ const compareValues = (left, right) => {
 }
 
 const getDisplayName = ({ user, userData, loginDetails }) => {
+  if (userData?.displayName) return userData.displayName
   if (userData?.name) return userData.name
-  if (user?.firstName && user?.lastName) {
-    return `${user.firstName} ${user.lastName}`.trim()
-  }
+  if (user?.firstName && user?.lastName) return `${user.firstName} ${user.lastName}`.trim()
   if (loginDetails?.displayName) return loginDetails.displayName
+  const providerName = loginDetails?.providerData?.find(p => p?.displayName)?.displayName
+  if (providerName) return providerName
   if (user?.firstName) return user.firstName
   if (user?.lastName) return user.lastName
+  const email = loginDetails?.providerData?.[0]?.email || loginDetails?.email
+  if (email && !email.includes('privaterelay.appleid.com')) return email
   return 'Unknown'
 }
 
@@ -459,6 +464,19 @@ const Users = ({ onOpenChat = () => {} }) => {
   const refreshUsers = async () => {
     hasLoadedRef.current = false
     await loadPageData({ forceRefresh: true })
+  }
+
+  const handleRequestDeletion = async row => {
+    if (!window.confirm(`Set "${row.name}" (${row.email}) to pending deletion? Their account will be deactivated and they will be moved to Deleted Users.`)) return
+    try {
+      await requestUserDeletion({ userId: row.userId })
+      setUsers(prev => prev.map(u =>
+        (u?.userId || u?.id) === row.userId ? { ...u, status: 'PENDING_DELETION' } : u
+      ))
+      localStorage.removeItem(USERS_CACHE_KEY)
+    } catch (err) {
+      alert(`Failed to request deletion: ${err.message}`)
+    }
   }
 
   const loadRewardRequestsForUser = async userId => {
@@ -943,6 +961,12 @@ const Users = ({ onOpenChat = () => {} }) => {
                     labelKey: 'common.controls.chat',
                     colorClass: 'text-green-600',
                     onClick: () => onOpenChat(row.userId)
+                  },
+                  {
+                    icon: TrashIcon,
+                    labelKey: 'common.controls.requestDeletion',
+                    colorClass: 'text-red-600',
+                    onClick: () => handleRequestDeletion(row)
                   }
                 ]}
               />
@@ -1116,6 +1140,12 @@ const Users = ({ onOpenChat = () => {} }) => {
                         labelKey: 'common.controls.chat',
                         colorClass: 'text-green-600',
                         onClick: () => onOpenChat(row.userId)
+                      },
+                      {
+                        icon: TrashIcon,
+                        labelKey: 'common.controls.requestDeletion',
+                        colorClass: 'text-red-600',
+                        onClick: () => handleRequestDeletion(row)
                       }
                     ]}
                   />

@@ -125,18 +125,27 @@ export const formatUserData = subscriber => {
   const userData = subscriber.userData || {}
   const loginDetails = subscriber.loginDetails || {}
 
-  // Try to get name from multiple sources
   let name = 'Unknown'
-  if (userData.name) {
+  if (userData.displayName) {
+    name = userData.displayName
+  } else if (userData.name) {
     name = userData.name
   } else if (subscriber.firstName && subscriber.lastName) {
     name = `${subscriber.firstName} ${subscriber.lastName}`.trim()
   } else if (loginDetails.displayName) {
     name = loginDetails.displayName
-  } else if (subscriber.firstName) {
-    name = subscriber.firstName
-  } else if (subscriber.lastName) {
-    name = subscriber.lastName
+  } else {
+    const providerName = loginDetails?.providerData?.find(p => p?.displayName)?.displayName
+    if (providerName) {
+      name = providerName
+    } else if (subscriber.firstName) {
+      name = subscriber.firstName
+    } else if (subscriber.lastName) {
+      name = subscriber.lastName
+    } else {
+      const email = loginDetails?.providerData?.[0]?.email || loginDetails?.email
+      if (email && !email.includes('privaterelay.appleid.com')) name = email
+    }
   }
 
   return {
@@ -1304,6 +1313,26 @@ export const setShouldHideNutrientsForUser = async ({ userId, shouldHideNutrient
   }
 }
 
+export const setUserDisplayName = async ({ userId, displayName, existingUserData }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_FE_BASE_URL}/save-user-data`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        userId,
+        userData: { ...(existingUserData || {}), name: displayName.trim() || null },
+        selectedDate: new Date().toISOString().split('T')[0]
+      })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error setting display name:', error)
+    throw error
+  }
+}
+
 export const createLeadUser = async ({ email, firstName, lastName, phoneNumber, country }) => {
   try {
     const headers = await getHeaders()
@@ -1316,6 +1345,66 @@ export const createLeadUser = async ({ email, firstName, lastName, phoneNumber, 
     return await response.json()
   } catch (error) {
     console.error('Error creating lead user:', error)
+    throw error
+  }
+}
+
+export const requestUserDeletion = async ({ userId }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_FE_BASE_URL}/users/delete`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error requesting user deletion:', error)
+    throw error
+  }
+}
+
+export const getPendingDeletionUsers = async () => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/getPendingDeletionUsers`, { method: 'POST', headers, body: JSON.stringify({}) })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching pending deletion users:', error)
+    throw error
+  }
+}
+
+export const hardDeleteUser = async ({ userId }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/hardDeleteUser`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error hard-deleting user:', error)
+    throw error
+  }
+}
+
+export const restoreUser = async ({ userId }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(`${API_BO_BASE_URL}/restoreUser`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ userId })
+    })
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+    return await response.json()
+  } catch (error) {
+    console.error('Error restoring user:', error)
     throw error
   }
 }

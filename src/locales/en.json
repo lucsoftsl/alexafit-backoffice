@@ -148,6 +148,7 @@
       "calorieHistory": "Calorie history",
       "reminderEmail": "Send reminder",
       "whitelist": "Whitelist",
+      "requestDeletion": "Delete user",
       "rename": "Rename",
       "copyContainer": "Copy container",
       "copyToCountry": "Copy to country"
@@ -271,6 +272,7 @@
     "myFoodItems": "My Food Items",
     "foodItems": "Food Items",
     "users": "Users",
+    "deletedUsers": "Deleted Users",
     "unapprovedItems": "⏳ Items",
     "searchItems": "Search Items",
     "menus": "Menus",

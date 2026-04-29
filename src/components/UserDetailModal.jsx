@@ -15,7 +15,9 @@ import {
   TrashIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  UserCircleIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline'
 import {
   fetchUserDailyNutrition,
@@ -25,7 +27,8 @@ import {
   updateMessage,
   deleteMessage,
   sendPushNotificationToUser,
-  setShouldHideNutrientsForUser
+  setShouldHideNutrientsForUser,
+  setUserDisplayName
 } from '../services/api'
 import { computeAppliedItemTotals } from '../util/menuDisplay'
 
@@ -62,6 +65,10 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
   )
   const [savingNutrientFlag, setSavingNutrientFlag] = useState(false)
 
+  const [editingDisplayName, setEditingDisplayName] = useState(false)
+  const [displayNameInput, setDisplayNameInput] = useState('')
+  const [savingDisplayName, setSavingDisplayName] = useState(false)
+
   const handleToggleShouldHideNutrients = async () => {
     const newValue = !shouldHideNutrients
     setSavingNutrientFlag(true)
@@ -76,6 +83,23 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
       alert(t('Failed to update nutrient visibility'))
     } finally {
       setSavingNutrientFlag(false)
+    }
+  }
+
+  const handleSaveDisplayName = async () => {
+    setSavingDisplayName(true)
+    try {
+      await setUserDisplayName({ userId: user.userId, displayName: displayNameInput, existingUserData: user.userData })
+      const updatedUser = {
+        ...user,
+        userData: { ...(user.userData || {}), name: displayNameInput.trim() || null }
+      }
+      onUserUpdate?.(updatedUser)
+      setEditingDisplayName(false)
+    } catch (err) {
+      alert(t('Failed to update display name'))
+    } finally {
+      setSavingDisplayName(false)
     }
   }
 
@@ -429,6 +453,111 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
                 />
               </div>
             </div>)}
+
+          {/* User Profile Section */}
+          {fromPage !== 'unapprovedItems' && user && (() => {
+            const ud = user.userData || {}
+            const ld = user.loginDetails || {}
+            const resolvedDisplayName =
+              ud.name ||
+              ud.displayName ||
+              ld.displayName ||
+              ld.providerData?.find(p => p?.displayName)?.displayName ||
+              null
+            const email =
+              ld.providerData?.[0]?.email ||
+              ld.email ||
+              null
+            const isPrivateRelay = email?.includes('privaterelay.appleid.com')
+            const provider = ld.providerData?.[0]?.providerId || ld.providerId || null
+
+            const formatVal = v => v || 'N/A'
+            const formatGoal = g => {
+              const map = { LOSE_WEIGHT: 'Lose weight', MAINTAIN_WEIGHT: 'Maintain', GAIN_WEIGHT: 'Gain weight' }
+              return map[g] || formatVal(g)
+            }
+            const formatActivity = a => {
+              const map = { NOT_ACTIVE: 'Not active', LIGHTLY_ACTIVE: 'Lightly active', ACTIVE: 'Active', VERY_ACTIVE: 'Very active' }
+              return map[a] || formatVal(a)
+            }
+
+            return (
+              <div className="card p-6 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <UserCircleIcon className="w-5 h-5 mr-2" />
+                  User Profile
+                </h3>
+
+                {/* Display Name row */}
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-500 w-32 shrink-0">Display Name</span>
+                  {editingDisplayName ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="text"
+                        value={displayNameInput}
+                        onChange={e => setDisplayNameInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaveDisplayName(); if (e.key === 'Escape') setEditingDisplayName(false) }}
+                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 max-w-xs"
+                        autoFocus
+                        placeholder="Enter display name…"
+                      />
+                      <button
+                        onClick={handleSaveDisplayName}
+                        disabled={savingDisplayName}
+                        className="p-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                        title="Save"
+                      >
+                        <CheckIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setEditingDisplayName(false)}
+                        className="p-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50"
+                        title="Cancel"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-900 font-medium">
+                        {resolvedDisplayName || <span className="text-gray-400 italic">Not set</span>}
+                      </span>
+                      <button
+                        onClick={() => { setDisplayNameInput(resolvedDisplayName || ''); setEditingDisplayName(true) }}
+                        className="p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Edit display name"
+                      >
+                        <PencilIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+                  {[
+                    { label: 'Email', value: isPrivateRelay ? `${email} (Apple relay)` : (email || 'N/A') },
+                    { label: 'Provider', value: formatVal(provider) },
+                    { label: 'Gender', value: formatVal(ud.selectedGender) },
+                    { label: 'Birth Date', value: formatVal(ud.selectedBirthDate) },
+                    { label: 'Goal', value: formatGoal(ud.selectedGoalType) },
+                    { label: 'Activity', value: formatActivity(ud.selectedActivityType) },
+                    { label: 'Height', value: ud.selectedHeight ? `${ud.selectedHeight} ${ud.selectedHeightMeasurementUnit === 'IMPERIAL' ? 'in' : 'cm'}` : 'N/A' },
+                    { label: 'Weight', value: ud.selectedWeight ? `${ud.selectedWeight} ${ud.selectedWeightMeasurementUnit === 'IMPERIAL' ? 'lb' : 'kg'}` : 'N/A' },
+                    { label: 'Target Weight', value: ud.selectedTargetWeight ? `${ud.selectedTargetWeight} ${ud.selectedTargetWeightMeasurementUnit === 'IMPERIAL' ? 'lb' : 'kg'}` : 'N/A' },
+                    { label: 'Country', value: formatVal(ld.country) },
+                    { label: 'User Type', value: formatVal(user.userType) },
+                    { label: 'Food Tables', value: formatVal(user.foodTables) },
+                  ].map(({ label, value }) => (
+                    <div key={label}>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+                      <p className="mt-0.5 text-gray-900 break-all">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Loading State */}
           {loading && (

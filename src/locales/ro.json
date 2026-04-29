@@ -148,6 +148,7 @@
       "calorieHistory": "Istoricul caloriilor",
       "reminderEmail": "Trimite reminder",
       "whitelist": "Listă albă",
+      "requestDeletion": "Șterge utilizator",
       "rename": "Redenumire",
       "copyContainer": "Copiați containerul",
       "copyToCountry": "Copiați în țară"
@@ -271,6 +272,7 @@
     "myFoodItems": "Alimentele mele",
     "foodItems": "Alimente",
     "users": "Utilizatori",
+    "deletedUsers": "Utilizatori șterși",
     "unapprovedItems": "⏳ Elemente",
     "searchItems": "Caută elemente",
     "menus": "Meniuri",

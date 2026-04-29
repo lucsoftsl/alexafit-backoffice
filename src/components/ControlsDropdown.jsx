@@ -22,9 +22,10 @@ const ControlsDropdown = ({ actions = [], absolute = false }) => {
     if (!absolute && !open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
       const menuWidth = 200
+      const menuHeight = actions.length * 36 + 16
       const spaceBelow = window.innerHeight - rect.bottom
-      const top = spaceBelow > 160 ? rect.bottom + 4 : rect.top - 4
-      const translateY = spaceBelow > 160 ? 0 : -100
+      const top = spaceBelow > menuHeight ? rect.bottom + 4 : rect.top - 4
+      const translateY = spaceBelow > menuHeight ? 0 : -100
       const left = Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8)
       setStyle({
         position: 'fixed',
