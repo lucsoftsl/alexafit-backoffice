@@ -124,16 +124,30 @@ const ItemRow = ({ it, onClick, t }) => {
   )
 }
 
-const MealSection = ({ title, items = [], photoUrl, onItemClick, t }) => (
+const MealSection = ({
+  title,
+  items = [],
+  photoUrl,
+  onItemClick,
+  onPhotoClick,
+  t
+}) => (
   <div className="border border-gray-200 rounded-lg p-3 bg-white shadow-sm">
     <div className="flex justify-between items-center mb-2">
       <h4 className="text-sm font-semibold text-gray-900">{title}</h4>
       {photoUrl ? (
-        <img
-          src={photoUrl}
-          alt={`${title} photo`}
-          className="w-10 h-10 rounded object-cover"
-        />
+        <button
+          type="button"
+          onClick={() => onPhotoClick?.({ url: photoUrl, title })}
+          className="rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          aria-label={`${t('pages.clientJournal.viewPhoto') || 'View photo'}: ${title}`}
+        >
+          <img
+            src={photoUrl}
+            alt={`${title} photo`}
+            className="w-10 h-10 rounded object-cover transition-opacity hover:opacity-85"
+          />
+        </button>
       ) : null}
     </div>
     {items && items.length > 0 ? (
@@ -185,6 +199,7 @@ const ClientJournal = ({ client }) => {
     carbohydratesInGrams: 0,
     fatInGrams: 0
   })
+  const [selectedPhoto, setSelectedPhoto] = useState(null)
   const [selectedItem, setSelectedItem] = useState(null)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const lastFetchKeyRef = useRef('')
@@ -233,9 +248,7 @@ const ClientJournal = ({ client }) => {
       const map = {}
       list.forEach(item => {
         const dateApplied = item?.dateApplied
-        const consumed = Number(
-          item?.caloriesConsumed || 0
-        )
+        const consumed = Number(item?.caloriesConsumed || 0)
         const goal = Number(item?.caloriesGoal || item?.goalCalories || 0)
         const color = getColor(consumed, goal)
         if (dateApplied) {
@@ -281,13 +294,50 @@ const ClientJournal = ({ client }) => {
         const res = await getUserCaloriesHistory({ userId })
         const list = res?.data?.data || res?.data || res || []
         const map = transform(list)
+        // Don't cache today — the snapshot can be stale and we always refetch
+        // live data for it, so storing it would cause a stale flash on re-open.
+        const today = todayISO()
+        const cacheMap = { ...map }
+        delete cacheMap[today]
         try {
-          const compressed = LZString.compressToUTF16(JSON.stringify(map))
+          const compressed = LZString.compressToUTF16(JSON.stringify(cacheMap))
           localStorage.setItem(cacheKey, compressed)
         } catch (_) {
           /* ignore quota errors */
         }
         setMarkedDates(map)
+
+        // Always fetch today's live nutrition — the snapshot table can be stale
+        // even when it has an entry, so we never rely on it for today.
+        try {
+          const [todayRes, todayUserRes] = await Promise.all([
+            getDailyNutrition({ userId, dateApplied: today }),
+            getUserData({ userId, selectedDate: today })
+          ])
+          const todayDWrap = todayRes?.data || todayRes || {}
+          const todayD = todayDWrap?.data || {}
+          const todayUWrap = todayUserRes?.data || todayUserRes || {}
+          const todayU = todayUWrap?.data || {}
+          const todayGoal = todayU?.userGoals?.totalCalories || 0
+          const todayTotals = sumTotalsByMealsApplied({
+            breakfast: todayD?.breakfast || [],
+            lunch: todayD?.lunch || [],
+            dinner: todayD?.dinner || [],
+            snack: todayD?.snack || []
+          })
+          const todayConsumed = Math.round(todayTotals.calories)
+          setMarkedDates(prev => ({
+            ...prev,
+            [today]: {
+              color: getColor(todayConsumed, todayGoal),
+              hasData: todayConsumed > 0,
+              caloriesConsumed: todayConsumed,
+              caloriesGoal: todayGoal
+            }
+          }))
+        } catch (_) {
+          // non-blocking: calendar still shows the history snapshot
+        }
       } catch (e) {
         console.error('Failed to update calories history', e)
       }
@@ -358,6 +408,21 @@ const ClientJournal = ({ client }) => {
           carbohydratesInGrams: Math.round(totals.carbohydratesInGrams),
           fatInGrams: Math.round(totals.fatInGrams)
         })
+        // Sync calendar marker with live nutrition data for this day so the
+        // calendar cell stays accurate even when the snapshot table is stale.
+        const liveConsumed = Math.round(totals.calories)
+        const liveGoal = userGoals?.totalCalories || 0
+        setMarkedDates(prev => ({
+          ...prev,
+          [selectedDate]: {
+            ...prev[selectedDate],
+            color: getColor(liveConsumed, liveGoal),
+            hasData: liveConsumed > 0,
+            caloriesConsumed: liveConsumed,
+            caloriesGoal: liveGoal
+          }
+        }))
+        setSelectedPhoto(null)
         setSelectedItem(null)
         setIsItemModalOpen(false)
       } catch (e) {
@@ -729,7 +794,8 @@ const ClientJournal = ({ client }) => {
               title={t('pages.clientJournal.breakfast')}
               items={daily.breakfast}
               photoUrl={daily.breakfastPhotoUrl}
-              onItemClick={(it) => {
+              onPhotoClick={setSelectedPhoto}
+              onItemClick={it => {
                 setSelectedItem(it)
                 setIsItemModalOpen(true)
               }}
@@ -739,7 +805,8 @@ const ClientJournal = ({ client }) => {
               title={t('pages.clientJournal.lunch')}
               items={daily.lunch}
               photoUrl={daily.lunchPhotoUrl}
-              onItemClick={(it) => {
+              onPhotoClick={setSelectedPhoto}
+              onItemClick={it => {
                 setSelectedItem(it)
                 setIsItemModalOpen(true)
               }}
@@ -749,7 +816,8 @@ const ClientJournal = ({ client }) => {
               title={t('pages.clientJournal.dinner')}
               items={daily.dinner}
               photoUrl={daily.dinnerPhotoUrl}
-              onItemClick={(it) => {
+              onPhotoClick={setSelectedPhoto}
+              onItemClick={it => {
                 setSelectedItem(it)
                 setIsItemModalOpen(true)
               }}
@@ -759,7 +827,8 @@ const ClientJournal = ({ client }) => {
               title={t('pages.clientJournal.snack')}
               items={daily.snack}
               photoUrl={daily.snackPhotoUrl}
-              onItemClick={(it) => {
+              onPhotoClick={setSelectedPhoto}
+              onItemClick={it => {
                 setSelectedItem(it)
                 setIsItemModalOpen(true)
               }}
@@ -782,7 +851,7 @@ const ClientJournal = ({ client }) => {
                   <ItemRow
                     key={idx}
                     it={ex}
-                    onClick={(it) => {
+                    onClick={it => {
                       setSelectedItem(it)
                       setIsItemModalOpen(true)
                     }}
@@ -1053,6 +1122,40 @@ const ClientJournal = ({ client }) => {
         </>
       )}
 
+      {/* Meal photo modal */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-white shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+              <h3 className="truncate text-base font-semibold text-gray-900">
+                {selectedPhoto.title}
+              </h3>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-xl leading-none text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onClick={() => setSelectedPhoto(null)}
+                aria-label={t('pages.clientJournal.close') || 'Close'}
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex max-h-[calc(90vh-56px)] items-center justify-center bg-gray-950">
+              <img
+                src={selectedPhoto.url}
+                alt={`${selectedPhoto.title} photo`}
+                className="max-h-[calc(90vh-56px)] w-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Item detail modal */}
       {isItemModalOpen && selectedItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -1135,7 +1238,9 @@ const ClientJournal = ({ client }) => {
                     {t('pages.clientJournal.carbs') || 'Carbs'}
                   </p>
                   <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.nutrientsPer100.carbohydratesInGrams || 0} g
+                    {selectedItem.food.nutrientsPer100.carbohydratesInGrams ||
+                      0}{' '}
+                    g
                   </p>
                 </div>
                 <div>
