@@ -637,7 +637,18 @@
       "duration": "Durată",
       "min": "min",
       "burned": "Ars",
-      "close": "Închide"
+      "close": "Închide",
+      "viewPhoto": "Apasă pentru fotografie completă",
+      "recipe": "Rețetă",
+      "macros": "Macronutrienți",
+      "additionalNutrients": "Nutrienți Aditionali",
+      "ingredients": "Ingrediente",
+      "preparation": "Preparare",
+      "exerciseDetails": "Detalii Exercițiu",
+      "fibre": "Fibre",
+      "sugars": "Zaharuri",
+      "saturatedFat": "Grăsimi Saturate",
+      "salt": "Sare"
     },
     "clientMealPlans": {
       "title": "Planuri de mese ale clientului",

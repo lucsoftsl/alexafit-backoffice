@@ -100,6 +100,21 @@ const ItemRow = ({ it, onClick, t }) => {
   const fallbackImg = category ? getCategoryIcon(category) : null
   const img =
     it?.food?.photoUrl || it?.exercise?.photoUrl || it?.photoUrl || fallbackImg
+
+  const qty = it?.quantity != null ? Number(it.quantity) : null
+  const unit = it?.unit || ''
+  const servingOption = (it?.food?.servingOptions || []).find(
+    s => s.unitName === unit
+  )
+  const quantityLabel = (() => {
+    if (qty === null) return null
+    const qDisplay = Number.isFinite(qty) ? (qty % 1 === 0 ? qty : qty.toFixed(1)) : qty
+    if (servingOption?.value && unit !== 'g' && unit !== 'ml') {
+      return `${qDisplay} ${unit} · ${Math.round(servingOption.value * qty)}g`
+    }
+    return `${qDisplay} ${unit}`
+  })()
+
   return (
     <button
       onClick={() => onClick?.(it)}
@@ -115,9 +130,14 @@ const ItemRow = ({ it, onClick, t }) => {
             </span>
           )}
         </div>
-        <span className="text-sm text-gray-800 truncate">{name}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-sm text-gray-800 truncate">{name}</span>
+          {quantityLabel && (
+            <span className="text-xs text-gray-400 truncate">{quantityLabel}</span>
+          )}
+        </div>
       </div>
-      <span className="text-sm text-gray-500 ml-2">
+      <span className="text-sm text-gray-500 ml-2 flex-shrink-0">
         {kcal} {t('pages.clientJournal.kcal')}
       </span>
     </button>
@@ -1157,145 +1177,228 @@ const ClientJournal = ({ client }) => {
       )}
 
       {/* Item detail modal */}
-      {isItemModalOpen && selectedItem && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white border border-gray-200 rounded-lg w-full max-w-md p-6 shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">
-                {getItemDisplay(selectedItem)}
-              </h3>
-              <button
-                className="text-gray-500 hover:text-gray-700 cursor-pointer"
-                onClick={() => setIsItemModalOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
+      {isItemModalOpen && selectedItem && (() => {
+        const food = selectedItem?.food
+        const exercise = selectedItem?.exercise
+        const totals = computeAppliedItemTotals(selectedItem)
+        const n100 = food?.nutrientsPer100 || {}
+        const isRecipe = food?.type === 'recipe'
+        const ingredients = food?.ingredients || []
+        const instructions = food?.recipeSteps?.instructions || []
+        const servingOption = (food?.servingOptions || []).find(
+          s => s.unitName === (selectedItem.unit || 'serving')
+        ) || food?.servingOptions?.[0]
+        const photoSrc =
+          food?.photoUrl || exercise?.photoUrl || selectedItem?.photoUrl || selectedItemFallbackImg
 
-            <div className="flex items-start gap-4 mb-4">
-              <div className="w-16 h-16 rounded bg-gray-100 flex items-center justify-center overflow-hidden">
-                {selectedItem?.food?.photoUrl ||
-                selectedItem?.exercise?.photoUrl ||
-                selectedItem?.photoUrl ||
-                selectedItemFallbackImg ? (
-                  <img
-                    src={
-                      selectedItem?.food?.photoUrl ||
-                      selectedItem?.exercise?.photoUrl ||
-                      selectedItem?.photoUrl ||
-                      selectedItemFallbackImg
-                    }
-                    alt="thumb"
-                    className="w-16 h-16 object-cover"
-                  />
-                ) : (
-                  <span className="text-xs text-gray-400">
-                    {selectedItem?.food?.category ||
-                      (selectedItem?.exercise ? 'exercise' : 'food')}
+        const NutrientRow = ({ label, value, unit: u = 'g' }) =>
+          value > 0 ? (
+            <div className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
+              <span className="text-sm text-gray-600">{label}</span>
+              <span className="text-sm font-medium text-gray-900">
+                {Math.round(value * 10) / 10} {u}
+              </span>
+            </div>
+          ) : null
+
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setIsItemModalOpen(false)}
+          >
+            <div
+              className="bg-white rounded-xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
+                <div className="flex-1 min-w-0 pr-3">
+                  <h3 className="text-base font-semibold text-gray-900 leading-snug">
+                    {getItemDisplay(selectedItem)}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {isRecipe && (
+                      <span className="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-medium">
+                        {t('pages.clientJournal.recipe')}
+                      </span>
+                    )}
+                    {exercise && (
+                      <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
+                        {t('pages.clientJournal.exercise')}
+                      </span>
+                    )}
+                    {servingOption && (
+                      <span className="text-[11px] text-gray-500">
+                        {selectedItem.quantity} {selectedItem.unit} · {servingOption.value}g
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="text-gray-400 hover:text-gray-700 flex-shrink-0 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsItemModalOpen(false)}
+                  aria-label={t('pages.clientJournal.close') || 'Close'}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1 min-h-0 px-5 py-4 space-y-5">
+
+                {/* Photo */}
+                {photoSrc && (
+                  <button
+                    type="button"
+                    className="w-full rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onClick={() => {
+                      setIsItemModalOpen(false)
+                      setSelectedPhoto({ url: photoSrc, title: getItemDisplay(selectedItem) })
+                    }}
+                  >
+                    <img
+                      src={photoSrc}
+                      alt={getItemDisplay(selectedItem)}
+                      className="w-full h-44 object-cover"
+                    />
+                    <p className="text-[11px] text-gray-400 text-right mt-1 pr-0.5">
+                      {t('pages.clientJournal.viewPhoto') || 'Tap to view full photo'}
+                    </p>
+                  </button>
+                )}
+
+                {/* Calorie highlight */}
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3 flex items-center justify-between">
+                  <span className="text-sm font-medium text-indigo-800">
+                    {t('pages.clientJournal.calories') || 'Calories'}
                   </span>
+                  <span className="text-2xl font-bold text-indigo-900">
+                    {Math.round(totals.calories)} <span className="text-sm font-normal">kcal</span>
+                  </span>
+                </div>
+
+                {/* Macros */}
+                {food && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      {t('pages.clientJournal.macros')}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: t('pages.clientJournal.protein') || 'Protein', value: totals.proteinsInGrams, color: 'bg-blue-50 border-blue-100 text-blue-800' },
+                        { label: t('pages.clientJournal.carbs') || 'Carbs', value: totals.carbohydratesInGrams, color: 'bg-amber-50 border-amber-100 text-amber-800' },
+                        { label: t('pages.clientJournal.fat') || 'Fat', value: totals.fatInGrams, color: 'bg-rose-50 border-rose-100 text-rose-800' }
+                      ].map(m => (
+                        <div key={m.label} className={`rounded-lg border px-3 py-2 text-center ${m.color}`}>
+                          <p className="text-[11px] font-medium opacity-75">{m.label}</p>
+                          <p className="text-base font-bold leading-tight mt-0.5">
+                            {Math.round(m.value * 10) / 10}g
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional nutrients */}
+                {food && (n100.fibreInGrams > 0 || n100.sugarsInGrams > 0 || n100.saltInGrams > 0 || n100.fattyAcidsTotalSaturatedInGrams > 0) && (() => {
+                  const ratio = food.caloriesPer100 > 0 ? totals.calories / food.caloriesPer100 : 0
+                  return (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                        {t('pages.clientJournal.additionalNutrients')}
+                      </p>
+                      <div className="bg-gray-50 rounded-lg px-3 py-1">
+                        <NutrientRow label={t('pages.clientJournal.fibre')} value={(n100.fibreInGrams || 0) * ratio} />
+                        <NutrientRow label={t('pages.clientJournal.sugars')} value={(n100.sugarsInGrams || 0) * ratio} />
+                        <NutrientRow label={t('pages.clientJournal.saturatedFat')} value={(n100.fattyAcidsTotalSaturatedInGrams || 0) * ratio} />
+                        <NutrientRow label={t('pages.clientJournal.salt')} value={(n100.saltInGrams || 0) * ratio} />
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Ingredients */}
+                {isRecipe && ingredients.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      {t('pages.clientJournal.ingredients')} ({ingredients.length})
+                    </p>
+                    <div className="bg-gray-50 rounded-lg divide-y divide-gray-100">
+                      {ingredients.map((ing, idx) => (
+                        <div key={idx} className="flex justify-between items-center px-3 py-2">
+                          <span className="text-sm text-gray-800 flex-1 min-w-0 truncate pr-3">
+                            {ing.name}
+                          </span>
+                          <span className="text-sm text-gray-500 flex-shrink-0">
+                            {ing.quantity} {ing.unit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recipe instructions */}
+                {isRecipe && instructions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      {t('pages.clientJournal.preparation')}
+                    </p>
+                    <ol className="space-y-2">
+                      {instructions.map((step, idx) => (
+                        <li key={idx} className="flex gap-3">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center mt-0.5">
+                            {idx + 1}
+                          </span>
+                          <span className="text-sm text-gray-700 leading-relaxed">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* Exercise details */}
+                {exercise && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                      {t('pages.clientJournal.exerciseDetails')}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-gray-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-500">
+                          {t('pages.clientJournal.duration') || 'Duration'}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {exercise.durationInMinutes || selectedItem.quantity || 0} {t('pages.clientJournal.min') || 'min'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-500">
+                          {t('pages.clientJournal.burned') || 'Burned'}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {exercise.caloriesBurnt || 0} kcal
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-1">
-                  {t('pages.clientJournal.calories') || 'Calories'}
-                </p>
-                <p className="text-xl font-semibold text-gray-900">
-                  {getItemCalories(selectedItem)} kcal
-                </p>
-                {selectedItem?.unit && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {t('pages.clientJournal.unit') || 'Unit'}:{' '}
-                    {selectedItem.unit}
-                  </p>
-                )}
-                {selectedItem?.quantity && (
-                  <p className="text-xs text-gray-500">
-                    {(() => {
-                      const q = Number(selectedItem.quantity)
-                      const displayQuantity = Number.isFinite(q)
-                        ? q.toFixed(1)
-                        : String(selectedItem.quantity)
-                      return `${t('pages.clientJournal.quantity') || 'Quantity'}: ${displayQuantity}`
-                    })()}
-                  </p>
-                )}
-              </div>
-            </div>
 
-            {/* Nutrients for food */}
-            {selectedItem?.food?.nutrientsPer100 && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t('pages.clientJournal.protein') || 'Protein'}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.nutrientsPer100.proteinsInGrams || 0} g
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t('pages.clientJournal.carbs') || 'Carbs'}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.nutrientsPer100.carbohydratesInGrams ||
-                      0}{' '}
-                    g
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t('pages.clientJournal.fat') || 'Fat'}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.nutrientsPer100.fatInGrams || 0} g
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Fiber</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.food.nutrientsPer100.fibreInGrams || 0} g
-                  </p>
-                </div>
+              {/* Footer */}
+              <div className="px-5 py-3 border-t border-gray-100 flex justify-end flex-shrink-0">
+                <button
+                  className="px-4 py-2 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                  onClick={() => setIsItemModalOpen(false)}
+                >
+                  {t('pages.clientJournal.close') || 'Close'}
+                </button>
               </div>
-            )}
-
-            {/* Exercise details */}
-            {selectedItem?.exercise && (
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t('pages.clientJournal.duration') || 'Duration'}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.exercise.durationInMinutes ||
-                      selectedItem.quantity ||
-                      0}{' '}
-                    {t('pages.clientJournal.min') || 'min'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">
-                    {t('pages.clientJournal.burned') || 'Burned'}
-                  </p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedItem.exercise.caloriesBurnt || 0} kcal
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <button
-                className="px-4 py-2 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-                onClick={() => setIsItemModalOpen(false)}
-              >
-                {t('pages.clientJournal.close') || 'Close'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

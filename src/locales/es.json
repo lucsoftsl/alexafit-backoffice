@@ -669,7 +669,18 @@
       "duration": "Duración",
       "min": "min",
       "burned": "Quemado",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "viewPhoto": "Toca para ver la foto completa",
+      "recipe": "Receta",
+      "macros": "Macros",
+      "additionalNutrients": "Nutrientes Adicionales",
+      "ingredients": "Ingredientes",
+      "preparation": "Preparación",
+      "exerciseDetails": "Detalles del Ejercicio",
+      "fibre": "Fibra",
+      "sugars": "Azúcares",
+      "saturatedFat": "Grasas Saturadas",
+      "salt": "Sal"
     },
     "clientMealPlans": {
       "title": "Planes de comidas del cliente",

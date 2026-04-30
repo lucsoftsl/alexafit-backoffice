@@ -637,7 +637,18 @@
       "duration": "Durée",
       "min": "min",
       "burned": "Brûlé",
-      "close": "Fermer"
+      "close": "Fermer",
+      "viewPhoto": "Appuyer pour voir la photo complète",
+      "recipe": "Recette",
+      "macros": "Macros",
+      "additionalNutrients": "Nutriments Supplémentaires",
+      "ingredients": "Ingrédients",
+      "preparation": "Préparation",
+      "exerciseDetails": "Détails Exercice",
+      "fibre": "Fibres",
+      "sugars": "Sucres",
+      "saturatedFat": "Graisses Saturées",
+      "salt": "Sel"
     },
     "clientMealPlans": {
       "title": "Menus du client",

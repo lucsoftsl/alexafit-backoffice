@@ -637,7 +637,18 @@
       "duration": "Duration",
       "min": "min",
       "burned": "Burned",
-      "close": "Close"
+      "close": "Close",
+      "viewPhoto": "Tap to view full photo",
+      "recipe": "Recipe",
+      "macros": "Macros",
+      "additionalNutrients": "Additional Nutrients",
+      "ingredients": "Ingredients",
+      "preparation": "Preparation",
+      "exerciseDetails": "Exercise Details",
+      "fibre": "Fibre",
+      "sugars": "Sugars",
+      "saturatedFat": "Saturated Fat",
+      "salt": "Salt"
     },
     "clientMealPlans": {
       "title": "Client Meal Plans",
