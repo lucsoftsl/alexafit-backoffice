@@ -391,6 +391,105 @@ export const updateNutritionistRecipe = async ({ itemId, data }) => {
   }
 }
 
+export const setRecipeCategories = async ({ recipeId, categories }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/backoffice/setRecipeCategories`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ recipeId, categories })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error setting recipe categories:', error)
+    throw error
+  }
+}
+
+export const setRecipeDefaultStatus = async ({ recipeId, isDefaultRecipe }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/backoffice/setRecipeDefaultStatus`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ recipeId, isDefaultRecipe })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error setting recipe default status:', error)
+    throw error
+  }
+}
+
+export const fetchDefaultRecipes = async ({ countryCode } = {}) => {
+  try {
+    const headers = await getHeaders()
+    const params = new URLSearchParams()
+    if (countryCode) params.set('countryCode', countryCode)
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/backoffice/fetchDefaultRecipes?${params.toString()}`,
+      {
+        method: 'GET',
+        headers
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data?.data || []
+  } catch (error) {
+    console.error('Error fetching default recipes:', error)
+    throw error
+  }
+}
+
+export const fetchDefaultRecipesByCategory = async ({
+  category,
+  countryCode
+}) => {
+  try {
+    const headers = await getHeaders()
+    const params = new URLSearchParams({ category })
+    if (countryCode) params.set('countryCode', countryCode)
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/backoffice/fetchDefaultRecipesByCategory?${params.toString()}`,
+      {
+        method: 'GET',
+        headers
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data?.data || []
+  } catch (error) {
+    console.error('Error fetching default recipes by category:', error)
+    throw error
+  }
+}
+
 export const deleteNutritionistRecipe = async ({ itemId }) => {
   try {
     const headers = await getHeaders()

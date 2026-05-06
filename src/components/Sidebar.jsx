@@ -46,6 +46,7 @@ const Sidebar = ({
     { id: 'myrecipes', labelKey: 'sidebar.myRecipes', icon: BookOpenIcon, nutritionistOnly: true },
     { id: 'myfooditems', labelKey: 'sidebar.myFoodItems', icon: ListBulletIcon, nutritionistOnly: true },
     { id: 'recipes', labelKey: 'sidebar.allRecipes', icon: BookOpenIcon, adminOnly: true },
+    { id: 'default-recipes', labelKey: 'sidebar.defaultRecipes', fallbackLabel: 'Default recipes', icon: BookOpenIcon, adminOnly: true },
     { id: 'unapprovedItems', labelKey: 'sidebar.unapprovedItems', icon: ListBulletIcon, adminOnly: true },
     { id: 'searchItems', labelKey: 'sidebar.searchItems', icon: MagnifyingGlassIcon, adminOnly: true },
     { id: 'menus', labelKey: 'sidebar.menus', icon: CakeIcon, adminOnly: true },
@@ -205,7 +206,7 @@ const Sidebar = ({
                       }`}
                     >
                       <Icon className={`w-5 h-5 mr-3 ${isNestedProgressItem ? 'text-gray-400' : ''}`} />
-                      {t(item.labelKey)}
+              {item.fallbackLabel ? t(item.labelKey, item.fallbackLabel) : t(item.labelKey)}
                     </button>
                   )
                 })}

@@ -13,6 +13,7 @@ import UnapprovedItems from './pages/UnapprovedItems'
 import Analytics from './pages/Analytics'
 import Menus from './pages/Menus'
 import Recipes from './pages/Recipes'
+import DefaultRecipes from './pages/DefaultRecipes'
 import Settings from './pages/Settings'
 import UserProgress from './pages/UserProgress'
 import UserNotes from './pages/UserNotes'
@@ -48,6 +49,7 @@ function App() {
   const [selectedClient, setSelectedClient] = useState(null)
   const [adminChatUserId, setAdminChatUserId] = useState(null)
   const [adminChatReturnPage, setAdminChatReturnPage] = useState('dashboard')
+  const [recipeToEdit, setRecipeToEdit] = useState(null)
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -170,7 +172,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting', 'admin-chat']
+    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems', 'messages', 'surveys']
     // Nutritionist-only pages
@@ -262,7 +264,21 @@ function App() {
       case 'menus':
         return <Menus />
       case 'recipes':
-        return <Recipes />
+        return (
+          <Recipes
+            initialRecipeToEdit={recipeToEdit}
+            onInitialRecipeHandled={() => setRecipeToEdit(null)}
+          />
+        )
+      case 'default-recipes':
+        return (
+          <DefaultRecipes
+            onEditRecipe={(recipe) => {
+              setRecipeToEdit(recipe)
+              setActivePage('recipes')
+            }}
+          />
+        )
       case 'settings':
         return <Settings />
       case 'user-notes':

@@ -14,6 +14,7 @@ import {
   CheckBadgeIcon,
   GlobeAltIcon,
   DocumentTextIcon,
+  BookmarkIcon,
   DocumentDuplicateIcon
 } from '@heroicons/react/24/outline'
 import {
@@ -29,6 +30,8 @@ import {
   deleteNutritionistRecipe,
   addPhotoToItem,
   saveImageToImgb,
+  setRecipeCategories as setRecipeCategoriesApi,
+  setRecipeDefaultStatus,
   setItemVerifiedStatus
 } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -54,6 +57,92 @@ const DEFAULT_SERVING_OPTIONS = [
   { unitName: 'fl oz', value: 29.57 }
 ]
 const RECIPE_DRAFT_STORAGE_KEY = 'recipeDraft'
+const CUSTOM_RECIPE_CATEGORIES_STORAGE_KEY = 'customRecipeCategories'
+
+const RECIPE_CATEGORIES = [
+  { key: 'breakfast', label: 'Breakfast' },
+  { key: 'brunch', label: 'Brunch' },
+  { key: 'lunch', label: 'Lunch' },
+  { key: 'dinner', label: 'Dinner' },
+  { key: 'snack', label: 'Snack' },
+  { key: 'dessert', label: 'Dessert' },
+  { key: 'appetizer', label: 'Appetizer' },
+  { key: 'side_dish', label: 'Side Dish' },
+  { key: 'soup', label: 'Soup' },
+  { key: 'salad', label: 'Salad' },
+  { key: 'smoothie', label: 'Smoothie' },
+  { key: 'drink', label: 'Drink' },
+  { key: 'american', label: 'American' },
+  { key: 'italian', label: 'Italian' },
+  { key: 'asian', label: 'Asian' },
+  { key: 'mexican', label: 'Mexican' },
+  { key: 'mediterranean', label: 'Mediterranean' },
+  { key: 'indian', label: 'Indian' },
+  { key: 'french', label: 'French' },
+  { key: 'japanese', label: 'Japanese' },
+  { key: 'chinese', label: 'Chinese' },
+  { key: 'thai', label: 'Thai' },
+  { key: 'greek', label: 'Greek' },
+  { key: 'middle_eastern', label: 'Middle Eastern' },
+  { key: 'spanish', label: 'Spanish' },
+  { key: 'korean', label: 'Korean' },
+  { key: 'vietnamese', label: 'Vietnamese' }
+]
+
+const RECIPE_SUBCATEGORIES = [
+  { key: 'vegetarian', label: 'Vegetarian' },
+  { key: 'vegan', label: 'Vegan' },
+  { key: 'keto', label: 'Keto' },
+  { key: 'paleo', label: 'Paleo' },
+  { key: 'gluten_free', label: 'Gluten-Free' },
+  { key: 'low_carb', label: 'Low-Carb' },
+  { key: 'high_protein', label: 'High-Protein' },
+  { key: 'low_fat', label: 'Low-Fat' },
+  { key: 'dairy_free', label: 'Dairy-Free' },
+  { key: 'sugar_free', label: 'Sugar-Free' },
+  { key: 'quick', label: 'Quick' },
+  { key: 'meal_prep', label: 'Meal Prep' }
+]
+const ALL_RECIPE_CATEGORIES = [...RECIPE_CATEGORIES, ...RECIPE_SUBCATEGORIES]
+const PREDEFINED_CATEGORY_KEY_BY_LABEL = ALL_RECIPE_CATEGORIES.reduce(
+  (acc, option) => ({
+    ...acc,
+    [option.label.toLowerCase()]: option.key,
+    [option.key.toLowerCase()]: option.key
+  }),
+  {}
+)
+
+const toRecipeCategoryKey = value =>
+  (value || '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+
+const normalizeRecipeCategoryKey = value => {
+  const raw = (value || '').toString().trim()
+  if (!raw) return ''
+  return PREDEFINED_CATEGORY_KEY_BY_LABEL[raw.toLowerCase()] || toRecipeCategoryKey(raw)
+}
+
+const humanizeRecipeCategoryKey = key =>
+  (key || '')
+    .toString()
+    .split('_')
+    .filter(Boolean)
+    .map(part => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ')
+
+const parseRecipeCategoryKeys = value =>
+  (Array.isArray(value) ? value : (value || '').split(','))
+    .map(normalizeRecipeCategoryKey)
+    .filter(Boolean)
+
 const OZ_TO_GRAMS = 28.34
 const FL_OZ_TO_ML = 29.57
 const parseNumber = value => {
@@ -164,7 +253,11 @@ const getAmountFromBaseUnit = (item, baseAmount, unit) => {
   return amount / parseNumber(selectedOption.value || 1)
 }
 
-const Recipes = ({ mode = 'admin' }) => {
+const Recipes = ({
+  mode = 'admin',
+  initialRecipeToEdit = null,
+  onInitialRecipeHandled
+}) => {
   const { t } = useTranslation()
   const { currentUser } = useAuth()
   const [sharedCountry, setSharedCountry] = useSelectedCountry()
@@ -215,18 +308,61 @@ const Recipes = ({ mode = 'admin' }) => {
   const [existingPhotoUrl, setExistingPhotoUrl] = useState(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [recipeCategories, setRecipeCategories] = useState([])
+  const [customRecipeCategories, setCustomRecipeCategories] = useState([])
+  const [newCategoryLabel, setNewCategoryLabel] = useState('')
+  const [newCategoryKey, setNewCategoryKey] = useState('')
+  const [isDefaultRecipe, setIsDefaultRecipe] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [loadingEdit, setLoadingEdit] = useState(false)
 
   // For image modal
   const [selectedImage, setSelectedImage] = useState(null)
   const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+  const initialRecipeToEditIdRef = useRef(null)
 
   // For ingredient detail modal
   const [selectedIngredientsView, setSelectedIngredientsView] = useState(null)
   const [isIngredientsModalOpen, setIsIngredientsModalOpen] = useState(false)
   const [selectedServingsView, setSelectedServingsView] = useState([])
   const [isServingsModalOpen, setIsServingsModalOpen] = useState(false)
+
+  const recipeCategoryOptions = useMemo(() => {
+    const selectedRecipeCategories = parseRecipeCategoryKeys(recipeCategories)
+    const optionMap = new Map()
+    const addOption = option => {
+      const key = normalizeRecipeCategoryKey(option?.key || option?.label)
+      if (!key) return
+      optionMap.set(key, {
+        key,
+        label: option?.label || humanizeRecipeCategoryKey(key)
+      })
+    }
+
+    ALL_RECIPE_CATEGORIES.forEach(addOption)
+    customRecipeCategories.forEach(addOption)
+    selectedRecipeCategories.forEach(key => addOption({ key }))
+
+    return Array.from(optionMap.values()).sort((a, b) =>
+      a.label.localeCompare(b.label)
+    )
+  }, [customRecipeCategories, recipeCategories])
+
+  const recipeCategoryLabelByKey = useMemo(
+    () =>
+      recipeCategoryOptions.reduce(
+        (acc, option) => ({
+          ...acc,
+          [option.key]: option.label
+        }),
+        {}
+      ),
+    [recipeCategoryOptions]
+  )
+
+  const getRecipeCategoryLabel = key =>
+    recipeCategoryLabelByKey[normalizeRecipeCategoryKey(key)] ||
+    humanizeRecipeCategoryKey(key)
 
   const loadRecipeDraft = () => {
     try {
@@ -249,6 +385,10 @@ const Recipes = ({ mode = 'admin' }) => {
       setIsRecipePublic(
         draft.isRecipePublic === undefined ? true : Boolean(draft.isRecipePublic)
       )
+      const draftCategories =
+        draft.recipeCategories ||
+        [draft.recipeCategory, draft.recipeSubcategory].filter(Boolean)
+      setRecipeCategories(parseRecipeCategoryKeys(draftCategories))
       setSelectedPhoto(null)
       setPhotoPreview(draft.photoPreview || null)
       setExistingPhotoUrl(draft.existingPhotoUrl || null)
@@ -275,6 +415,7 @@ const Recipes = ({ mode = 'admin' }) => {
         totalTimeInMinutes,
         numberOfRecipeServings,
         isRecipePublic,
+        recipeCategories,
         photoPreview,
         existingPhotoUrl
       }
@@ -286,6 +427,26 @@ const Recipes = ({ mode = 'admin' }) => {
       alert(t('pages.recipes.draftSaveFailed'))
     }
   }
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem(CUSTOM_RECIPE_CATEGORIES_STORAGE_KEY) || '[]'
+      )
+      if (Array.isArray(stored)) {
+        setCustomRecipeCategories(
+          stored
+            .map(option => ({
+              key: normalizeRecipeCategoryKey(option?.key || option?.label),
+              label: (option?.label || '').toString().trim()
+            }))
+            .filter(option => option.key && option.label)
+        )
+      }
+    } catch (error) {
+      console.error('Failed to load custom recipe categories', error)
+    }
+  }, [])
 
   useEffect(() => {
     const loadRecipes = async () => {
@@ -587,6 +748,47 @@ const Recipes = ({ mode = 'admin' }) => {
     setSelectedIngredients(selectedIngredients.filter((_, i) => i !== index))
   }
 
+  const toggleRecipeCategory = category => {
+    const key = normalizeRecipeCategoryKey(category)
+    if (!key) return
+    setRecipeCategories(current =>
+      parseRecipeCategoryKeys(current).includes(key)
+        ? parseRecipeCategoryKeys(current).filter(item => item !== key)
+        : [...parseRecipeCategoryKeys(current), key]
+    )
+  }
+
+  const handleNewCategoryLabelChange = value => {
+    setNewCategoryLabel(value)
+    setNewCategoryKey(toRecipeCategoryKey(value))
+  }
+
+  const handleAddRecipeCategory = () => {
+    const label = newCategoryLabel.trim()
+    const key = normalizeRecipeCategoryKey(newCategoryKey || label)
+    if (!label || !key) return
+
+    const nextOptions = [
+      ...customRecipeCategories.filter(option => option.key !== key),
+      { key, label }
+    ].sort((a, b) => a.label.localeCompare(b.label))
+
+    setCustomRecipeCategories(nextOptions)
+    localStorage.setItem(
+      CUSTOM_RECIPE_CATEGORIES_STORAGE_KEY,
+      JSON.stringify(nextOptions)
+    )
+    setRecipeCategories(current =>
+      parseRecipeCategoryKeys(current).includes(key)
+        ? parseRecipeCategoryKeys(current)
+        : [...parseRecipeCategoryKeys(current), key]
+    )
+    setNewCategoryLabel('')
+    setNewCategoryKey('')
+  }
+
+  const selectedRecipeCategoryKeys = parseRecipeCategoryKeys(recipeCategories)
+
   const getAmountInBaseUnit = (item, quantity, unit) => {
     const qty = parseNumber(quantity)
     const normalizedUnit = (unit || 'g').toLowerCase().trim()
@@ -777,6 +979,10 @@ const Recipes = ({ mode = 'admin' }) => {
     setRecipeInstructions('')
     setTotalTimeInMinutes('')
     setNumberOfRecipeServings(1)
+    setRecipeCategories([])
+    setNewCategoryLabel('')
+    setNewCategoryKey('')
+    setIsDefaultRecipe(false)
     setSelectedPhoto(null)
     setPhotoPreview(null)
     setExistingPhotoUrl(null)
@@ -823,6 +1029,9 @@ const Recipes = ({ mode = 'admin' }) => {
       )
       setTotalTimeInMinutes(resolvedRecipe.totalTimeInMinutes?.toString() || '')
       setNumberOfRecipeServings(resolvedRecipe.numberOfRecipeServings || 1)
+      const editCategories = parseRecipeCategoryKeys(resolvedRecipe.category)
+      setRecipeCategories(editCategories)
+      setIsDefaultRecipe(Boolean(resolvedRecipe.isDefaultRecipe || recipe.isDefaultRecipe))
       setExistingPhotoUrl(resolvedRecipe.photoUrl || null)
       setPhotoPreview(resolvedRecipe.photoUrl || null)
 
@@ -907,6 +1116,22 @@ const Recipes = ({ mode = 'admin' }) => {
     }
   }
 
+  useEffect(() => {
+    const recipeId =
+      initialRecipeToEdit?.id ||
+      initialRecipeToEdit?.itemId ||
+      initialRecipeToEdit?._id
+
+    if (!recipeId || initialRecipeToEditIdRef.current === recipeId) {
+      return
+    }
+
+    initialRecipeToEditIdRef.current = recipeId
+    handleEditRecipe(initialRecipeToEdit)
+    onInitialRecipeHandled?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRecipeToEdit])
+
   const handleDuplicateRecipe = async recipe => {
     try {
       setLoadingEdit(true)
@@ -941,6 +1166,7 @@ const Recipes = ({ mode = 'admin' }) => {
       )
       setTotalTimeInMinutes(resolvedRecipe.totalTimeInMinutes?.toString() || '')
       setNumberOfRecipeServings(resolvedRecipe.numberOfRecipeServings || 1)
+      setRecipeCategories(parseRecipeCategoryKeys(resolvedRecipe.category))
       setExistingPhotoUrl(resolvedRecipe.photoUrl || null)
       setPhotoPreview(resolvedRecipe.photoUrl || null)
 
@@ -1065,6 +1291,26 @@ const Recipes = ({ mode = 'admin' }) => {
     }
   }
 
+  const handleToggleRecipeDefaultStatus = async recipe => {
+    const nextDefaultStatus = !Boolean(recipe?.isDefaultRecipe)
+    try {
+      await setRecipeDefaultStatus({
+        recipeId: recipe.id,
+        isDefaultRecipe: nextDefaultStatus
+      })
+      setRecipeItems(current =>
+        current.map(item =>
+          item.id === recipe.id
+            ? { ...item, isDefaultRecipe: nextDefaultStatus }
+            : item
+        )
+      )
+    } catch (defaultStatusError) {
+      console.error('Failed to toggle default recipe status', defaultStatusError)
+      alert(t('pages.recipes.defaultRecipeToggleFail'))
+    }
+  }
+
   const handleAddPhotoToRecipe = async recipe => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -1161,6 +1407,7 @@ const Recipes = ({ mode = 'admin' }) => {
       const totalQtyForPer100 = weightAfterCooking || 1
       const caloriesPer100 =
         (parseNumber(calculatedNutrients.totalCalories) * 100) / totalQtyForPer100
+      const categoryParts = parseRecipeCategoryKeys(recipeCategories)
       const recipeData = {
         type: 'recipe',
         countryCode: selectedCountryCode,
@@ -1175,6 +1422,7 @@ const Recipes = ({ mode = 'admin' }) => {
         name: recipeName.trim(),
         isPublic: isNutritionistMode ? isRecipePublic : true,
         numberOfRecipeServings: parseInt(numberOfRecipeServings, 10) || 1,
+        category: categoryParts.length > 0 ? categoryParts.join(',') : null,
         nutrientsPer100: {
           proteinsInGrams:
             (parseNumber(calculatedNutrients.totalProtein) * 100) / totalQtyForPer100,
@@ -1214,19 +1462,47 @@ const Recipes = ({ mode = 'admin' }) => {
             data: recipeData
           })
         }
+        if (isAdmin && !isNutritionistMode) {
+          await setRecipeCategoriesApi({
+            recipeId: editingRecipeId,
+            categories: categoryParts
+          })
+          await setRecipeDefaultStatus({
+            recipeId: editingRecipeId,
+            isDefaultRecipe
+          })
+        }
         alert(t('pages.recipes.updateSuccess'))
       } else {
+        let createdRecipe = null
         if (isNutritionistMode) {
-          await addNutritionistRecipe({
+          const response = await addNutritionistRecipe({
             data: recipeData
           })
+          createdRecipe = Array.isArray(response?.data)
+            ? response.data[0]
+            : response?.data
         } else {
-          await addItem({
+          const response = await addItem({
             userId: currentUser?.uid,
             itemType: 'FOOD',
             data: recipeData,
             countryCode: selectedCountryCode
           })
+          const payload = response?.data?.data || response?.data || response
+          createdRecipe = Array.isArray(payload) ? payload[0] : payload
+        }
+        if (isAdmin && !isNutritionistMode && createdRecipe?.id) {
+          await setRecipeCategoriesApi({
+            recipeId: createdRecipe.id,
+            categories: categoryParts
+          })
+          if (isDefaultRecipe) {
+            await setRecipeDefaultStatus({
+              recipeId: createdRecipe.id,
+              isDefaultRecipe: true
+            })
+          }
         }
         alert(t('pages.recipes.createSuccess'))
       }
@@ -1568,6 +1844,26 @@ const Recipes = ({ mode = 'admin' }) => {
                           <CheckBadgeIcon className="w-5 h-5" />
                         </button>
                       ) : null}
+                      {isAdmin && !isNutritionistMode ? (
+                        <button
+                          onClick={event => {
+                            event.stopPropagation()
+                            handleToggleRecipeDefaultStatus(item)
+                          }}
+                          className={
+                            item.isDefaultRecipe
+                              ? 'text-violet-600 hover:text-violet-800'
+                              : 'text-slate-400 hover:text-violet-700'
+                          }
+                          title={
+                            item.isDefaultRecipe
+                              ? t('pages.recipes.removeDefault')
+                              : t('pages.recipes.markDefault')
+                          }
+                        >
+                          <BookmarkIcon className="h-5 w-5" />
+                        </button>
+                      ) : null}
                       <button
                         onClick={event => {
                           event.stopPropagation()
@@ -1794,6 +2090,9 @@ const Recipes = ({ mode = 'admin' }) => {
                       </select>
                     )}
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('pages.recipes.recipeCategory')}
+                  </th>
                   {isAdmin && !isNutritionistMode ? (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {t('pages.recipes.createdBy')}
@@ -1969,6 +2268,23 @@ const Recipes = ({ mode = 'admin' }) => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.countryCode || naText}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {item.category ? (
+                        <div className="flex flex-wrap gap-1">
+                          {parseRecipeCategoryKeys(item.category).map(cat => (
+                            <span
+                              key={cat}
+                              className="inline-block rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700"
+                              title={cat}
+                            >
+                              {getRecipeCategoryLabel(cat)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">{naText}</span>
+                      )}
+                    </td>
                     {isAdmin && !isNutritionistMode ? (
                       <td className="px-6 py-4 text-sm text-gray-900">
                         <div
@@ -2061,6 +2377,26 @@ const Recipes = ({ mode = 'admin' }) => {
                         >
                           <DocumentDuplicateIcon className="w-4 h-4" />
                         </button>
+                        {isAdmin && !isNutritionistMode ? (
+                          <button
+                            onClick={event => {
+                              event.stopPropagation()
+                              handleToggleRecipeDefaultStatus(item)
+                            }}
+                            className={`inline-flex items-center rounded-full border p-2 transition ${
+                              item.isDefaultRecipe
+                                ? 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
+                                : 'border-slate-200 bg-white text-slate-500 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700'
+                            }`}
+                            title={
+                              item.isDefaultRecipe
+                                ? t('pages.recipes.removeDefault')
+                                : t('pages.recipes.markDefault')
+                            }
+                          >
+                            <BookmarkIcon className="h-4 w-4" />
+                          </button>
+                        ) : null}
                         <button
                           onClick={event => {
                             event.stopPropagation()
@@ -2284,6 +2620,81 @@ const Recipes = ({ mode = 'admin' }) => {
                           placeholder={t('pages.recipes.enterRecipeName')}
                         />
                       </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <label className="mb-3 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          {t('pages.recipes.recipeCategory')}
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {recipeCategoryOptions.map(cat => {
+                            const selected = selectedRecipeCategoryKeys.includes(cat.key)
+                            return (
+                              <button
+                                key={cat.key}
+                                type="button"
+                                onClick={() => toggleRecipeCategory(cat.key)}
+                                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                                  selected
+                                    ? 'border-violet-400 bg-violet-100 text-violet-800'
+                                    : 'border-slate-200 bg-white text-slate-600 hover:border-violet-200'
+                                }`}
+                                title={cat.key}
+                              >
+                                {cat.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 xl:grid-cols-2">
+                          <input
+                            type="text"
+                            value={newCategoryLabel}
+                            onChange={event =>
+                              handleNewCategoryLabelChange(event.target.value)
+                            }
+                            className="h-11 min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-violet-300"
+                            placeholder={t('pages.recipes.categoryLabel')}
+                          />
+                          <input
+                            type="text"
+                            value={newCategoryKey}
+                            onChange={event =>
+                              setNewCategoryKey(
+                                toRecipeCategoryKey(event.target.value)
+                              )
+                            }
+                            className="h-11 min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-violet-300"
+                            placeholder={t('pages.recipes.categoryKey')}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddRecipeCategory}
+                            disabled={!newCategoryLabel.trim()}
+                            className="h-11 rounded-2xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 xl:col-span-2"
+                          >
+                            {t('pages.recipes.addCategory')}
+                          </button>
+                        </div>
+                        {selectedRecipeCategoryKeys.length > 0 ? (
+                          <p className="mt-3 text-xs text-slate-500">
+                            {t('pages.recipes.savedCategoryKeys', {
+                              keys: selectedRecipeCategoryKeys.join(', ')
+                            })}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      {isAdmin && !isNutritionistMode ? (
+                        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={isDefaultRecipe}
+                            onChange={e => setIsDefaultRecipe(e.target.checked)}
+                            className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                          />
+                          {t('pages.recipes.defaultRecipe')}
+                        </label>
+                      ) : null}
 
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div className="flex flex-col">
