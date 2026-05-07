@@ -1126,6 +1126,7 @@
       "noDefaultRecipes": "Aucune recette par défaut trouvée.",
       "noCategory": "Aucune catégorie",
       "removeDefault": "Retirer par défaut",
+      "removeFromCategory": "Retirer de la catégorie",
       "markDefault": "Marquer par défaut",
       "defaultRecipeToggleFail": "Impossible de mettre à jour le statut de recette par défaut."
     },

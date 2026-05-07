@@ -1158,6 +1158,7 @@
       "noDefaultRecipes": "No se encontraron recetas predeterminadas.",
       "noCategory": "Sin categoría",
       "removeDefault": "Quitar predeterminada",
+      "removeFromCategory": "Quitar de la categoría",
       "markDefault": "Marcar como predeterminada",
       "defaultRecipeToggleFail": "No se pudo actualizar el estado de receta predeterminada."
     },

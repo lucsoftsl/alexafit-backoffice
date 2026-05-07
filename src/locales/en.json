@@ -1126,6 +1126,7 @@
       "noDefaultRecipes": "No default recipes found.",
       "noCategory": "No category",
       "removeDefault": "Remove default",
+      "removeFromCategory": "Remove from category",
       "markDefault": "Mark as default",
       "defaultRecipeToggleFail": "Failed to update default recipe status."
     },

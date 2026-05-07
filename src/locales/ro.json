@@ -1126,6 +1126,7 @@
       "noDefaultRecipes": "Nu au fost găsite rețete implicite.",
       "noCategory": "Fără categorie",
       "removeDefault": "Elimină implicită",
+      "removeFromCategory": "Elimină din categorie",
       "markDefault": "Marchează ca implicită",
       "defaultRecipeToggleFail": "Actualizarea stării de rețetă implicită a eșuat."
     },

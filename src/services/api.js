@@ -442,6 +442,7 @@ export const fetchDefaultRecipes = async ({ countryCode } = {}) => {
     const headers = await getHeaders()
     const params = new URLSearchParams()
     if (countryCode) params.set('countryCode', countryCode)
+    params.set('pageSize', '500')
     const response = await fetch(
       `${API_BASE_FOODSYNC_URL}/backoffice/fetchDefaultRecipes?${params.toString()}`,
       {
@@ -470,6 +471,7 @@ export const fetchDefaultRecipesByCategory = async ({
     const headers = await getHeaders()
     const params = new URLSearchParams({ category })
     if (countryCode) params.set('countryCode', countryCode)
+    params.set('pageSize', '500')
     const response = await fetch(
       `${API_BASE_FOODSYNC_URL}/backoffice/fetchDefaultRecipesByCategory?${params.toString()}`,
       {
