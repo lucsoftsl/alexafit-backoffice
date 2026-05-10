@@ -143,6 +143,117 @@ const parseRecipeCategoryKeys = value =>
     .map(normalizeRecipeCategoryKey)
     .filter(Boolean)
 
+const INGREDIENT_CATEGORY_MAP = {
+  high_protein: ['meat', 'poultry', 'chicken', 'turkey', 'beef', 'pork', 'fish', 'seafood', 'shellfish', 'tuna', 'salmon', 'shrimp', 'egg', 'eggs', 'legume', 'bean', 'lentil', 'tofu', 'tempeh', 'seitan', 'protein', 'whey', 'cottage'],
+  low_fat: ['vegetable', 'vegetables', 'fruit', 'fruits', 'grain', 'cereal', 'bread', 'rice', 'pasta', 'legume'],
+  low_carb: ['meat', 'poultry', 'fish', 'seafood', 'egg', 'eggs', 'cheese', 'dairy', 'nut', 'nuts', 'seed', 'seeds'],
+  keto: ['meat', 'poultry', 'fish', 'seafood', 'egg', 'eggs', 'cheese', 'butter', 'cream', 'dairy', 'nut', 'nuts', 'oil'],
+  vegan: ['vegetable', 'vegetables', 'fruit', 'fruits', 'grain', 'legume', 'bean', 'lentil', 'tofu', 'tempeh', 'nut', 'nuts', 'seed', 'seeds', 'plant'],
+  vegetarian: ['vegetable', 'vegetables', 'fruit', 'fruits', 'grain', 'dairy', 'egg', 'eggs', 'cheese', 'legume', 'bean', 'lentil', 'tofu', 'nut'],
+  dairy_free: ['vegetable', 'vegetables', 'fruit', 'fruits', 'grain', 'meat', 'fish', 'seafood', 'egg', 'legume', 'nut', 'seeds'],
+  gluten_free: ['vegetable', 'vegetables', 'fruit', 'fruits', 'meat', 'poultry', 'fish', 'seafood', 'egg', 'dairy', 'rice', 'potato', 'legume', 'nut'],
+  salad: ['lettuce', 'spinach', 'arugula', 'kale', 'vegetable', 'vegetables', 'tomato', 'cucumber', 'dressing'],
+  soup: ['broth', 'stock', 'bouillon', 'vegetable', 'legume', 'bean'],
+  smoothie: ['fruit', 'fruits', 'berry', 'berries', 'banana', 'spinach', 'yogurt', 'milk', 'protein', 'whey'],
+  breakfast: ['egg', 'eggs', 'oat', 'oats', 'cereal', 'milk', 'yogurt', 'bread', 'bacon', 'sausage', 'fruit', 'berry'],
+  dessert: ['sugar', 'chocolate', 'cocoa', 'vanilla', 'cream', 'butter', 'flour', 'cake', 'pastry', 'biscuit', 'cookie'],
+  snack: ['nut', 'nuts', 'seed', 'seeds', 'fruit', 'cheese', 'yogurt', 'bar', 'cracker'],
+}
+
+const NUTRIENT_THRESHOLDS = {
+  high_protein: nutrients => {
+    const n = nutrients.proteinsInGrams
+    return typeof n === 'number' && n >= 15
+  },
+  low_carb: nutrients => {
+    const n = nutrients.carbohydratesInGrams
+    return typeof n === 'number' && n <= 10
+  },
+  low_fat: nutrients => {
+    const n = nutrients.fatInGrams
+    return typeof n === 'number' && n <= 5
+  },
+  keto: nutrients => {
+    const fat = nutrients.fatInGrams
+    const carbs = nutrients.carbohydratesInGrams
+    return typeof fat === 'number' && typeof carbs === 'number' && fat >= 25 && carbs <= 10
+  },
+  sugar_free: nutrients => {
+    const n = nutrients.sugarsInGrams
+    return typeof n === 'number' && n <= 1
+  },
+  meal_prep: () => false,
+}
+
+const inferRecipeCategoryMatch = (recipe, categoryKey) => {
+  if (!categoryKey) return { matched: false, source: null }
+
+  const explicitKeys = parseRecipeCategoryKeys(recipe.category)
+  if (explicitKeys.includes(categoryKey)) {
+    return { matched: true, source: 'explicit' }
+  }
+
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : []
+
+  const mappedIngredientWords = INGREDIENT_CATEGORY_MAP[categoryKey]
+  if (mappedIngredientWords && ingredients.length > 0) {
+    const ingredientCats = ingredients
+      .map(ing => (ing.category || '').toLowerCase())
+      .filter(Boolean)
+    const ingredientNames = ingredients
+      .map(ing => (ing.name || '').toLowerCase())
+      .filter(Boolean)
+
+    const hasIngredientMatch =
+      ingredientCats.some(cat =>
+        mappedIngredientWords.some(word => cat.includes(word))
+      ) ||
+      ingredientNames.some(name =>
+        mappedIngredientWords.some(word => name.includes(word))
+      )
+
+    if (hasIngredientMatch) {
+      return { matched: true, source: 'ingredients' }
+    }
+  }
+
+  const thresholdFn = NUTRIENT_THRESHOLDS[categoryKey]
+  if (thresholdFn) {
+    const recipeNutrients = recipe.nutrientsPer100
+      ? (() => {
+          try {
+            const parsed = typeof recipe.nutrientsPer100 === 'string'
+              ? JSON.parse(recipe.nutrientsPer100)
+              : recipe.nutrientsPer100
+            return parsed && typeof parsed === 'object'
+              ? Object.fromEntries(
+                  Object.entries(parsed).map(([k, v]) => [k, Number(v)])
+                )
+              : {}
+          } catch {
+            return {}
+          }
+        })()
+      : {}
+
+    if (thresholdFn(recipeNutrients)) {
+      return { matched: true, source: 'nutrients' }
+    }
+  }
+
+  const searchLower = categoryKey.replace(/_/g, ' ')
+  if (ingredients.length > 0) {
+    const nameMatch = ingredients.some(ing =>
+      (ing.name || '').toLowerCase().includes(searchLower)
+    )
+    if (nameMatch) {
+      return { matched: true, source: 'ingredients' }
+    }
+  }
+
+  return { matched: false, source: null }
+}
+
 const OZ_TO_GRAMS = 28.34
 const FL_OZ_TO_ML = 29.57
 const parseNumber = value => {
@@ -287,6 +398,13 @@ const Recipes = ({
   const [openColumnFilter, setOpenColumnFilter] = useState(null)
   const columnFilterRef = useRef(null)
   const isAdmin = useSelector(selectIsAdmin)
+
+  // Category filter modal
+  const [isCategoryFilterModalOpen, setIsCategoryFilterModalOpen] = useState(false)
+  const [categoryFilterSearch, setCategoryFilterSearch] = useState('')
+  const [categoryFilterSelected, setCategoryFilterSelected] = useState(null)
+  const [categoryFilterOnlyVerified, setCategoryFilterOnlyVerified] = useState(false)
+  const [categoryFilterOnlyPublic, setCategoryFilterOnlyPublic] = useState(false)
 
   // For recipe creation/editing modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -661,6 +779,25 @@ const Recipes = ({
 
     return filtered
   }, [recipeItems, searchTerm, sortColumn, sortDirection, columnFilters])
+
+  const categoryFilterResults = useMemo(() => {
+    if (!categoryFilterSelected) return []
+    return recipeItems
+      .map(recipe => {
+        const result = inferRecipeCategoryMatch(recipe, categoryFilterSelected)
+        return result.matched ? { recipe, source: result.source } : null
+      })
+      .filter(Boolean)
+      .filter(({ recipe }) => {
+        if (categoryFilterOnlyVerified && !isTruthyFlag(recipe.isVerified)) return false
+        if (categoryFilterOnlyPublic && !isTruthyFlag(recipe.isPublic)) return false
+        return true
+      })
+      .sort((a, b) => {
+        const order = { explicit: 0, ingredients: 1, nutrients: 2 }
+        return (order[a.source] ?? 3) - (order[b.source] ?? 3)
+      })
+  }, [recipeItems, categoryFilterSelected, categoryFilterOnlyVerified, categoryFilterOnlyPublic])
 
   // Pagination logic
   const getCurrentItems = () => {
@@ -1768,8 +1905,49 @@ const Recipes = ({
             className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white"
           />
         </div>
-          <div className="text-sm text-slate-500">
-            {filteredRecipes.length} {t('pages.recipes.totalRecipes').toLowerCase()}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryFilterSearch('')
+                setCategoryFilterOnlyVerified(false)
+                setCategoryFilterOnlyPublic(false)
+                setIsCategoryFilterModalOpen(true)
+              }}
+              className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition ${
+                categoryFilterSelected
+                  ? 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <FunnelIcon className="h-4 w-4" />
+              {categoryFilterSelected
+                ? humanizeRecipeCategoryKey(categoryFilterSelected)
+                : 'Category Filter'}
+              {categoryFilterSelected && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={e => {
+                    e.stopPropagation()
+                    setCategoryFilterSelected(null)
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation()
+                      setCategoryFilterSelected(null)
+                    }
+                  }}
+                  className="ml-1 rounded-full hover:text-violet-900"
+                  aria-label="Clear category filter"
+                >
+                  <XMarkIcon className="h-3.5 w-3.5" />
+                </span>
+              )}
+            </button>
+            <div className="text-sm text-slate-500">
+              {filteredRecipes.length} {t('pages.recipes.totalRecipes').toLowerCase()}
+            </div>
           </div>
         </div>
       </div>
@@ -3159,6 +3337,279 @@ const Recipes = ({
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 {t('pages.recipes.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Filter Modal */}
+      {isCategoryFilterModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/70 px-4 py-8 overflow-y-auto">
+          <div className="relative w-full max-w-2xl rounded-[28px] border border-slate-200 bg-white shadow-2xl">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Recipes
+                </p>
+                <h3 className="mt-1 text-2xl font-bold text-slate-950">
+                  Filter by Category
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Select a category to find matching recipes. Recipes without a category are matched by ingredients or nutrients.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCategoryFilterModalOpen(false)}
+                className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-5">
+              {/* Search input */}
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={categoryFilterSearch}
+                  onChange={e => setCategoryFilterSearch(e.target.value)}
+                  placeholder="Search or type a category…"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:bg-white"
+                  autoFocus
+                />
+              </div>
+
+              {/* Exclude filters */}
+              <div className="flex items-center gap-5">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 select-none">
+                  <input
+                    type="checkbox"
+                    checked={categoryFilterOnlyVerified}
+                    onChange={e => setCategoryFilterOnlyVerified(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  Show only verified
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 select-none">
+                  <input
+                    type="checkbox"
+                    checked={categoryFilterOnlyPublic}
+                    onChange={e => setCategoryFilterOnlyPublic(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  Show only public
+                </label>
+              </div>
+
+              {/* Category chips */}
+              {(() => {
+                const searchLower = categoryFilterSearch.trim().toLowerCase()
+                const filterCats = cats =>
+                  searchLower
+                    ? cats.filter(
+                        c =>
+                          c.key.includes(searchLower) ||
+                          c.label.toLowerCase().includes(searchLower)
+                      )
+                    : cats
+
+                const customSearchCat =
+                  searchLower &&
+                  !ALL_RECIPE_CATEGORIES.some(
+                    c => c.key === toRecipeCategoryKey(categoryFilterSearch.trim()) ||
+                      c.label.toLowerCase() === categoryFilterSearch.trim().toLowerCase()
+                  )
+                    ? { key: toRecipeCategoryKey(categoryFilterSearch.trim()), label: categoryFilterSearch.trim() }
+                    : null
+
+                const filteredMain = filterCats(RECIPE_CATEGORIES)
+                const filteredSub = filterCats(RECIPE_SUBCATEGORIES)
+
+                return (
+                  <div className="space-y-4">
+                    {filteredMain.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                          Type &amp; Cuisine
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {filteredMain.map(cat => (
+                            <button
+                              key={cat.key}
+                              type="button"
+                              onClick={() =>
+                                setCategoryFilterSelected(current =>
+                                  current === cat.key ? null : cat.key
+                                )
+                              }
+                              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                                categoryFilterSelected === cat.key
+                                  ? 'bg-violet-600 text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {filteredSub.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                          Diet &amp; Style
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {filteredSub.map(cat => (
+                            <button
+                              key={cat.key}
+                              type="button"
+                              onClick={() =>
+                                setCategoryFilterSelected(current =>
+                                  current === cat.key ? null : cat.key
+                                )
+                              }
+                              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                                categoryFilterSelected === cat.key
+                                  ? 'bg-violet-600 text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                              }`}
+                            >
+                              {cat.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {customSearchCat && customSearchCat.key && (
+                      <div>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                          Custom
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCategoryFilterSelected(current =>
+                              current === customSearchCat.key ? null : customSearchCat.key
+                            )
+                          }
+                          className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                            categoryFilterSelected === customSearchCat.key
+                              ? 'bg-violet-600 text-white shadow-sm'
+                              : 'border border-dashed border-slate-300 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50'
+                          }`}
+                        >
+                          + &quot;{categoryFilterSearch.trim()}&quot;
+                        </button>
+                      </div>
+                    )}
+
+                    {filteredMain.length === 0 && filteredSub.length === 0 && !customSearchCat && (
+                      <p className="text-center text-sm text-slate-400 py-4">
+                        No categories found
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Results */}
+              {categoryFilterSelected && (
+                <div className="border-t border-slate-100 pt-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-700">
+                      Results for &quot;{humanizeRecipeCategoryKey(categoryFilterSelected)}&quot;
+                      <span className="ml-2 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                        {categoryFilterResults.length}
+                      </span>
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {categoryFilterResults.filter(r => r.source === 'explicit').length} with category set ·{' '}
+                      {categoryFilterResults.filter(r => r.source !== 'explicit').length} inferred
+                    </p>
+                  </div>
+
+                  {categoryFilterResults.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                      No recipes matched this category
+                    </div>
+                  ) : (
+                    <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                      {categoryFilterResults.map(({ recipe, source }) => (
+                        <div
+                          key={recipe.id}
+                          className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-violet-200 hover:bg-violet-50/40 transition"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-900">
+                              {recipe.name}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              {source === 'explicit' ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                  <CheckBadgeIcon className="h-3 w-3" />
+                                  Category set
+                                </span>
+                              ) : source === 'ingredients' ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                                  <BookmarkIcon className="h-3 w-3" />
+                                  Inferred · ingredients
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                                  <DocumentTextIcon className="h-3 w-3" />
+                                  Inferred · nutrients
+                                </span>
+                              )}
+                              {recipe.countryCode && (
+                                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] text-slate-600">
+                                  {recipe.countryCode}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCategoryFilterModalOpen(false)
+                              handleEditRecipe(recipe)
+                            }}
+                            className="shrink-0 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-violet-700"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-6 py-4">
+              {categoryFilterSelected ? (
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilterSelected(null)}
+                  className="text-sm text-slate-500 transition hover:text-slate-700"
+                >
+                  Clear selection
+                </button>
+              ) : (
+                <span />
+              )}
+              <button
+                type="button"
+                onClick={() => setIsCategoryFilterModalOpen(false)}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Close
               </button>
             </div>
           </div>
