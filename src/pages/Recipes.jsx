@@ -1605,6 +1605,8 @@ const Recipes = ({
             recipeId: editingRecipeId,
             categories: categoryParts
           })
+        }
+        if (isAdmin) {
           await setRecipeDefaultStatus({
             recipeId: editingRecipeId,
             isDefaultRecipe
@@ -1635,12 +1637,12 @@ const Recipes = ({
             recipeId: createdRecipe.id,
             categories: categoryParts
           })
-          if (isDefaultRecipe) {
-            await setRecipeDefaultStatus({
-              recipeId: createdRecipe.id,
-              isDefaultRecipe: true
-            })
-          }
+        }
+        if (isAdmin && createdRecipe?.id && isDefaultRecipe) {
+          await setRecipeDefaultStatus({
+            recipeId: createdRecipe.id,
+            isDefaultRecipe: true
+          })
         }
         alert(t('pages.recipes.createSuccess'))
       }
@@ -2042,7 +2044,7 @@ const Recipes = ({
                           <CheckBadgeIcon className="w-5 h-5" />
                         </button>
                       ) : null}
-                      {isAdmin && !isNutritionistMode ? (
+                      {isAdmin ? (
                         <button
                           onClick={event => {
                             event.stopPropagation()
@@ -2560,7 +2562,7 @@ const Recipes = ({
                         >
                           <DocumentDuplicateIcon className="w-4 h-4" />
                         </button>
-                        {isAdmin && !isNutritionistMode ? (
+                        {isAdmin ? (
                           <button
                             onClick={event => {
                               event.stopPropagation()
@@ -2867,7 +2869,7 @@ const Recipes = ({
                         ) : null}
                       </div>
 
-                      {isAdmin && !isNutritionistMode ? (
+                      {isAdmin ? (
                         <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                           <input
                             type="checkbox"
