@@ -401,6 +401,7 @@ const Recipes = ({
 
   // Category filter modal
   const [isCategoryFilterModalOpen, setIsCategoryFilterModalOpen] = useState(false)
+  const [categoryFilterZoomedPhoto, setCategoryFilterZoomedPhoto] = useState(null)
   const [categoryFilterSearch, setCategoryFilterSearch] = useState('')
   const [categoryFilterSelected, setCategoryFilterSelected] = useState(null)
   const [categoryFilterOnlyVerified, setCategoryFilterOnlyVerified] = useState(false)
@@ -1970,6 +1971,24 @@ const Recipes = ({
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-1 items-start gap-3">
+                      {item.photoUrl ? (
+                        <button
+                          onClick={event => {
+                            event.stopPropagation()
+                            handleShowImage(item.photoUrl)
+                          }}
+                          className="shrink-0"
+                        >
+                          <img
+                            src={item.photoUrl}
+                            alt={item.name}
+                            className="h-14 w-14 rounded-2xl object-cover"
+                          />
+                        </button>
+                      ) : (
+                        <div className="h-14 w-14 shrink-0 rounded-2xl bg-slate-100" />
+                      )}
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold text-gray-900 break-words">
@@ -2000,6 +2019,7 @@ const Recipes = ({
                             : naText}
                         </span>
                       </div>
+                    </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       {isAdmin && !isNutritionistMode ? (
@@ -2109,21 +2129,6 @@ const Recipes = ({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    {item.photoUrl ? (
-                      <button
-                        onClick={event => {
-                          event.stopPropagation()
-                          handleShowImage(item.photoUrl)
-                        }}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium underline"
-                      >
-                        {t('pages.recipes.viewPhoto')}
-                      </button>
-                    ) : (
-                      <span className="text-sm text-gray-500">
-                        {t('pages.recipes.noPhoto')}
-                      </span>
-                    )}
                     <button
                       onClick={event => {
                         event.stopPropagation()
@@ -3545,6 +3550,20 @@ const Recipes = ({
                           key={recipe.id}
                           className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-violet-200 hover:bg-violet-50/40 transition"
                         >
+                          {recipe.photoUrl ? (
+                            <img
+                              src={recipe.photoUrl}
+                              alt={recipe.name}
+                              className="h-10 w-10 shrink-0 cursor-zoom-in rounded-xl object-cover transition hover:opacity-90"
+                              onMouseEnter={e => {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                setCategoryFilterZoomedPhoto({ url: recipe.photoUrl, x: rect.right + 12, y: rect.top })
+                              }}
+                              onMouseLeave={() => setCategoryFilterZoomedPhoto(null)}
+                            />
+                          ) : (
+                            <div className="h-10 w-10 shrink-0 rounded-xl bg-slate-200" />
+                          )}
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-slate-900">
                               {recipe.name}
@@ -3613,6 +3632,19 @@ const Recipes = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {categoryFilterZoomedPhoto && (
+        <div
+          className="pointer-events-none fixed z-[9999] overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/10"
+          style={{ left: categoryFilterZoomedPhoto.x, top: categoryFilterZoomedPhoto.y }}
+        >
+          <img
+            src={categoryFilterZoomedPhoto.url}
+            alt=""
+            className="h-48 w-48 object-cover"
+          />
         </div>
       )}
     </div>
