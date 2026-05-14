@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+  cloneRecipeToCountry,
   fetchDefaultRecipes,
   setRecipeCategories,
   setRecipeDefaultStatus
@@ -107,6 +108,9 @@ const DefaultRecipes = ({ onEditRecipe }) => {
   const [submittingAction, setSubmittingAction] = useState(null)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [cloneModalRecipe, setCloneModalRecipe] = useState(null)
+  const [cloneCountryCode, setCloneCountryCode] = useState('')
+  const [cloningRecipe, setCloningRecipe] = useState(false)
 
   const loadRecipes = async () => {
     try {
@@ -205,7 +209,38 @@ const DefaultRecipes = ({ onEditRecipe }) => {
     }
   }
 
+  const openCloneModal = recipe => {
+    const otherCountries = AVAILABLE_COUNTRY_CODES.filter(
+      c => c !== (recipe.countryCode || selectedCountry)
+    )
+    setCloneModalRecipe(recipe)
+    setCloneCountryCode(otherCountries[0] || '')
+  }
+
+  const handleCloneRecipe = async () => {
+    if (!cloneModalRecipe || !cloneCountryCode) return
+    try {
+      setCloningRecipe(true)
+      const result = await cloneRecipeToCountry({
+        recipeId: cloneModalRecipe.id,
+        countryCode: cloneCountryCode
+      })
+      if (result?.ok) {
+        alert(`Recipe cloned to ${cloneCountryCode} successfully!`)
+        setCloneModalRecipe(null)
+      } else {
+        throw new Error(result?.error || 'Failed to clone recipe')
+      }
+    } catch (e) {
+      console.error('Failed to clone recipe', e)
+      alert(`Failed to clone recipe: ${e.message}`)
+    } finally {
+      setCloningRecipe(false)
+    }
+  }
+
   return (
+    <>
     <div className="space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -323,6 +358,13 @@ const DefaultRecipes = ({ onEditRecipe }) => {
                         </button>
                         <button
                           type="button"
+                          onClick={() => openCloneModal(recipe)}
+                          className="cursor-pointer rounded-2xl border border-violet-200 px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-50"
+                        >
+                          Clone to Country
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => removeDefaultRecipe(recipe)}
                           disabled={submittingAction === `default-${recipe.id}`}
                           className="cursor-pointer rounded-2xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60"
@@ -359,6 +401,73 @@ const DefaultRecipes = ({ onEditRecipe }) => {
         )}
       </div>
     </div>
+
+    {cloneModalRecipe && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="mb-5 flex items-center justify-between">
+            <h3 className="text-lg font-bold text-slate-950">Clone to Country</h3>
+            <button
+              type="button"
+              onClick={() => setCloneModalRecipe(null)}
+              className="cursor-pointer rounded-xl p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Recipe</p>
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
+                {cloneModalRecipe.name || 'Unnamed'}
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">
+                Target Country
+              </label>
+              <select
+                value={cloneCountryCode}
+                onChange={e => setCloneCountryCode(e.target.value)}
+                className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300"
+              >
+                {AVAILABLE_COUNTRY_CODES.filter(
+                  c => c !== (cloneModalRecipe.countryCode || selectedCountry)
+                ).map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-sm text-violet-700">
+              Gemini will translate the recipe name, ingredients and steps to the target country language. The clone will be saved as a default recipe with <strong>isVerified = false</strong>.
+            </div>
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setCloneModalRecipe(null)}
+              disabled={cloningRecipe}
+              className="flex-1 cursor-pointer rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCloneRecipe}
+              disabled={cloningRecipe || !cloneCountryCode}
+              className="flex-1 cursor-pointer rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-wait disabled:opacity-60"
+            >
+              {cloningRecipe ? 'Cloning...' : 'Clone Recipe'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 

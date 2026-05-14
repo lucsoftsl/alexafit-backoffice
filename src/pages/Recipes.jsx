@@ -393,7 +393,9 @@ const Recipes = ({
     servingsMin: '',
     servingsMax: '',
     public: 'all',
-    verified: 'all'
+    verified: 'all',
+    noCategory: false,
+    euCentralPhoto: false
   })
   const [openColumnFilter, setOpenColumnFilter] = useState(null)
   const columnFilterRef = useRef(null)
@@ -718,6 +720,13 @@ const Recipes = ({
       const matchesVerified =
         columnFilters.verified === 'all' ||
         String(Boolean(item?.isVerified)) === columnFilters.verified
+      const matchesNoCategory =
+        !columnFilters.noCategory ||
+        !item?.category ||
+        !String(item.category).trim()
+      const matchesEuCentral =
+        !columnFilters.euCentralPhoto ||
+        String(item?.photoUrl || '').includes('eu-central')
 
       return (
         matchesName &&
@@ -728,7 +737,9 @@ const Recipes = ({
         matchesServingsMin &&
         matchesServingsMax &&
         matchesPublic &&
-        matchesVerified
+        matchesVerified &&
+        matchesNoCategory &&
+        matchesEuCentral
       )
     })
 
@@ -1683,8 +1694,18 @@ const Recipes = ({
       ),
     [recipeItems]
   )
-  const recipeStats = useMemo(
-    () => [
+  const recipeStats = useMemo(() => {
+    const verifiedCount = recipeItems.filter(item => Boolean(item?.isVerified)).length
+    const unverifiedCount = recipeItems.filter(item => !Boolean(item?.isVerified)).length
+    const publicCount = recipeItems.filter(item => Boolean(item?.isPublic)).length
+    const notPublicCount = recipeItems.filter(item => !Boolean(item?.isPublic)).length
+    const noCategoryCount = recipeItems.filter(item => !item?.category || !String(item.category).trim()).length
+    const euCentralCount = recipeItems.filter(item => String(item?.photoUrl || '').includes('eu-central')).length
+
+    const verifiedState = columnFilters.verified
+    const publicState = columnFilters.public
+
+    return [
       {
         title: t('pages.recipes.totalRecipes'),
         value: recipeItems.length,
@@ -1692,22 +1713,46 @@ const Recipes = ({
         iconClass: 'bg-rose-50 text-rose-600'
       },
       {
-        title: t('pages.recipes.unverified'),
-        value: recipeItems.filter(item => !Boolean(item?.isVerified)).length,
+        title: verifiedState === 'true' ? 'VERIFIED ONLY' : verifiedState === 'false' ? 'UNVERIFIED ONLY' : t('pages.recipes.unverified'),
+        value: verifiedState === 'true' ? verifiedCount : unverifiedCount,
         icon: CheckBadgeIcon,
-        iconClass: 'bg-amber-50 text-amber-600',
-        onClick: () =>
-          setColumnFilters(current => ({
-            ...current,
-            verified: current.verified === 'false' ? 'all' : 'false'
-          })),
-        isActive: columnFilters.verified === 'false'
+        iconClass: verifiedState === 'true' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600',
+        onClick: () => setColumnFilters(curr => ({
+          ...curr,
+          verified: curr.verified === 'all' ? 'false' : curr.verified === 'false' ? 'true' : 'all'
+        })),
+        isActive: verifiedState !== 'all',
+        ringClass: verifiedState === 'true' ? 'border-green-300 ring-2 ring-green-100' : 'border-amber-300 ring-2 ring-amber-100'
       },
       {
-        title: t('pages.recipes.publicLabel'),
-        value: recipeItems.filter(item => Boolean(item?.isPublic)).length,
+        title: publicState === 'false' ? 'NOT PUBLIC ONLY' : publicState === 'true' ? 'PUBLIC ONLY' : t('pages.recipes.publicLabel'),
+        value: publicState === 'false' ? notPublicCount : publicCount,
         icon: GlobeAltIcon,
-        iconClass: 'bg-orange-50 text-orange-600'
+        iconClass: publicState === 'false' ? 'bg-slate-100 text-slate-500' : 'bg-orange-50 text-orange-600',
+        onClick: () => setColumnFilters(curr => ({
+          ...curr,
+          public: curr.public === 'all' ? 'true' : curr.public === 'true' ? 'false' : 'all'
+        })),
+        isActive: publicState !== 'all',
+        ringClass: publicState === 'true' ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-300 ring-2 ring-slate-100'
+      },
+      {
+        title: 'NO CATEGORY',
+        value: noCategoryCount,
+        icon: BookmarkIcon,
+        iconClass: columnFilters.noCategory ? 'bg-violet-100 text-violet-700' : 'bg-violet-50 text-violet-500',
+        onClick: () => setColumnFilters(curr => ({ ...curr, noCategory: !curr.noCategory })),
+        isActive: columnFilters.noCategory,
+        ringClass: 'border-violet-300 ring-2 ring-violet-100'
+      },
+      {
+        title: 'EU-CENTRAL PHOTO',
+        value: euCentralCount,
+        icon: PhotoIcon,
+        iconClass: columnFilters.euCentralPhoto ? 'bg-sky-100 text-sky-700' : 'bg-sky-50 text-sky-500',
+        onClick: () => setColumnFilters(curr => ({ ...curr, euCentralPhoto: !curr.euCentralPhoto })),
+        isActive: columnFilters.euCentralPhoto,
+        ringClass: 'border-sky-300 ring-2 ring-sky-100'
       },
       {
         title: t('pages.recipes.country'),
@@ -1715,9 +1760,8 @@ const Recipes = ({
         icon: FunnelIcon,
         iconClass: 'bg-blue-50 text-blue-600'
       }
-    ],
-    [columnFilters.verified, recipeItems, t]
-  )
+    ]
+  }, [columnFilters.verified, columnFilters.public, columnFilters.noCategory, columnFilters.euCentralPhoto, recipeItems, t])
 
   const renderColumnHeader = (column, label, filterContent = null) => (
     <div className="relative flex items-center gap-2" ref={openColumnFilter === column ? columnFilterRef : null}>
@@ -1861,35 +1905,32 @@ const Recipes = ({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
         {recipeStats.map(stat => {
           const Icon = stat.icon
+          const activeRing = stat.isActive ? (stat.ringClass || 'border-amber-300 ring-2 ring-amber-100') : ''
           return (
             <button
               key={stat.title}
               type="button"
               onClick={stat.onClick}
-              className={`rounded-3xl border bg-white p-6 text-left shadow-sm transition ${
+              className={`rounded-3xl border bg-white p-5 text-left shadow-sm transition ${
                 stat.onClick
                   ? stat.isActive
-                    ? 'border-amber-300 ring-2 ring-amber-100'
-                    : 'border-slate-200 hover:border-slate-300'
+                    ? activeRing
+                    : 'border-slate-200 hover:border-slate-300 cursor-pointer'
                   : 'border-slate-200 cursor-default'
               }`}
             >
-              <div className="flex items-center gap-4">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${stat.iconClass}`}>
-                  <Icon className="h-7 w-7" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    {stat.title}
-                  </p>
-                  <p className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
-                    {stat.value}
-                  </p>
-                </div>
+              <div className={`mb-3 flex h-11 w-11 items-center justify-center rounded-2xl ${stat.iconClass}`}>
+                <Icon className="h-6 w-6" />
               </div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 leading-tight">
+                {stat.title}
+              </p>
+              <p className="mt-1.5 text-2xl font-bold tracking-tight text-slate-950">
+                {stat.value}
+              </p>
             </button>
           )
         })}

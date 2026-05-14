@@ -437,6 +437,29 @@ export const setRecipeDefaultStatus = async ({ recipeId, isDefaultRecipe }) => {
   }
 }
 
+export const cloneRecipeToCountry = async ({ recipeId, countryCode }) => {
+  try {
+    const headers = await getHeaders()
+    const response = await fetch(
+      `${API_BASE_FOODSYNC_URL}/backoffice/cloneRecipeToCountry`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ recipeId, countryCode })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Error cloning recipe to country:', error)
+    throw error
+  }
+}
+
 export const fetchDefaultRecipes = async ({ countryCode } = {}) => {
   try {
     const headers = await getHeaders()
