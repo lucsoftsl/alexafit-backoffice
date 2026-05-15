@@ -447,8 +447,7 @@ const SearchItems = () => {
       setDeleting(true)
       await deleteItem({
         itemId: item.id || item.itemId || item._id,
-        itemType: 'FOOD',
-        userId: item.createdByUserId || currentUser?.uid
+        itemType: 'FOOD'
       })
       setSearchResults(prev => prev.filter(r => (r.id || r.itemId || r._id) !== (item.id || item.itemId || item._id)))
     } catch (e) {

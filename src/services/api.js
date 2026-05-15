@@ -1297,13 +1297,13 @@ export const updateItem = async ({ userId, itemId, data, itemType }) => {
   }
 }
 
-export const deleteItem = async ({ itemId, itemType, userId }) => {
+export const deleteItem = async ({ itemId, itemType }) => {
   try {
     const headers = await getHeaders()
     const response = await fetch(`${API_BO_BASE_URL}/deleteItem`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ itemId, itemType, userId })
+      body: JSON.stringify({ itemId, itemType })
     })
 
     if (!response.ok) {

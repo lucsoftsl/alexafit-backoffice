@@ -1406,8 +1406,7 @@ const Recipes = ({
       } else {
         await deleteItem({
           itemId: recipe.id,
-          itemType: 'FOOD',
-          userId: recipe.createdByUserId
+          itemType: 'FOOD'
         })
       }
       alert(t('pages.recipes.deleteSuccess'))
