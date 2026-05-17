@@ -50,6 +50,55 @@ const parseNumber = value => {
   return Number.isFinite(n) ? n : 0
 }
 
+function FloatingLabelInput({ label, value, onChange, className = '', inputClassName = '', ...rest }) {
+  return (
+    <div className={`relative ${className}`}>
+      <input
+        value={value}
+        onChange={onChange}
+        placeholder=" "
+        className={`peer h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pb-1 pt-5 text-sm outline-none transition focus:border-violet-300 ${inputClassName}`}
+        {...rest}
+      />
+      <label className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150 peer-focus:top-3.5 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:text-violet-500 peer-[:not(:placeholder-shown)]:top-3.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-slate-500">
+        {label}
+      </label>
+    </div>
+  )
+}
+
+function FloatingLabelInputWhite({ label, value, onChange, className = '', ...rest }) {
+  return (
+    <div className={`relative ${className}`}>
+      <input
+        value={value}
+        onChange={onChange}
+        placeholder=" "
+        className="peer h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 pb-1 pt-5 text-sm outline-none transition focus:border-violet-300"
+        {...rest}
+      />
+      <label className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 transition-all duration-150 peer-focus:top-3.5 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:text-violet-500 peer-[:not(:placeholder-shown)]:top-3.5 peer-[:not(:placeholder-shown)]:translate-y-0 peer-[:not(:placeholder-shown)]:text-[11px] peer-[:not(:placeholder-shown)]:text-slate-500">
+        {label}
+      </label>
+    </div>
+  )
+}
+
+function LabeledSelect({ label, value, onChange, children, className = '' }) {
+  return (
+    <div className={`relative ${className}`}>
+      <span className="absolute left-4 top-2 text-[11px] text-slate-400">{label}</span>
+      <select
+        value={value}
+        onChange={onChange}
+        className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 pb-1 pt-5 text-sm outline-none transition focus:border-violet-300"
+      >
+        {children}
+      </select>
+    </div>
+  )
+}
+
 const parseServingOptions = servingOptions => {
   if (!servingOptions) return []
   if (Array.isArray(servingOptions)) return servingOptions
@@ -1295,9 +1344,9 @@ const SearchItems = () => {
                   </div>
                   <div className="space-y-5">
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <input value={foodName} onChange={e => setFoodName(e.target.value)} placeholder={t('pages.foodItems.name')} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300" />
-                      <input value={foodBrand} onChange={e => setFoodBrand(e.target.value)} placeholder={t('pages.foodItems.brand')} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300" />
-                      <input value={foodBarcode} onChange={e => setFoodBarcode(e.target.value)} placeholder={t('pages.foodItems.barcode')} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300" />
+                      <FloatingLabelInput label={t('pages.foodItems.name')} value={foodName} onChange={e => setFoodName(e.target.value)} />
+                      <FloatingLabelInput label={t('pages.foodItems.brand')} value={foodBrand} onChange={e => setFoodBrand(e.target.value)} />
+                      <FloatingLabelInput label={t('pages.foodItems.barcode')} value={foodBarcode} onChange={e => setFoodBarcode(e.target.value)} />
                       <div className="relative" ref={categoryDropdownRef}>
                         <button
                           type="button"
@@ -1334,19 +1383,19 @@ const SearchItems = () => {
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-3">
-                      <select value={foodCountryCode} onChange={e => setFoodCountryCode(e.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300">
+                      <LabeledSelect label="Country" value={foodCountryCode} onChange={e => setFoodCountryCode(e.target.value)}>
                         {Object.entries(AVAILABLE_COUNTRY_CODES).map(([k, v]) => (
                           <option key={k} value={v}>{v}</option>
                         ))}
-                      </select>
-                      <select value={foodUnit} onChange={e => handleFoodUnitChange(e.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300">
+                      </LabeledSelect>
+                      <LabeledSelect label="Unit" value={foodUnit} onChange={e => handleFoodUnitChange(e.target.value)}>
                         {foodAvailableUnits.map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                      <input value={foodServingValue} onChange={e => setFoodServingValue(e.target.value)} placeholder={t('pages.foodItems.servingValue')} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300" />
+                      </LabeledSelect>
+                      <FloatingLabelInput label={t('pages.foodItems.servingValue')} value={foodServingValue} onChange={e => setFoodServingValue(e.target.value)} />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <input value={foodServingName} onChange={e => setFoodServingName(e.target.value)} placeholder={t('pages.foodItems.servingName')} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none focus:border-violet-300" />
+                      <FloatingLabelInput label={t('pages.foodItems.servingName')} value={foodServingName} onChange={e => setFoodServingName(e.target.value)} />
                       <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <input type="checkbox" checked={foodIsLiquid} onChange={e => setFoodIsLiquid(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500" />
                         <span className="text-sm text-slate-700">{t('pages.foodItems.isLiquid')}</span>
@@ -1372,15 +1421,15 @@ const SearchItems = () => {
                     {t(foodIsLiquid ? 'pages.foodItems.nutritionPer100ml' : 'pages.foodItems.nutritionPer100g')}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    <input value={foodCalories} onChange={e => setFoodCalories(e.target.value)} placeholder={t('pages.recipes.calories')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodProtein} onChange={e => setFoodProtein(e.target.value)} placeholder={t('pages.recipes.protein')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodCarbs} onChange={e => setFoodCarbs(e.target.value)} placeholder={t('pages.recipes.carbs')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodFat} onChange={e => setFoodFat(e.target.value)} placeholder={t('pages.recipes.fat')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodSugar} onChange={e => setFoodSugar(e.target.value)} placeholder={t('pages.foodItems.sugar')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodFiber} onChange={e => setFoodFiber(e.target.value)} placeholder={t('pages.foodItems.fiber')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodSalt} onChange={e => setFoodSalt(e.target.value)} placeholder={t('pages.foodItems.salt')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodSaturatedFat} onChange={e => setFoodSaturatedFat(e.target.value)} placeholder={t('pages.foodItems.saturatedFat')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300" />
-                    <input value={foodUnsaturatedFat} onChange={e => setFoodUnsaturatedFat(e.target.value)} placeholder={t('pages.foodItems.unsaturatedFat')} className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-violet-300 sm:col-span-2" />
+                    <FloatingLabelInputWhite label={t('pages.recipes.calories')} value={foodCalories} onChange={e => setFoodCalories(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.recipes.protein')} value={foodProtein} onChange={e => setFoodProtein(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.recipes.carbs')} value={foodCarbs} onChange={e => setFoodCarbs(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.recipes.fat')} value={foodFat} onChange={e => setFoodFat(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.foodItems.sugar')} value={foodSugar} onChange={e => setFoodSugar(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.foodItems.fiber')} value={foodFiber} onChange={e => setFoodFiber(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.foodItems.salt')} value={foodSalt} onChange={e => setFoodSalt(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.foodItems.saturatedFat')} value={foodSaturatedFat} onChange={e => setFoodSaturatedFat(e.target.value)} />
+                    <FloatingLabelInputWhite label={t('pages.foodItems.unsaturatedFat')} value={foodUnsaturatedFat} onChange={e => setFoodUnsaturatedFat(e.target.value)} className="sm:col-span-2" />
                   </div>
                   <div className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-700 shadow-sm">
                     {t('pages.foodItems.displaySummary', {
