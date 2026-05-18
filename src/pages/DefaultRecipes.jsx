@@ -8,7 +8,7 @@ import {
 } from '../services/api'
 import { useSelectedCountry } from '../util/useSelectedCountry'
 
-const AVAILABLE_COUNTRY_CODES = ['ES', 'GB', 'HU', 'IT', 'RO', 'UK', 'US']
+const AVAILABLE_COUNTRY_CODES = ['DE', 'ES', 'HU', 'IT', 'NR', 'RO', 'UK', 'US']
 const RECIPE_CATEGORIES = [
   { key: 'breakfast', label: 'Breakfast' },
   { key: 'brunch', label: 'Brunch' },
@@ -111,6 +111,11 @@ const DefaultRecipes = ({ onEditRecipe }) => {
   const [cloneModalRecipe, setCloneModalRecipe] = useState(null)
   const [cloneCountryCode, setCloneCountryCode] = useState('')
   const [cloningRecipe, setCloningRecipe] = useState(false)
+  const [selectedRecipeIds, setSelectedRecipeIds] = useState(new Set())
+  const [bulkCloneCountry, setBulkCloneCountry] = useState('')
+  const [isBulkCloning, setIsBulkCloning] = useState(false)
+  const [bulkCloneProgress, setBulkCloneProgress] = useState(null)
+  const [bulkCloneResults, setBulkCloneResults] = useState(null)
 
   const loadRecipes = async () => {
     try {
@@ -130,6 +135,72 @@ const DefaultRecipes = ({ onEditRecipe }) => {
     loadRecipes()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCountry])
+
+  const bulkCloneAvailableCountries = useMemo(
+    () => AVAILABLE_COUNTRY_CODES.filter(c => c !== selectedCountry),
+    [selectedCountry]
+  )
+
+  useEffect(() => {
+    setBulkCloneCountry(prev => {
+      if (!prev || prev === selectedCountry) return bulkCloneAvailableCountries[0] || ''
+      return prev
+    })
+  }, [selectedCountry, bulkCloneAvailableCountries])
+
+  const toggleRecipeSelection = recipeId => {
+    setSelectedRecipeIds(prev => {
+      const next = new Set(prev)
+      if (next.has(recipeId)) {
+        next.delete(recipeId)
+      } else {
+        next.add(recipeId)
+      }
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedRecipeIds(new Set())
+
+  const handleBulkClone = async () => {
+    if (!bulkCloneCountry || selectedRecipeIds.size === 0) return
+
+    const recipesToClone = recipes.filter(r => selectedRecipeIds.has(r.id))
+    const succeeded = []
+    const failed = []
+
+    setIsBulkCloning(true)
+    setBulkCloneResults(null)
+    setBulkCloneProgress({ current: 0, total: recipesToClone.length })
+
+    for (let i = 0; i < recipesToClone.length; i++) {
+      const recipe = recipesToClone[i]
+      setBulkCloneProgress({ current: i + 1, total: recipesToClone.length })
+
+      try {
+        const result = await cloneRecipeToCountry({
+          recipeId: recipe.id,
+          countryCode: bulkCloneCountry
+        })
+        if (result?.ok) {
+          succeeded.push({ id: recipe.id, name: recipe.name })
+        } else {
+          throw new Error(result?.error || 'Failed')
+        }
+      } catch (e) {
+        failed.push({ id: recipe.id, name: recipe.name, error: e.message })
+      }
+
+      if (i < recipesToClone.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    }
+
+    setBulkCloneResults({ succeeded, failed, country: bulkCloneCountry })
+    setBulkCloneProgress(null)
+    setIsBulkCloning(false)
+    setSelectedRecipeIds(new Set())
+  }
 
   const getCategoryLabel = category =>
     CATEGORY_LABEL_BY_KEY[category] || humanizeRecipeCategoryKey(category)
@@ -280,7 +351,108 @@ const DefaultRecipes = ({ onEditRecipe }) => {
             </button>
           </div>
         </div>
+
+        {selectedRecipeIds.size > 0 && (
+          <div className="mt-5 border-t border-slate-100 pt-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700">
+                  {selectedRecipeIds.size} recipe{selectedRecipeIds.size !== 1 ? 's' : ''} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  disabled={isBulkCloning}
+                  className="text-xs text-slate-400 underline hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Clear selection
+                </button>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {isBulkCloning && bulkCloneProgress ? (
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-300 border-t-violet-600" />
+                    Cloning {bulkCloneProgress.current} / {bulkCloneProgress.total}…
+                  </div>
+                ) : null}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-slate-500 whitespace-nowrap">Clone to</label>
+                  <select
+                    value={bulkCloneCountry}
+                    onChange={e => setBulkCloneCountry(e.target.value)}
+                    disabled={isBulkCloning}
+                    className="h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none focus:border-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {bulkCloneAvailableCountries.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleBulkClone}
+                    disabled={isBulkCloning || !bulkCloneCountry}
+                    className="h-9 cursor-pointer rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isBulkCloning ? 'Cloning…' : `Clone ${selectedRecipeIds.size} recipe${selectedRecipeIds.size !== 1 ? 's' : ''} to ${bulkCloneCountry}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {bulkCloneResults && (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-950">
+                Clone results → {bulkCloneResults.country}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                <span className="font-semibold text-emerald-600">{bulkCloneResults.succeeded.length} succeeded</span>
+                {bulkCloneResults.failed.length > 0 && (
+                  <span> · <span className="font-semibold text-red-600">{bulkCloneResults.failed.length} failed</span></span>
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBulkCloneResults(null)}
+              className="cursor-pointer rounded-xl p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              ✕
+            </button>
+          </div>
+
+          {bulkCloneResults.succeeded.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-600">Succeeded</p>
+              <div className="flex flex-wrap gap-2">
+                {bulkCloneResults.succeeded.map(r => (
+                  <span key={r.id} className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm text-emerald-800">
+                    {r.name || 'Unnamed'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {bulkCloneResults.failed.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-500">Failed</p>
+              <div className="space-y-2">
+                {bulkCloneResults.failed.map(r => (
+                  <div key={r.id} className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                    <span className="text-sm font-semibold text-red-800">{r.name || 'Unnamed'}</span>
+                    <span className="text-xs text-red-500">{r.error}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -322,6 +494,14 @@ const DefaultRecipes = ({ onEditRecipe }) => {
                       key={`${category}-${recipe.id}`}
                       className="flex cursor-pointer flex-col gap-4 p-4 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
                     >
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedRecipeIds.has(recipe.id)}
+                          onChange={() => toggleRecipeSelection(recipe.id)}
+                          disabled={isBulkCloning}
+                          className="h-4 w-4 flex-shrink-0 cursor-pointer rounded border-slate-300 accent-violet-600 disabled:cursor-not-allowed"
+                        />
                       <button
                         type="button"
                         onClick={() => onEditRecipe?.(recipe)}
@@ -348,6 +528,7 @@ const DefaultRecipes = ({ onEditRecipe }) => {
                           </p>
                         </div>
                       </button>
+                      </div>
                       <div className="flex gap-2 sm:justify-end">
                         <button
                           type="button"

@@ -50,6 +50,7 @@ function App() {
   const [adminChatUserId, setAdminChatUserId] = useState(null)
   const [adminChatReturnPage, setAdminChatReturnPage] = useState('dashboard')
   const [recipeToEdit, setRecipeToEdit] = useState(null)
+  const [recipeEditReturnPage, setRecipeEditReturnPage] = useState(null)
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -268,6 +269,10 @@ function App() {
           <Recipes
             initialRecipeToEdit={recipeToEdit}
             onInitialRecipeHandled={() => setRecipeToEdit(null)}
+            onEditClose={recipeEditReturnPage ? () => {
+              setActivePage(recipeEditReturnPage)
+              setRecipeEditReturnPage(null)
+            } : undefined}
           />
         )
       case 'default-recipes':
@@ -275,6 +280,7 @@ function App() {
           <DefaultRecipes
             onEditRecipe={(recipe) => {
               setRecipeToEdit(recipe)
+              setRecipeEditReturnPage('default-recipes')
               setActivePage('recipes')
             }}
           />

@@ -367,7 +367,8 @@ const getAmountFromBaseUnit = (item, baseAmount, unit) => {
 const Recipes = ({
   mode = 'admin',
   initialRecipeToEdit = null,
-  onInitialRecipeHandled
+  onInitialRecipeHandled,
+  onEditClose
 }) => {
   const { t } = useTranslation()
   const { currentUser } = useAuth()
@@ -1121,6 +1122,7 @@ const Recipes = ({
   }
 
   const resetForm = () => {
+    const wasEditing = Boolean(editingRecipeId)
     setRecipeName('')
     setSelectedCountryCode(sharedCountry)
     setIsRecipePublic(true)
@@ -1140,6 +1142,9 @@ const Recipes = ({
     setSearchText('')
     setSearchResults([])
     setError(null)
+    if (wasEditing) {
+      onEditClose?.()
+    }
   }
 
   const handleEditRecipe = async recipe => {
