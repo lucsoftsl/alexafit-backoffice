@@ -51,6 +51,7 @@ function App() {
   const [adminChatReturnPage, setAdminChatReturnPage] = useState('dashboard')
   const [recipeToEdit, setRecipeToEdit] = useState(null)
   const [recipeEditReturnPage, setRecipeEditReturnPage] = useState(null)
+  const [newlyGeneratedContainer, setNewlyGeneratedContainer] = useState(null)
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -239,9 +240,24 @@ function App() {
       case 'client-profile':
         return <ClientProfile client={selectedClient} />
       case 'client-journal':
-        return <ClientJournal client={selectedClient} />
+        return (
+          <ClientJournal
+            client={selectedClient}
+            onGenerationComplete={(containerName) => {
+              setNewlyGeneratedContainer(containerName)
+              setActivePage('client-meal-plans')
+              setClientSidebarItem('meal-plans')
+            }}
+          />
+        )
       case 'client-meal-plans':
-        return <ClientMealPlans client={selectedClient} />
+        return (
+          <ClientMealPlans
+            client={selectedClient}
+            newlyGeneratedContainer={newlyGeneratedContainer}
+            onContainerViewed={() => setNewlyGeneratedContainer(null)}
+          />
+        )
       case 'client-notes':
         return <ClientNotes client={selectedClient} />
       case 'client-chat':

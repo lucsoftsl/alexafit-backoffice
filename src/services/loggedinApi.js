@@ -147,6 +147,13 @@ export async function getUserCaloriesHistory({ userId }) {
   return requestGet(`/foodsync/getUserCaloriesHistory?${qs}`)
 }
 
+export async function getUserItemsByDateRange({ userId, startDate, endDate }) {
+  return request('/foodsync/getUserItemsByDateRange', {
+    method: 'POST',
+    body: { userId, startDate, endDate }
+  })
+}
+
 /**
  * Admin: fetch calorie activity for ALL users within the given lookback window.
  * Returns { days, totalActiveUsers, users: { [userId]: [{dateApplied, caloriesConsumed, caloriesGoal, dateTimeUpdated}] } }

@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next'
 import {
   getDailyNutrition,
   getUserData,
-  getUserCaloriesHistory
+  getUserCaloriesHistory,
+  addMenuTemplateBO
 } from '../services/loggedinApi'
 import LZString from 'lz-string'
 import {
@@ -11,6 +12,9 @@ import {
   computeAppliedItemTotals
 } from '../util/menuDisplay'
 import { getCategoryIcon } from '../util/categoryIcons'
+import { useAuth } from '../contexts/AuthContext'
+import { useSelector } from 'react-redux'
+import { selectUserData } from '../store/userSlice'
 
 // Date helpers that operate in local time to avoid UTC shifts
 const formatLocalISO = date => {
@@ -184,8 +188,70 @@ const MealSection = ({
   </div>
 )
 
-const ClientJournal = ({ client }) => {
+const MENU_NAME_SEPARATOR = ':::'
+const MENU_ORDER_SEPARATOR = '==='
+
+function journalItemToTemplateItem(journalItem) {
+  const food = journalItem?.food
+  if (!food?.id) return null
+  const servingOptions = Array.isArray(food.servingOptions) ? food.servingOptions : []
+  const unit = journalItem.unit || 'g'
+  const qty = Number(journalItem.quantity) || 1
+  // originalServingAmount must be the quantity in the stated unit (not pre-converted to grams).
+  // The API's normalizeChangedServing multiplies it by the serving value itself, so storing
+  // grams here would cause e.g. 200 (grams) × 200 (g/serving) = 40,000g.
+  return {
+    id: food.id,
+    name: food.name,
+    type: food.type || 'food',
+    caloriesPer100: food.caloriesPer100,
+    nutrientsPer100: food.nutrientsPer100,
+    servingOptions,
+    originalServingAmount: qty,
+    originalServingId: unit,
+  }
+}
+
+function buildContainerName(clientName, dateStr) {
+  return `Generated - ${clientName} (${dateStr})`
+}
+
+function buildTemplateName(containerName, dayIndex, total) {
+  return `${containerName} ${MENU_NAME_SEPARATOR} Day ${dayIndex} ${MENU_ORDER_SEPARATOR} ${dayIndex}`
+}
+
+function scoreMacros(breakfastItems, lunchItems, dinnerItems, snackItems) {
+  const all = [...breakfastItems, ...lunchItems, ...dinnerItems, ...snackItems]
+  let protein = 0, carbs = 0, fat = 0, calories = 0
+  for (const it of all) {
+    const n100 = it?.nutrientsPer100 || {}
+    const amount = (it?.originalServingAmount || 100) / 100
+    protein += (n100.proteinsInGrams || 0) * amount
+    carbs += (n100.carbohydratesInGrams || 0) * amount
+    fat += (n100.fatInGrams || 0) * amount
+    calories += (it?.caloriesPer100 || 0) * amount
+  }
+  if (calories === 0) return 0
+  const pRatio = (protein * 4) / calories
+  const cRatio = (carbs * 4) / calories
+  const fRatio = (fat * 9) / calories
+  return -(Math.abs(pRatio - 0.30) + Math.abs(cRatio - 0.40) + Math.abs(fRatio - 0.30))
+}
+
+function shuffleArray(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+const ClientJournal = ({ client, onGenerationComplete }) => {
   const { t } = useTranslation()
+  const { currentUser } = useAuth()
+  const userData = useSelector(selectUserData)
+  const nutritionistId = currentUser?.uid || userData?.userId
   const [showCalendar, setShowCalendar] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
   const [markedDates, setMarkedDates] = useState({})
@@ -224,6 +290,10 @@ const ClientJournal = ({ client }) => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const lastFetchKeyRef = useRef('')
   const caloriesHistoryLoadedRef = useRef(new Set())
+  const [daysToConsider, setDaysToConsider] = useState(7)
+  const [numMealPlans, setNumMealPlans] = useState(7)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState(null)
 
   const selectedItemFallbackImg = selectedItem
     ? getCategoryIcon(
@@ -708,6 +778,94 @@ const ClientJournal = ({ client }) => {
     return '#F59E0B' // amber: under goal
   }
 
+  const handleGenerateMealPlans = async () => {
+    if (!userId || !nutritionistId) return
+    setIsGenerating(true)
+    setGenerateError(null)
+    try {
+      const n = Math.max(1, Math.min(30, Number(daysToConsider) || 7))
+      const m = Math.max(1, Math.min(30, Number(numMealPlans) || n))
+
+      // Fetch past N days (excluding today)
+      const today = new Date()
+      const datesToFetch = Array.from({ length: n }, (_, i) => {
+        const d = new Date(today)
+        d.setDate(d.getDate() - (i + 1))
+        return formatLocalISO(d)
+      })
+
+      const dayDataResults = await Promise.all(
+        datesToFetch.map(async dateStr => {
+          try {
+            const res = await getDailyNutrition({ userId, dateApplied: dateStr })
+            const d = res?.data?.data || res?.data || {}
+            return {
+              date: dateStr,
+              breakfast: (d.breakfast || []).map(journalItemToTemplateItem).filter(Boolean),
+              lunch: (d.lunch || []).map(journalItemToTemplateItem).filter(Boolean),
+              dinner: (d.dinner || []).map(journalItemToTemplateItem).filter(Boolean),
+              snack: (d.snack || []).map(journalItemToTemplateItem).filter(Boolean),
+            }
+          } catch {
+            return { date: dateStr, breakfast: [], lunch: [], dinner: [], snack: [] }
+          }
+        })
+      )
+
+      // Filter to days that have at least one meal with items
+      const daysWithData = dayDataResults.filter(
+        d => d.breakfast.length > 0 || d.lunch.length > 0 || d.dinner.length > 0 || d.snack.length > 0
+      )
+
+      const breakfastPool = shuffleArray(daysWithData.filter(d => d.breakfast.length > 0))
+      const lunchPool = shuffleArray(daysWithData.filter(d => d.lunch.length > 0))
+      const dinnerPool = shuffleArray(daysWithData.filter(d => d.dinner.length > 0))
+      const snackPool = shuffleArray(daysWithData.filter(d => d.snack.length > 0))
+
+      if (breakfastPool.length === 0 && lunchPool.length === 0 && dinnerPool.length === 0 && snackPool.length === 0) {
+        setGenerateError('No food data found in the selected period. Please make sure the client has logged meals.')
+        setIsGenerating(false)
+        return
+      }
+
+      const containerName = buildContainerName(userName, todayISO())
+
+      const createdTemplates = []
+      for (let i = 0; i < m; i++) {
+        const bf = breakfastPool.length > 0 ? breakfastPool[i % breakfastPool.length].breakfast : []
+        const lu = lunchPool.length > 0 ? lunchPool[i % lunchPool.length].lunch : []
+        const di = dinnerPool.length > 0 ? dinnerPool[i % dinnerPool.length].dinner : []
+        const sn = snackPool.length > 0 ? snackPool[i % snackPool.length].snack : []
+
+        const templateName = buildTemplateName(containerName, i + 1, m)
+        const res = await addMenuTemplateBO({
+          name: templateName,
+          breakfastPlan: bf,
+          lunchPlan: lu,
+          dinnerPlan: di,
+          snackPlan: sn,
+          isAssignableByUser: false,
+          createdByUserId: nutritionistId,
+        })
+        if (res?.data || res?.ok) {
+          createdTemplates.push(templateName)
+        }
+      }
+
+      if (createdTemplates.length === 0) {
+        setGenerateError('Failed to create meal plan templates. Please try again.')
+        setIsGenerating(false)
+        return
+      }
+
+      onGenerationComplete?.(containerName)
+    } catch (e) {
+      setGenerateError(e?.message || 'Failed to generate meal plans')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   if (!client) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
@@ -741,20 +899,79 @@ const ClientJournal = ({ client }) => {
       </div>
 
       {showCalendar ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm min-h-[60vh] flex items-center justify-center">
-          <div className="w-full max-w-3xl hidden md:block">
-            <CalendarGrid
-              month={currentMonth}
-              marked={markedDates}
-              onSelect={iso => setSelectedDate(iso)}
-            />
+        <div className="space-y-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm min-h-[60vh] flex items-center justify-center">
+            <div className="w-full max-w-3xl hidden md:block">
+              <CalendarGrid
+                month={currentMonth}
+                marked={markedDates}
+                onSelect={iso => setSelectedDate(iso)}
+              />
+            </div>
+            <div className="w-full max-w-xl md:hidden">
+              <WeekGrid
+                weekStart={currentWeekStart}
+                marked={markedDates}
+                onSelect={iso => setSelectedDate(iso)}
+              />
+            </div>
           </div>
-          <div className="w-full max-w-xl md:hidden">
-            <WeekGrid
-              weekStart={currentWeekStart}
-              marked={markedDates}
-              onSelect={iso => setSelectedDate(iso)}
-            />
+
+          {/* Generate Meal Plan Panel */}
+          <div className="bg-white border border-indigo-100 rounded-lg p-5 shadow-sm">
+            <h3 className="text-base font-semibold text-gray-900 mb-4">Generate Meal Plan</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Number of days to consider
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={daysToConsider}
+                  onChange={e => {
+                    const v = Math.max(1, Math.min(30, Number(e.target.value) || 1))
+                    setDaysToConsider(v)
+                    setNumMealPlans(v)
+                  }}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Number of meal plans
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={numMealPlans}
+                  onChange={e => setNumMealPlans(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            {generateError && (
+              <p className="text-sm text-red-600 mb-3">{generateError}</p>
+            )}
+            <button
+              onClick={handleGenerateMealPlans}
+              disabled={isGenerating}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+            >
+              {isGenerating ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                'Generate Meal Plan'
+              )}
+            </button>
           </div>
         </div>
       ) : (
