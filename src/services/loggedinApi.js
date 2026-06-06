@@ -154,6 +154,67 @@ export async function getUserItemsByDateRange({ userId, startDate, endDate }) {
   })
 }
 
+export async function generateAIMealPlan({
+  userId,
+  startDate,
+  endDate,
+  numDays,
+  fatPerDay,
+  carbsPerDay,
+  proteinPerDay,
+  caloriesPerDay
+}) {
+  return request('/backoffice/generateAIMealPlan', {
+    method: 'POST',
+    body: {
+      userId,
+      startDate,
+      endDate,
+      numDays,
+      fatPerDay,
+      carbsPerDay,
+      proteinPerDay,
+      caloriesPerDay
+    }
+  })
+}
+
+export async function refineAIMealPlan({
+  userId,
+  startDate,
+  endDate,
+  currentProposal,
+  editInstructions,
+  numDays,
+  fatPerDay,
+  carbsPerDay,
+  proteinPerDay,
+  caloriesPerDay
+}) {
+  return request('/backoffice/refineAIMealPlan', {
+    method: 'POST',
+    body: {
+      userId,
+      startDate,
+      endDate,
+      currentProposal,
+      editInstructions,
+      numDays,
+      fatPerDay,
+      carbsPerDay,
+      proteinPerDay,
+      caloriesPerDay
+    }
+  })
+}
+
+export async function addMenuTemplatesBO({ templates }) {
+  return request('/backoffice/addMenuTemplates', {
+    method: 'POST',
+    body: { templates }
+  })
+}
+
 /**
  * Admin: fetch calorie activity for ALL users within the given lookback window.
  * Returns { days, totalActiveUsers, users: { [userId]: [{dateApplied, caloriesConsumed, caloriesGoal, dateTimeUpdated}] } }

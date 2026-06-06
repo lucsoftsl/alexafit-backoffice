@@ -5,14 +5,10 @@ import { jsPDF } from 'jspdf'
 import { calculateDisplayValues, safeNutrients } from './menuDisplay'
 
 const MENU_MEAL_SECTIONS = [
-  {
-    id: 'breakfastPlan',
-    labelKey: 'pages.myMenus.breakfast',
-    pdfLabel: 'Mic dejun'
-  },
-  { id: 'lunchPlan', labelKey: 'pages.myMenus.lunch', pdfLabel: 'Prânz' },
-  { id: 'dinnerPlan', labelKey: 'pages.myMenus.dinner', pdfLabel: 'Cină' },
-  { id: 'snackPlan', labelKey: 'pages.myMenus.snack', pdfLabel: 'Gustare' }
+  { id: 'breakfastPlan', labelKey: 'pages.myMenus.breakfast' },
+  { id: 'lunchPlan', labelKey: 'pages.myMenus.lunch' },
+  { id: 'dinnerPlan', labelKey: 'pages.myMenus.dinner' },
+  { id: 'snackPlan', labelKey: 'pages.myMenus.snack' }
 ]
 
 const PDF_FONT_NAME = 'ArialUnicodeSafe'
@@ -132,7 +128,8 @@ const ensurePdfFont = async doc => {
 
   const fontBase64 = await fontLoadPromise
   doc.addFileToVFS('Arial.ttf', fontBase64)
-  doc.addFont('Arial.ttf', PDF_FONT_NAME, PDF_FONT_STYLE)
+  doc.addFont('Arial.ttf', PDF_FONT_NAME, 'normal')
+  doc.addFont('Arial.ttf', PDF_FONT_NAME, 'bold')
   doc.setFont(PDF_FONT_NAME, PDF_FONT_STYLE)
 }
 
@@ -647,19 +644,19 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
 
     const metrics = [
       {
-        label: 'TOTAL ZI',
+        label: t('pages.myMenus.pdfDailyTotal').toUpperCase(),
         value: `${Math.round(menuSummary.total.calories)} kcal`
       },
       {
-        label: 'PROTEINE',
+        label: t('pages.myMenus.proteins').toUpperCase(),
         value: `${Math.round(menuSummary.total.proteinsInGrams)}g`
       },
       {
-        label: 'CARBOHIDRAȚI',
+        label: t('pages.myMenus.carbs').toUpperCase(),
         value: `${Math.round(menuSummary.total.carbohydratesInGrams)}g`
       },
       {
-        label: 'GRĂSIMI',
+        label: t('pages.myMenus.fat').toUpperCase(),
         value: `${Math.round(menuSummary.total.fatInGrams)}g`
       }
     ]
@@ -1062,7 +1059,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
     doc.setFont(PDF_FONT_NAME, 'bold')
     doc.setFontSize(7)
     doc.setTextColor(...STITCH_PDF_THEME.textSoft)
-    doc.text('INGREDIENTS', leftX + layout.boxPad, containerTopY + 20)
+    doc.text(t('pages.myMenus.ingredients').toUpperCase(), leftX + layout.boxPad, containerTopY + 20)
 
     // Ingredient rows
     // ingY = containerTopY + 20 (label baseline) + 10 (label h) + 6 (gap) = containerTopY + 36
@@ -1121,7 +1118,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
       doc.setFont(PDF_FONT_NAME, 'bold')
       doc.setFontSize(7)
       doc.setTextColor(...STITCH_PDF_THEME.textSoft)
-      doc.text('INSTRUCTIONS', contentX + 16, y + 14)
+      doc.text(t('pages.myMenus.instructions').toUpperCase(), contentX + 16, y + 14)
 
       // Steps start at y + 26; each step gets generous line spacing
       let stepY = y + 26
@@ -1162,7 +1159,7 @@ export const exportMenuBuilderToPdf = async ({ container, t }) => {
 
     doc.setFont(PDF_TITLE_FONT_NAME, PDF_TITLE_FONT_BOLD_STYLE)
     doc.setFontSize(12)
-    const sectionLabel = section.pdfLabel.toUpperCase()
+    const sectionLabel = t(section.labelKey).toUpperCase()
     const sectionChipWidth = Math.max(96, doc.getTextWidth(sectionLabel) + 32)
     doc.setFillColor(...style.fill)
     doc.roundedRect(contentX, y, sectionChipWidth, 26, 13, 13, 'F')

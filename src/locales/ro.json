@@ -1393,6 +1393,8 @@
       "proteins": "Proteine",
       "carbs": "Carbohidrați",
       "fat": "Grăsime",
+      "ingredients": "Ingrediente",
+      "pdfDailyTotal": "Total Zi",
       "save": "Salvează",
       "saving": "Se salvează...",
       "updateMenu": "Actualizează meniu",

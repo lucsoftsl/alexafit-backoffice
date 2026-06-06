@@ -4,12 +4,16 @@ import {
   getDailyNutrition,
   getUserData,
   getUserCaloriesHistory,
-  addMenuTemplateBO
+  generateAIMealPlan,
+  refineAIMealPlan,
+  addMenuTemplatesBO
 } from '../services/loggedinApi'
 import LZString from 'lz-string'
 import {
   sumTotalsByMealsApplied,
-  computeAppliedItemTotals
+  computeAppliedItemTotals,
+  calculateDisplayValues,
+  safeNutrients
 } from '../util/menuDisplay'
 import { getCategoryIcon } from '../util/categoryIcons'
 import { useAuth } from '../contexts/AuthContext'
@@ -191,60 +195,33 @@ const MealSection = ({
 const MENU_NAME_SEPARATOR = ':::'
 const MENU_ORDER_SEPARATOR = '==='
 
-function journalItemToTemplateItem(journalItem) {
-  const food = journalItem?.food
-  if (!food?.id) return null
-  const servingOptions = Array.isArray(food.servingOptions) ? food.servingOptions : []
-  const unit = journalItem.unit || 'g'
-  const qty = Number(journalItem.quantity) || 1
-  // originalServingAmount must be the quantity in the stated unit (not pre-converted to grams).
-  // The API's normalizeChangedServing multiplies it by the serving value itself, so storing
-  // grams here would cause e.g. 200 (grams) × 200 (g/serving) = 40,000g.
-  return {
-    id: food.id,
-    name: food.name,
-    type: food.type || 'food',
-    caloriesPer100: food.caloriesPer100,
-    nutrientsPer100: food.nutrientsPer100,
-    servingOptions,
-    originalServingAmount: qty,
-    originalServingId: unit,
-  }
-}
-
 function buildContainerName(clientName, dateStr) {
   return `Generated - ${clientName} (${dateStr})`
 }
 
-function buildTemplateName(containerName, dayIndex, total) {
+function buildTemplateName(containerName, dayIndex) {
   return `${containerName} ${MENU_NAME_SEPARATOR} Day ${dayIndex} ${MENU_ORDER_SEPARATOR} ${dayIndex}`
 }
 
-function scoreMacros(breakfastItems, lunchItems, dinnerItems, snackItems) {
-  const all = [...breakfastItems, ...lunchItems, ...dinnerItems, ...snackItems]
-  let protein = 0, carbs = 0, fat = 0, calories = 0
-  for (const it of all) {
-    const n100 = it?.nutrientsPer100 || {}
-    const amount = (it?.originalServingAmount || 100) / 100
-    protein += (n100.proteinsInGrams || 0) * amount
-    carbs += (n100.carbohydratesInGrams || 0) * amount
-    fat += (n100.fatInGrams || 0) * amount
-    calories += (it?.caloriesPer100 || 0) * amount
-  }
-  if (calories === 0) return 0
-  const pRatio = (protein * 4) / calories
-  const cRatio = (carbs * 4) / calories
-  const fRatio = (fat * 9) / calories
-  return -(Math.abs(pRatio - 0.30) + Math.abs(cRatio - 0.40) + Math.abs(fRatio - 0.30))
-}
-
-function shuffleArray(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
+function estimateDayMacros(day) {
+  const allItems = [
+    ...(day.breakfastPlan || []),
+    ...(day.lunchPlan || []),
+    ...(day.dinnerPlan || []),
+    ...(day.snackPlan || [])
+  ]
+  return allItems.reduce((acc, item) => {
+    const qty = Number(item?.originalServingAmount) || 100
+    const unit = item?.originalServingId || 'g'
+    const calc = calculateDisplayValues(item, qty, qty, unit)
+    const n = safeNutrients(calc.nutrients)
+    return {
+      calories: acc.calories + (calc.calories || 0),
+      protein: acc.protein + n.proteinsInGrams,
+      carbs: acc.carbs + n.carbohydratesInGrams,
+      fat: acc.fat + n.fatInGrams
+    }
+  }, { calories: 0, protein: 0, carbs: 0, fat: 0 })
 }
 
 const ClientJournal = ({ client, onGenerationComplete }) => {
@@ -290,10 +267,28 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const lastFetchKeyRef = useRef('')
   const caloriesHistoryLoadedRef = useRef(new Set())
+  const [clientGoals, setClientGoals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 })
   const [daysToConsider, setDaysToConsider] = useState(7)
   const [numMealPlans, setNumMealPlans] = useState(7)
+  const [fatPerDay, setFatPerDay] = useState(0)
+  const [carbsPerDay, setCarbsPerDay] = useState(0)
+  const [proteinPerDay, setProteinPerDay] = useState(0)
+  const [caloriesPerDay, setCaloriesPerDay] = useState(0)
+  const goalsLoadedRef = useRef(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState(null)
+  // Proposal modal state
+  const [proposal, setProposal] = useState(null)
+  const [proposalWarnings, setProposalWarnings] = useState([])
+  const [proposalIncomplete, setProposalIncomplete] = useState(false)
+  const [proposalStartDate, setProposalStartDate] = useState('')
+  const [proposalEndDate, setProposalEndDate] = useState('')
+  const [isAccepting, setIsAccepting] = useState(false)
+  const [acceptError, setAcceptError] = useState(null)
+  const [editInstructions, setEditInstructions] = useState('')
+  const [isRefining, setIsRefining] = useState(false)
+  const [refineError, setRefineError] = useState(null)
+  const [showEditInput, setShowEditInput] = useState(false)
 
   const selectedItemFallbackImg = selectedItem
     ? getCategoryIcon(
@@ -326,6 +321,34 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
       return selectedDate || ''
     }
   }, [selectedDate])
+
+  // Load client goals when userId changes so macro inputs are pre-populated without selecting a day
+  useEffect(() => {
+    if (!userId) return
+    goalsLoadedRef.current = false
+    ;(async () => {
+      try {
+        const today = todayISO()
+        const res = await getUserData({ userId, selectedDate: today })
+        const uWrap = res?.data || res || {}
+        const u = uWrap?.data || {}
+        const g = u?.userGoals || {}
+        const goals = {
+          calories: g.totalCalories || 0,
+          protein: g.proteinsInGrams || 0,
+          carbs: g.carbohydratesInGrams || 0,
+          fat: g.fatInGrams || 0
+        }
+        setClientGoals(goals)
+        setCaloriesPerDay(Math.round(goals.calories))
+        setProteinPerDay(Math.round(goals.protein))
+        setCarbsPerDay(Math.round(goals.carbs))
+        setFatPerDay(Math.round(goals.fat))
+      } catch {
+        // non-blocking — user can type values manually
+      }
+    })()
+  }, [userId])
 
   // Fetch calendar marked dates (days with data) with localStorage cache
   useEffect(() => {
@@ -778,91 +801,124 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
     return '#F59E0B' // amber: under goal
   }
 
+  const computeDateRange = (n) => {
+    const today = new Date()
+    const endDate = new Date(today)
+    endDate.setDate(today.getDate() - 1)
+    const startDate = new Date(today)
+    startDate.setDate(today.getDate() - n)
+    return { startDate: formatLocalISO(startDate), endDate: formatLocalISO(endDate) }
+  }
+
   const handleGenerateMealPlans = async () => {
     if (!userId || !nutritionistId) return
     setIsGenerating(true)
     setGenerateError(null)
+    setProposal(null)
+    setProposalWarnings([])
+    setProposalIncomplete(false)
+    setShowEditInput(false)
+    setEditInstructions('')
     try {
       const n = Math.max(1, Math.min(30, Number(daysToConsider) || 7))
-      const m = Math.max(1, Math.min(30, Number(numMealPlans) || n))
+      const m = Math.max(1, Math.min(30, Number(numMealPlans) || 7))
+      const { startDate, endDate } = computeDateRange(n)
+      setProposalStartDate(startDate)
+      setProposalEndDate(endDate)
 
-      // Fetch past N days (excluding today)
-      const today = new Date()
-      const datesToFetch = Array.from({ length: n }, (_, i) => {
-        const d = new Date(today)
-        d.setDate(d.getDate() - (i + 1))
-        return formatLocalISO(d)
+      const res = await generateAIMealPlan({
+        userId,
+        startDate,
+        endDate,
+        numDays: m,
+        fatPerDay: Number(fatPerDay) || 0,
+        carbsPerDay: Number(carbsPerDay) || 0,
+        proteinPerDay: Number(proteinPerDay) || 0,
+        caloriesPerDay: Number(caloriesPerDay) || 0
       })
 
-      const dayDataResults = await Promise.all(
-        datesToFetch.map(async dateStr => {
-          try {
-            const res = await getDailyNutrition({ userId, dateApplied: dateStr })
-            const d = res?.data?.data || res?.data || {}
-            return {
-              date: dateStr,
-              breakfast: (d.breakfast || []).map(journalItemToTemplateItem).filter(Boolean),
-              lunch: (d.lunch || []).map(journalItemToTemplateItem).filter(Boolean),
-              dinner: (d.dinner || []).map(journalItemToTemplateItem).filter(Boolean),
-              snack: (d.snack || []).map(journalItemToTemplateItem).filter(Boolean),
-            }
-          } catch {
-            return { date: dateStr, breakfast: [], lunch: [], dinner: [], snack: [] }
-          }
-        })
-      )
-
-      // Filter to days that have at least one meal with items
-      const daysWithData = dayDataResults.filter(
-        d => d.breakfast.length > 0 || d.lunch.length > 0 || d.dinner.length > 0 || d.snack.length > 0
-      )
-
-      const breakfastPool = shuffleArray(daysWithData.filter(d => d.breakfast.length > 0))
-      const lunchPool = shuffleArray(daysWithData.filter(d => d.lunch.length > 0))
-      const dinnerPool = shuffleArray(daysWithData.filter(d => d.dinner.length > 0))
-      const snackPool = shuffleArray(daysWithData.filter(d => d.snack.length > 0))
-
-      if (breakfastPool.length === 0 && lunchPool.length === 0 && dinnerPool.length === 0 && snackPool.length === 0) {
-        setGenerateError('No food data found in the selected period. Please make sure the client has logged meals.')
-        setIsGenerating(false)
+      const data = res?.data || res || {}
+      if (!data.ok || !Array.isArray(data.proposal) || data.proposal.length === 0) {
+        setGenerateError(data.error || 'AI did not return a meal plan. Please try again.')
         return
       }
 
-      const containerName = buildContainerName(userName, todayISO())
-
-      const createdTemplates = []
-      for (let i = 0; i < m; i++) {
-        const bf = breakfastPool.length > 0 ? breakfastPool[i % breakfastPool.length].breakfast : []
-        const lu = lunchPool.length > 0 ? lunchPool[i % lunchPool.length].lunch : []
-        const di = dinnerPool.length > 0 ? dinnerPool[i % dinnerPool.length].dinner : []
-        const sn = snackPool.length > 0 ? snackPool[i % snackPool.length].snack : []
-
-        const templateName = buildTemplateName(containerName, i + 1, m)
-        const res = await addMenuTemplateBO({
-          name: templateName,
-          breakfastPlan: bf,
-          lunchPlan: lu,
-          dinnerPlan: di,
-          snackPlan: sn,
-          isAssignableByUser: false,
-          createdByUserId: nutritionistId,
-        })
-        if (res?.data || res?.ok) {
-          createdTemplates.push(templateName)
-        }
-      }
-
-      if (createdTemplates.length === 0) {
-        setGenerateError('Failed to create meal plan templates. Please try again.')
-        setIsGenerating(false)
-        return
-      }
-
-      onGenerationComplete?.(containerName)
+      setProposal(data.proposal)
+      setProposalWarnings(data.warnings || [])
+      setProposalIncomplete(!!data.incomplete)
     } catch (e) {
       setGenerateError(e?.message || 'Failed to generate meal plans')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleAcceptProposal = async () => {
+    if (!proposal || !nutritionistId) return
+    setIsAccepting(true)
+    setAcceptError(null)
+    try {
+      const containerName = buildContainerName(userName, todayISO())
+      const templates = proposal.map((day, i) => ({
+        name: buildTemplateName(containerName, day.day || i + 1),
+        breakfastPlan: day.breakfastPlan || [],
+        lunchPlan: day.lunchPlan || [],
+        dinnerPlan: day.dinnerPlan || [],
+        snackPlan: day.snackPlan || [],
+        isAssignableByUser: false,
+        createdByUserId: nutritionistId
+      }))
+
+      const res = await addMenuTemplatesBO({ templates })
+      const data = res?.data || res || {}
+      if (!data.ok) {
+        setAcceptError(data.error || 'Failed to create meal plans. Please try again.')
+        return
+      }
+
+      setProposal(null)
+      onGenerationComplete?.(containerName)
+    } catch (e) {
+      setAcceptError(e?.message || 'Failed to create meal plans')
+    } finally {
+      setIsAccepting(false)
+    }
+  }
+
+  const handleSendEdit = async () => {
+    if (!proposal || !editInstructions.trim()) return
+    setIsRefining(true)
+    setRefineError(null)
+    try {
+      const m = Math.max(1, Math.min(30, Number(numMealPlans) || 7))
+      const res = await refineAIMealPlan({
+        userId,
+        startDate: proposalStartDate,
+        endDate: proposalEndDate,
+        currentProposal: proposal,
+        editInstructions: editInstructions.trim(),
+        numDays: m,
+        fatPerDay: Number(fatPerDay) || 0,
+        carbsPerDay: Number(carbsPerDay) || 0,
+        proteinPerDay: Number(proteinPerDay) || 0,
+        caloriesPerDay: Number(caloriesPerDay) || 0
+      })
+
+      const data = res?.data || res || {}
+      if (!data.ok || !Array.isArray(data.proposal)) {
+        setRefineError(data.error || 'AI failed to refine the plan. Please try again.')
+        return
+      }
+
+      setProposal(data.proposal)
+      setProposalWarnings(data.warnings || [])
+      setProposalIncomplete(!!data.incomplete)
+      setEditInstructions('')
+      setShowEditInput(false)
+    } catch (e) {
+      setRefineError(e?.message || 'Failed to refine meal plan')
+    } finally {
+      setIsRefining(false)
     }
   }
 
@@ -919,29 +975,64 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
 
           {/* Generate Meal Plan Panel */}
           <div className="bg-white border border-indigo-100 rounded-lg p-5 shadow-sm">
-            <h3 className="text-base font-semibold text-gray-900 mb-4">Generate Meal Plan</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Generate Meal Plan</h3>
+            <p className="text-xs text-gray-500 mb-4">AI will select and adjust foods from the client's history to match the macro targets below.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Number of days to consider
-                </label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Calories / day (kcal)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={caloriesPerDay}
+                  onChange={e => setCaloriesPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Protein / day (g)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={proteinPerDay}
+                  onChange={e => setProteinPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Carbs / day (g)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={carbsPerDay}
+                  onChange={e => setCarbsPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Fat / day (g)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={fatPerDay}
+                  onChange={e => setFatPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Days of history to analyse</label>
                 <input
                   type="number"
                   min={1}
                   max={30}
                   value={daysToConsider}
-                  onChange={e => {
-                    const v = Math.max(1, Math.min(30, Number(e.target.value) || 1))
-                    setDaysToConsider(v)
-                    setNumMealPlans(v)
-                  }}
+                  onChange={e => setDaysToConsider(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Number of meal plans
-                </label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Number of meal plans to generate</label>
                 <input
                   type="number"
                   min={1}
@@ -966,7 +1057,7 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Generating...
+                  Generating with AI...
                 </>
               ) : (
                 'Generate Meal Plan'
@@ -1357,6 +1448,154 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
             )
           })()}
         </>
+      )}
+
+      {/* AI Proposal Modal */}
+      {proposal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">AI-Generated Meal Plan Proposal</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{proposal.length} day{proposal.length !== 1 ? 's' : ''} · {userName}</p>
+              </div>
+              <button
+                onClick={() => { setProposal(null); setShowEditInput(false); setEditInstructions('') }}
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Warnings */}
+            {(proposalWarnings.length > 0 || proposalIncomplete) && (
+              <div className="mx-5 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex-shrink-0">
+                <p className="text-xs font-semibold text-amber-800 mb-1">Please review the following:</p>
+                {proposalIncomplete && (
+                  <p className="text-xs text-amber-700">Some items could not be matched from the client's history — the plan may be incomplete.</p>
+                )}
+                {proposalWarnings.map((w, i) => (
+                  <p key={i} className="text-xs text-amber-700">• {w}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Day list */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              {proposal.map(day => {
+                const macros = estimateDayMacros(day)
+                const meals = [
+                  { label: 'Breakfast', items: day.breakfastPlan },
+                  { label: 'Lunch', items: day.lunchPlan },
+                  { label: 'Dinner', items: day.dinnerPlan },
+                  { label: 'Snack', items: day.snackPlan }
+                ]
+                return (
+                  <div key={day.day} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+                      <span className="text-sm font-semibold text-gray-900">Day {day.day}</span>
+                      <span className="text-xs text-gray-500">
+                        ~{Math.round(macros.calories)} kcal · P {Math.round(macros.protein)}g · C {Math.round(macros.carbs)}g · F {Math.round(macros.fat)}g
+                      </span>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {meals.map(({ label, items }) => (
+                        items && items.length > 0 ? (
+                          <div key={label} className="px-4 py-2">
+                            <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+                            <div className="space-y-0.5">
+                              {items.map((item, idx) => (
+                                <p key={idx} className="text-sm text-gray-800">
+                                  {item.name}
+                                  <span className="text-xs text-gray-400 ml-1">
+                                    {item.originalServingAmount}{item.originalServingId}
+                                  </span>
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Edit input */}
+            {showEditInput && (
+              <div className="px-5 pb-3 flex-shrink-0 border-t border-gray-100 pt-3">
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Edit suggestions</label>
+                <textarea
+                  rows={2}
+                  value={editInstructions}
+                  onChange={e => setEditInstructions(e.target.value)}
+                  placeholder="e.g. Move the chicken to lunch on day 3, add more variety to breakfasts..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+                {refineError && <p className="text-xs text-red-600 mt-1">{refineError}</p>}
+              </div>
+            )}
+
+            {/* Footer actions */}
+            <div className="flex items-center justify-between px-5 py-4 border-t border-gray-200 flex-shrink-0 gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setShowEditInput(v => !v); setRefineError(null) }}
+                  disabled={isAccepting || isRefining}
+                  className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition"
+                >
+                  {showEditInput ? 'Cancel edit' : 'Edit'}
+                </button>
+                {showEditInput && (
+                  <button
+                    onClick={handleSendEdit}
+                    disabled={!editInstructions.trim() || isRefining}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-60 transition"
+                  >
+                    {isRefining ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Refining...
+                      </>
+                    ) : 'Send edit'}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {acceptError && <p className="text-xs text-red-600">{acceptError}</p>}
+                <button
+                  onClick={() => { setProposal(null); setShowEditInput(false); setEditInstructions('') }}
+                  disabled={isAccepting}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAcceptProposal}
+                  disabled={isAccepting || isRefining}
+                  className="flex items-center gap-1.5 px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition"
+                >
+                  {isAccepting ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Creating...
+                    </>
+                  ) : 'Accept'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Meal photo modal */}

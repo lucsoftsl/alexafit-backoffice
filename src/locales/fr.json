@@ -1391,6 +1391,8 @@
       "proteins": "Protéines",
       "carbs": "Glucides",
       "fat": "Graisse",
+      "ingredients": "Ingrédients",
+      "pdfDailyTotal": "Total Jour",
       "save": "Enregistrer",
       "saving": "Enregistrement...",
       "updateMenu": "Mettre à jour le menu",

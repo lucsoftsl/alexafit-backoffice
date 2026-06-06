@@ -1391,6 +1391,8 @@
       "proteins": "Proteins",
       "carbs": "Carbs",
       "fat": "Fat",
+      "ingredients": "Ingredients",
+      "pdfDailyTotal": "Daily Total",
       "save": "Save",
       "saving": "Saving...",
       "updateMenu": "Update Menu",

@@ -1423,6 +1423,8 @@
       "proteins": "Proteínas",
       "carbs": "Carbohidratos",
       "fat": "Grasa",
+      "ingredients": "Ingredientes",
+      "pdfDailyTotal": "Total Día",
       "save": "Guardar",
       "saving": "Guardando...",
       "updateMenu": "Actualizar menú",
