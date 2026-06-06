@@ -166,6 +166,7 @@ export async function generateAIMealPlan({
 }) {
   return request('/backoffice/generateAIMealPlan', {
     method: 'POST',
+    timeout: 120000,
     body: {
       userId,
       startDate,
@@ -193,6 +194,7 @@ export async function refineAIMealPlan({
 }) {
   return request('/backoffice/refineAIMealPlan', {
     method: 'POST',
+    timeout: 120000,
     body: {
       userId,
       startDate,
