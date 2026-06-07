@@ -52,6 +52,7 @@ function App() {
   const [recipeToEdit, setRecipeToEdit] = useState(null)
   const [recipeEditReturnPage, setRecipeEditReturnPage] = useState(null)
   const [newlyGeneratedContainer, setNewlyGeneratedContainer] = useState(null)
+  const [myMenusOpenContainer, setMyMenusOpenContainer] = useState(null)
   const { currentUser, logout } = useAuth()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
@@ -256,6 +257,10 @@ function App() {
             client={selectedClient}
             newlyGeneratedContainer={newlyGeneratedContainer}
             onContainerViewed={() => setNewlyGeneratedContainer(null)}
+            onOpenInMyMenus={(containerName) => {
+              setMyMenusOpenContainer(containerName)
+              handleNavigate('mymenus')
+            }}
           />
         )
       case 'client-notes':
@@ -263,7 +268,12 @@ function App() {
       case 'client-chat':
         return <Chat selectedUserId={selectedClient?.userId} />
       case 'mymenus':
-        return <MyMenus />
+        return (
+          <MyMenus
+            initialContainerName={myMenusOpenContainer}
+            onInitialContainerHandled={() => setMyMenusOpenContainer(null)}
+          />
+        )
       case 'myrecipes':
         return <MyRecipes />
       case 'myfooditems':

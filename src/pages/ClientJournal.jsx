@@ -268,12 +268,12 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
   const lastFetchKeyRef = useRef('')
   const caloriesHistoryLoadedRef = useRef(new Set())
   const [clientGoals, setClientGoals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 })
-  const [daysToConsider, setDaysToConsider] = useState(7)
-  const [numMealPlans, setNumMealPlans] = useState(7)
-  const [fatPerDay, setFatPerDay] = useState(0)
-  const [carbsPerDay, setCarbsPerDay] = useState(0)
-  const [proteinPerDay, setProteinPerDay] = useState(0)
-  const [caloriesPerDay, setCaloriesPerDay] = useState(0)
+  const [daysToConsider, setDaysToConsider] = useState('7')
+  const [numMealPlans, setNumMealPlans] = useState('7')
+  const [fatPerDay, setFatPerDay] = useState('')
+  const [carbsPerDay, setCarbsPerDay] = useState('')
+  const [proteinPerDay, setProteinPerDay] = useState('')
+  const [caloriesPerDay, setCaloriesPerDay] = useState('')
   const goalsLoadedRef = useRef(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState(null)
@@ -340,10 +340,10 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
           fat: g.fatInGrams || 0
         }
         setClientGoals(goals)
-        setCaloriesPerDay(Math.round(goals.calories))
-        setProteinPerDay(Math.round(goals.protein))
-        setCarbsPerDay(Math.round(goals.carbs))
-        setFatPerDay(Math.round(goals.fat))
+        setCaloriesPerDay(String(Math.round(goals.calories)))
+        setProteinPerDay(String(Math.round(goals.protein)))
+        setCarbsPerDay(String(Math.round(goals.carbs)))
+        setFatPerDay(String(Math.round(goals.fat)))
       } catch {
         // non-blocking — user can type values manually
       }
@@ -984,7 +984,7 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
                   type="number"
                   min={0}
                   value={caloriesPerDay}
-                  onChange={e => setCaloriesPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={e => setCaloriesPerDay(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -994,7 +994,7 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
                   type="number"
                   min={0}
                   value={proteinPerDay}
-                  onChange={e => setProteinPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={e => setProteinPerDay(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -1004,7 +1004,7 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
                   type="number"
                   min={0}
                   value={carbsPerDay}
-                  onChange={e => setCarbsPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={e => setCarbsPerDay(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -1014,7 +1014,7 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
                   type="number"
                   min={0}
                   value={fatPerDay}
-                  onChange={e => setFatPerDay(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={e => setFatPerDay(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -1027,7 +1027,7 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
                   min={1}
                   max={30}
                   value={daysToConsider}
-                  onChange={e => setDaysToConsider(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
+                  onChange={e => setDaysToConsider(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -1038,7 +1038,7 @@ const ClientJournal = ({ client, onGenerationComplete }) => {
                   min={1}
                   max={30}
                   value={numMealPlans}
-                  onChange={e => setNumMealPlans(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
+                  onChange={e => setNumMealPlans(e.target.value)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>

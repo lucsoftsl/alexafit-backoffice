@@ -1218,7 +1218,7 @@ const getTemplateNutritionSummary = template => {
   }
 }
 
-const MyMenus = () => {
+const MyMenus = ({ initialContainerName, onInitialContainerHandled } = {}) => {
   const { t, i18n } = useTranslation()
   const [showBuilderModal, setShowBuilderModal] = useState(false)
   const [menuContainerName, setMenuContainerName] = useState('')
@@ -1326,6 +1326,7 @@ const MyMenus = () => {
   const [savingStudioMenu, setSavingStudioMenu] = useState(false)
   const [viewingItemServingId, setViewingItemServingId] = useState('')
   const [viewingItemAmount, setViewingItemAmount] = useState('')
+  const [viewingItemEnriched, setViewingItemEnriched] = useState(null)
   const [menuStudioDrafts, setMenuStudioDrafts] = useState({})
   const userData = useSelector(selectUserData)
   const isAdmin = useSelector(selectIsAdmin)
@@ -1778,6 +1779,17 @@ const MyMenus = () => {
   }, [nutritionistId])
 
   useEffect(() => {
+    if (!initialContainerName || templates.length === 0) return
+    const targetKey = `container:${initialContainerName.toLowerCase()}`
+    const match = groupedTemplates.find(g => g.key === targetKey)
+    if (!match) return
+    setSelectedContainerKey(match.key)
+    setSelectedContainerMenuId(match.menus?.[0]?.id || null)
+    setSelectedContainerModalOpen(true)
+    onInitialContainerHandled?.()
+  }, [initialContainerName, templates])
+
+  useEffect(() => {
     try {
       const rawDrafts = localStorage.getItem(MENU_STUDIO_DRAFTS_STORAGE_KEY)
       if (!rawDrafts) return
@@ -1809,12 +1821,29 @@ const MyMenus = () => {
     if (!viewingItem) {
       setViewingItemServingId('')
       setViewingItemAmount('')
+      setViewingItemEnriched(null)
       return
     }
 
     const initialSelection = getInitialServingSelection(viewingItem)
     setViewingItemServingId(initialSelection.selectedServingId)
     setViewingItemAmount(String(initialSelection.amount || ''))
+    setViewingItemEnriched(null)
+
+    const itemId = viewingItem?.id || viewingItem?.itemId || viewingItem?._id
+    const alreadyHasDetails =
+      Array.isArray(viewingItem?.ingredients) && viewingItem.ingredients.length > 0
+    if (!itemId || alreadyHasDetails) return
+
+    ;(async () => {
+      try {
+        const resp = await getItemsByIds({ ids: [itemId] })
+        const detailed = resp?.data?.[0] || resp?.items?.[0]
+        if (detailed) setViewingItemEnriched(prev => ({ ...viewingItem, ...detailed }))
+      } catch {
+        // non-blocking — modal still shows without full details
+      }
+    })()
   }, [viewingItem])
 
   const handleSearch = async e => {
@@ -4221,6 +4250,9 @@ const MyMenus = () => {
                     <p className="text-base font-semibold leading-6 text-slate-900 [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden break-words">
                       {item?.name || t('pages.myMenus.unnamedItem')}
                     </p>
+                    <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${detectIsRecipe(item) ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                      {detectIsRecipe(item) ? t('pages.myMenus.recipeType') : t('pages.myMenus.foodType')}
+                    </span>
                     <p className="mt-1 text-sm text-slate-500">
                       {Math.round(parseNumber(calculated?.calories))} kcal
                     </p>
@@ -4338,19 +4370,20 @@ const MyMenus = () => {
           previewUnit
         )
     const nutrients = safeNutrients(previewValues?.nutrients || {})
-    const ingredients = Array.isArray(viewingItem?.ingredients)
-      ? viewingItem.ingredients
+    const richItem = viewingItemEnriched || viewingItem
+    const ingredients = Array.isArray(richItem?.ingredients)
+      ? richItem.ingredients
       : []
-    const ingredientNames = Array.isArray(viewingItem?.ingredientNames)
-      ? viewingItem.ingredientNames.filter(Boolean)
+    const ingredientNames = Array.isArray(richItem?.ingredientNames)
+      ? richItem.ingredientNames.filter(Boolean)
       : []
     const previewAddMode = studioActiveMealType
       ? 'studio'
       : activeMealType
         ? 'builder'
         : null
-    const instructions = Array.isArray(viewingItem?.recipeSteps?.instructions)
-      ? viewingItem.recipeSteps.instructions
+    const instructions = Array.isArray(richItem?.recipeSteps?.instructions)
+      ? richItem.recipeSteps.instructions
       : []
 
     return (

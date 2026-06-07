@@ -651,7 +651,7 @@ const TemplateCard = ({ template, userId, nutritionistId, onDeleted, onEdited, t
 
 // ─── ContainerSection ─────────────────────────────────────────────────────────
 
-const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, scrollRef, onDeleteTemplate, onDeleteContainer, onEditTemplate, t }) => {
+const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, scrollRef, onDeleteTemplate, onDeleteContainer, onEditTemplate, onOpenInMyMenus, t }) => {
   const [expanded, setExpanded] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -720,6 +720,17 @@ const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, sc
             </>
           ) : (
             <>
+              {onOpenInMyMenus && (
+                <button
+                  onClick={() => onOpenInMyMenus(container.containerName)}
+                  className="p-1.5 text-gray-400 hover:text-emerald-600 rounded hover:bg-emerald-50 transition-colors"
+                  title="Open in My Menus"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </button>
+              )}
               <button onClick={handleExportPdf} disabled={exportingPdf} className="p-1.5 text-gray-400 hover:text-indigo-600 rounded hover:bg-indigo-50 transition-colors disabled:opacity-40" title="Export PDF">
                 {exportingPdf ? (
                   <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -764,7 +775,7 @@ const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, sc
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
-const ClientMealPlans = ({ client, newlyGeneratedContainer, onContainerViewed }) => {
+const ClientMealPlans = ({ client, newlyGeneratedContainer, onContainerViewed, onOpenInMyMenus }) => {
   const [activeTab, setActiveTab] = useState('assigned')
   const [selectedDate, setSelectedDate] = useState(todayISO())
   const [loading, setLoading] = useState(false)
@@ -914,6 +925,7 @@ const ClientMealPlans = ({ client, newlyGeneratedContainer, onContainerViewed })
                 onDeleteTemplate={handleDeleteTemplate}
                 onDeleteContainer={handleDeleteContainer}
                 onEditTemplate={handleEditTemplate}
+                onOpenInMyMenus={onOpenInMyMenus}
                 t={t}
               />
             )
