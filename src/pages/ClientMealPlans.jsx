@@ -7,6 +7,7 @@ import {
   deleteMenuTemplateByIdBO,
   deleteMenuContainerBO,
   updateMenuTemplateBO,
+  assignContainerAccessToUserBO,
 } from '../services/loggedinApi'
 import { exportMenuBuilderToPdf } from '../util/menuPdfExport'
 import { searchFoodItems, getItemsByIds } from '../services/api'
@@ -509,6 +510,9 @@ const TemplateCard = ({ template, userId, nutritionistId, onDeleted, onEdited, t
   const [assigning, setAssigning] = useState(false)
   const [assignError, setAssignError] = useState(null)
   const [assignSuccess, setAssignSuccess] = useState(false)
+  const [assigningLib, setAssigningLib] = useState(false)
+  const [assignLibSuccess, setAssignLibSuccess] = useState(false)
+  const [assignLibError, setAssignLibError] = useState(null)
   const [expanded, setExpanded] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -532,6 +536,18 @@ const TemplateCard = ({ template, userId, nutritionistId, onDeleted, onEdited, t
       setTimeout(() => setAssignSuccess(false), 3000)
     } catch (e) { setAssignError(e?.message || 'Failed to assign') }
     finally { setAssigning(false) }
+  }
+
+  const handleAssignLibrary = async () => {
+    setAssigningLib(true)
+    setAssignLibError(null)
+    setAssignLibSuccess(false)
+    try {
+      await assignContainerAccessToUserBO({ userId, menuTemplateIds: [localTemplate.id], createdByUserId: nutritionistId })
+      setAssignLibSuccess(true)
+      setTimeout(() => setAssignLibSuccess(false), 3000)
+    } catch (e) { setAssignLibError(e?.message || 'Failed to grant access') }
+    finally { setAssigningLib(false) }
   }
 
   const handleDelete = async () => {
@@ -632,6 +648,32 @@ const TemplateCard = ({ template, userId, nutritionistId, onDeleted, onEdited, t
               </button>
               {assignSuccess && <span className="text-xs text-emerald-600 font-medium">Assigned!</span>}
               {assignError && <span className="text-xs text-red-600">{assignError}</span>}
+              <div className="h-4 w-px bg-gray-200 mx-1" />
+              <button
+                onClick={handleAssignLibrary}
+                disabled={assigningLib}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white text-sm rounded-md hover:bg-violet-700 disabled:opacity-60 transition"
+                title="Grant library access (no date — user can assign from their app)"
+              >
+                {assigningLib ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Granting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Grant Library Access
+                  </>
+                )}
+              </button>
+              {assignLibSuccess && <span className="text-xs text-violet-600 font-medium">Added to library ✓</span>}
+              {assignLibError && <span className="text-xs text-red-600">{assignLibError}</span>}
             </div>
           </div>
         )}
@@ -657,6 +699,9 @@ const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, sc
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [assigning, setAssigning] = useState(false)
+  const [assignSuccess, setAssignSuccess] = useState(false)
+  const [assignError, setAssignError] = useState(null)
 
   useEffect(() => {
     if (isHighlighted) {
@@ -685,6 +730,26 @@ const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, sc
       window.alert('Failed to export PDF')
     } finally {
       setExportingPdf(false)
+    }
+  }
+
+  const handleAssignContainer = async () => {
+    setAssigning(true)
+    setAssignError(null)
+    setAssignSuccess(false)
+    try {
+      const menuTemplateIds = container.menus.map(m => m.id)
+      await assignContainerAccessToUserBO({
+        userId,
+        menuTemplateIds,
+        createdByUserId: nutritionistId,
+      })
+      setAssignSuccess(true)
+      setTimeout(() => setAssignSuccess(false), 3000)
+    } catch (e) {
+      setAssignError(e?.message || 'Failed to assign')
+    } finally {
+      setAssigning(false)
     }
   }
 
@@ -742,6 +807,23 @@ const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, sc
                   </svg>
                 )}
               </button>
+              <button
+                onClick={handleAssignContainer}
+                disabled={assigning}
+                className="p-1.5 text-gray-400 hover:text-violet-600 rounded hover:bg-violet-50 transition-colors disabled:opacity-60"
+                title="Assign entire plan to client"
+              >
+                {assigning ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
+              </button>
               <button onClick={() => setConfirmingDelete(true)} className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors" title="Delete entire group">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -753,6 +835,16 @@ const ContainerSection = ({ container, userId, nutritionistId, isHighlighted, sc
       </div>
 
       {deleteError && <p className="px-4 py-1 text-xs text-red-600 bg-gray-50 border-t border-gray-200">{deleteError}</p>}
+      {assignSuccess && (
+        <p className="px-4 py-1 text-xs text-violet-600 bg-violet-50 border-t border-violet-100">
+          Plan assigned to client's app ✓
+        </p>
+      )}
+      {assignError && (
+        <p className="px-4 py-1 text-xs text-red-600 bg-red-50 border-t border-red-100">
+          {assignError}
+        </p>
+      )}
 
       {expanded && (
         <div className="p-3 space-y-2 bg-white">

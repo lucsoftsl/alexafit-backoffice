@@ -410,6 +410,18 @@ export async function assignMenuContainerToUserBO({
   })
 }
 
+export async function assignContainerAccessToUserBO({
+  userId,
+  menuTemplateIds,
+  createdByUserId
+}) {
+  // Assigns container access to user WITHOUT dates — user picks dates in the app
+  return request('/foodsync/assignMenuContainerToUserBO', {
+    method: 'POST',
+    body: { userId, menuTemplateIds, createdByUserId }
+  })
+}
+
 export async function reorderMenuContainerBO({
   menuTemplateOrders,
   containerName,
