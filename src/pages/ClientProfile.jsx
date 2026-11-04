@@ -6,6 +6,12 @@ import { saveUserDataFromWelcomeScreen, getUserCheckins } from '../services/logg
 import { PencilIcon, CheckIcon, XMarkIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import FormSelect from '../components/FormSelect'
 import { selectIsAdmin } from '../store/userSlice'
+import {
+  formatHeightByPreference,
+  formatWeightByPreference,
+  getBodyMetrics,
+  isImperialFromUserData
+} from '../util/units'
 
 // Module-scoped guard to persist across StrictMode remounts in dev
 const goalDataGuard = new Set()
@@ -205,13 +211,13 @@ const ClientProfile = ({ client }) => {
               {client?.userData?.selectedHeight && (
                 <InfoRow 
                   label={t('pages.clientProfile.height')} 
-                  value={`${client.userData.selectedHeight} ${client.userData.selectedHeightMeasurementUnit === 'METRIC' ? 'cm' : 'in'}`} 
+                  value={formatHeightByPreference(getBodyMetrics(client.userData).heightCm, isImperialFromUserData(client.userData))}
                 />
               )}
               {client?.userData?.selectedWeight && (
                 <InfoRow 
                   label={t('pages.clientProfile.weight')} 
-                  value={`${client.userData.selectedWeight} ${client.userData.selectedWeightMeasurementUnit === 'METRIC' ? 'kg' : 'lb'}`} 
+                  value={formatWeightByPreference(getBodyMetrics(client.userData).weightKg, isImperialFromUserData(client.userData))}
                 />
               )}
               {client?.userData?.selectedActivityType && (

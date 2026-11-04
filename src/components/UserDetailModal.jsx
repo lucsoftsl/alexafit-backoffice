@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { useState, useEffect, useCallback } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
+import { useSelector } from 'react-redux'
 import {
   XMarkIcon,
   CalendarIcon,
@@ -17,7 +18,8 @@ import {
   ChevronUpIcon,
   ArrowPathIcon,
   UserCircleIcon,
-  CheckIcon
+  CheckIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline'
 import {
   fetchUserDailyNutrition,
@@ -31,9 +33,21 @@ import {
   setUserDisplayName
 } from '../services/api'
 import { computeAppliedItemTotals } from '../util/menuDisplay'
+import { selectIsAdmin } from '../store/userSlice'
+import {
+  formatHeightByPreference,
+  formatWeightByPreference,
+  getBodyMetrics,
+  isImperialFromUserData
+} from '../util/units'
+
+// Lazy: the drawer brings recharts, which this modal doesn't otherwise need.
+const AiUserDrawer = lazy(() => import('../pages/ai/AiUserDrawer'))
 
 const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
   const { t } = useTranslation()
+  const isAdmin = useSelector(selectIsAdmin)
+  const [showAiUsage, setShowAiUsage] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [nutritionData, setNutritionData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -387,6 +401,16 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
               {user?.name || t('common.User Details')}
             </h2>
             <p className="text-gray-600 mt-1">{t('common.User ID')}: {user?.userId}</p>
+            {isAdmin && user?.userId ? (
+              <button
+                type="button"
+                onClick={() => setShowAiUsage(true)}
+                className="af-focus af-press mt-3 inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-sm font-medium text-violet-800 hover:border-violet-400"
+              >
+                <CpuChipIcon className="h-4 w-4" aria-hidden />
+                {t('admin.ai.drawer.viewAiUsage')}
+              </button>
+            ) : null}
 
             {user?.userId && <div className="flex items-center mt-3 space-x-3">
               <span className="text-sm text-gray-600">{t('Hide nutrients for user')}:</span>
@@ -542,9 +566,10 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
                     { label: 'Birth Date', value: formatVal(ud.selectedBirthDate) },
                     { label: 'Goal', value: formatGoal(ud.selectedGoalType) },
                     { label: 'Activity', value: formatActivity(ud.selectedActivityType) },
-                    { label: 'Height', value: ud.selectedHeight ? `${ud.selectedHeight} ${ud.selectedHeightMeasurementUnit === 'IMPERIAL' ? 'in' : 'cm'}` : 'N/A' },
-                    { label: 'Weight', value: ud.selectedWeight ? `${ud.selectedWeight} ${ud.selectedWeightMeasurementUnit === 'IMPERIAL' ? 'lb' : 'kg'}` : 'N/A' },
-                    { label: 'Target Weight', value: ud.selectedTargetWeight ? `${ud.selectedTargetWeight} ${ud.selectedTargetWeightMeasurementUnit === 'IMPERIAL' ? 'lb' : 'kg'}` : 'N/A' },
+                    { label: 'Units', value: isImperialFromUserData(ud) ? 'Imperial' : 'Metric' },
+                    { label: 'Height', value: formatHeightByPreference(getBodyMetrics(ud).heightCm, isImperialFromUserData(ud)) },
+                    { label: 'Weight', value: formatWeightByPreference(getBodyMetrics(ud).weightKg, isImperialFromUserData(ud)) },
+                    { label: 'Target Weight', value: formatWeightByPreference(getBodyMetrics(ud).targetWeightKg, isImperialFromUserData(ud)) },
                     { label: 'Country', value: formatVal(ld.country) },
                     { label: 'User Type', value: formatVal(user.userType) },
                     { label: 'Food Tables', value: formatVal(user.foodTables) },
@@ -1448,6 +1473,15 @@ const UserDetailModal = ({ isOpen, onClose, user, fromPage, onUserUpdate }) => {
           })()}
         </div>
       </div>
+
+      {showAiUsage && user?.userId ? (
+        <Suspense fallback={null}>
+          <AiUserDrawer
+            userId={user.userId}
+            onClose={() => setShowAiUsage(false)}
+          />
+        </Suspense>
+      ) : null}
 
       {/* Push Notification Popup */}
       {showPushNotificationPopup && (

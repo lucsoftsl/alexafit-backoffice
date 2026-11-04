@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react'
+import { getAlertsSummary } from '../services/adminApi'
+import { openAlertCount } from '../pages/alerts/model'
 import { useSelector } from 'react-redux'
 import {
   HomeIcon,
@@ -14,7 +17,10 @@ import {
   ChatBubbleLeftIcon,
   BugAntIcon,
   MagnifyingGlassIcon,
-  TrashIcon
+  TrashIcon,
+  CpuChipIcon,
+  ExclamationTriangleIcon,
+  TrophyIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
@@ -36,6 +42,23 @@ const Sidebar = ({
   const { t } = useTranslation()
   const isAdmin = useSelector(selectIsAdmin)
   const isNutritionist = useSelector(selectIsNutritionist)
+  const [alertCount, setAlertCount] = useState(0)
+  useEffect(() => {
+    if (!isAdmin) return
+    let active = true
+    let pending = false
+    const refresh = async () => {
+      if (pending) return
+      pending = true
+      try {
+        const summary = await getAlertsSummary()
+        if (active) setAlertCount(openAlertCount(summary))
+      } catch { if (active) setAlertCount(0) } finally { pending = false }
+    }
+    refresh()
+    const timer = window.setInterval(refresh, 60000)
+    return () => { active = false; window.clearInterval(timer) }
+  }, [isAdmin])
 
   const allMenuItems = [
     { id: 'dashboard', labelKey: 'sidebar.dashboard', icon: HomeIcon, adminOnly: true },
@@ -54,6 +77,9 @@ const Sidebar = ({
     { id: 'deleted-users', labelKey: 'sidebar.deletedUsers', icon: TrashIcon, adminOnly: true },
     { id: 'subscribers', labelKey: 'sidebar.subscribers', icon: UserGroupIcon, adminOnly: true },
     { id: 'analytics', labelKey: 'sidebar.analytics', icon: ChartBarIcon, adminOnly: true },
+    { id: 'alerts', labelKey: 'sidebar.alerts', icon: ExclamationTriangleIcon, adminOnly: true },
+    { id: 'ai', labelKey: 'sidebar.ai', fallbackLabel: 'AI models', icon: CpuChipIcon, adminOnly: true },
+    { id: 'gamification', labelKey: 'sidebar.gamification', fallbackLabel: 'Gamification', icon: TrophyIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
     { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },
     { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false },
@@ -207,6 +233,7 @@ const Sidebar = ({
                     >
                       <Icon className={`w-5 h-5 mr-3 ${isNestedProgressItem ? 'text-gray-400' : ''}`} />
               {item.fallbackLabel ? t(item.labelKey, item.fallbackLabel) : t(item.labelKey)}
+                      {item.id === 'alerts' && alertCount > 0 && <span className="ml-auto rounded-full bg-rose-100 px-2 text-xs font-semibold text-rose-700">{alertCount}</span>}
                     </button>
                   )
                 })}

@@ -1,33 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
-import Dashboard from './pages/Dashboard'
-import MyDay from './pages/MyDay'
-import MyUsers from './pages/MyUsers'
-import MyMenus from './pages/MyMenus'
-import MyRecipes from './pages/MyRecipes'
-import FoodItems from './pages/FoodItems'
-import Users from './pages/Users'
-import Subscribers from './pages/Subscribers'
-import UnapprovedItems from './pages/UnapprovedItems'
-import Analytics from './pages/Analytics'
-import Menus from './pages/Menus'
-import Recipes from './pages/Recipes'
-import DefaultRecipes from './pages/DefaultRecipes'
-import Settings from './pages/Settings'
-import UserProgress from './pages/UserProgress'
-import UserNotes from './pages/UserNotes'
-import ClientJournal from './pages/ClientJournal'
-import ClientProfile from './pages/ClientProfile'
-import ClientMealPlans from './pages/ClientMealPlans'
-import ClientNotes from './pages/ClientNotes'
-import Chat from './pages/Chat'
-import Tutorials from './pages/Tutorials'
-import BugHunting from './pages/BugHunting'
-import DeletedUsers from './pages/DeletedUsers'
-import SearchItems from './pages/SearchItems'
-import Messages from './pages/Messages'
-import Surveys from './pages/Surveys'
 import Login from './components/Login'
 import { useAuth } from './contexts/AuthContext'
 import {
@@ -39,6 +12,38 @@ import {
 } from './store/userSlice'
 import { ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
+
+// Pages load on demand (one chunk each) so the first paint ships less JS.
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const MyDay = lazy(() => import('./pages/MyDay'))
+const MyUsers = lazy(() => import('./pages/MyUsers'))
+const MyMenus = lazy(() => import('./pages/MyMenus'))
+const MyRecipes = lazy(() => import('./pages/MyRecipes'))
+const FoodItems = lazy(() => import('./pages/FoodItems'))
+const Users = lazy(() => import('./pages/Users'))
+const Subscribers = lazy(() => import('./pages/Subscribers'))
+const UnapprovedItems = lazy(() => import('./pages/UnapprovedItems'))
+const Analytics = lazy(() => import('./pages/Analytics'))
+const Menus = lazy(() => import('./pages/Menus'))
+const Recipes = lazy(() => import('./pages/Recipes'))
+const DefaultRecipes = lazy(() => import('./pages/DefaultRecipes'))
+const Settings = lazy(() => import('./pages/Settings'))
+const UserProgress = lazy(() => import('./pages/UserProgress'))
+const UserNotes = lazy(() => import('./pages/UserNotes'))
+const ClientJournal = lazy(() => import('./pages/ClientJournal'))
+const ClientProfile = lazy(() => import('./pages/ClientProfile'))
+const ClientMealPlans = lazy(() => import('./pages/ClientMealPlans'))
+const ClientNotes = lazy(() => import('./pages/ClientNotes'))
+const Chat = lazy(() => import('./pages/Chat'))
+const Tutorials = lazy(() => import('./pages/Tutorials'))
+const BugHunting = lazy(() => import('./pages/BugHunting'))
+const DeletedUsers = lazy(() => import('./pages/DeletedUsers'))
+const SearchItems = lazy(() => import('./pages/SearchItems'))
+const Messages = lazy(() => import('./pages/Messages'))
+const Surveys = lazy(() => import('./pages/Surveys'))
+const AiModels = lazy(() => import('./pages/AiModels'))
+const Gamification = lazy(() => import('./pages/Gamification'))
+const Alerts = lazy(() => import('./pages/Alerts'))
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -175,7 +180,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
+    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'ai', 'alerts', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems', 'messages', 'surveys']
     // Nutritionist-only pages
@@ -287,7 +292,13 @@ function App() {
       case 'searchItems':
         return <SearchItems />
       case 'analytics':
-        return <Analytics />
+        return <Analytics onNavigate={handleNavigate} />
+      case 'alerts':
+        return <Alerts />
+      case 'ai':
+        return <AiModels />
+      case 'gamification':
+        return <Gamification onOpenPurchases={() => setActivePage('users')} />
       case 'menus':
         return <Menus />
       case 'recipes':
@@ -538,7 +549,18 @@ function App() {
                 </span>
               </div>
             )}
-            {renderPage()}
+            <Suspense
+              fallback={
+                <div className="space-y-4" aria-busy="true">
+                  <div className="af-skeleton h-10 w-1/3" />
+                  <div className="af-skeleton h-64 w-full rounded-3xl" />
+                </div>
+              }
+            >
+              <div key={activePage} className="af-enter">
+                {renderPage()}
+              </div>
+            </Suspense>
             <footer className="mt-10 border-t border-gray-200 pt-6">
               <div className="flex flex-col gap-2 text-center text-sm text-[#8ca0bf] md:flex-row md:items-center md:justify-center md:gap-3">
                 <span>{`© ${currentYear} AlexaFit ${t('pages.app.footer.rightsReserved')}`}</span>

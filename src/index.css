@@ -31,3 +31,194 @@
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
   }
 }
+/* ─── Admin surfaces (AI, Analytics overview): tokens + motion ───────────────
+   Motion stays on transform/opacity, under 250ms, and switches off for
+   prefers-reduced-motion. */
+:root {
+  --af-ink: #0f172a;
+  --af-ink-2: #475569;
+  --af-ink-3: #94a3b8;
+  --af-line: #e2e8f0;
+  --af-accent: #6d28d9;
+  --af-accent-soft: #ede9fe;
+  --af-azure: #2a78d6;
+  --af-tidb: #1baf7a;
+  --af-ok: #047857;
+  --af-warn: #b45309;
+  --af-bad: #be123c;
+  --af-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --af-fast: 160ms;
+  --af-normal: 220ms;
+}
+
+@keyframes af-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes af-drawer-in {
+  from {
+    opacity: 0.4;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes af-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes af-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@layer components {
+  .af-enter {
+    animation: af-fade-up var(--af-normal) var(--af-ease) both;
+  }
+
+  /* Side drawer (Admin › AI user drawer): slides in from the right. */
+  .af-drawer {
+    animation: af-drawer-in var(--af-normal) var(--af-ease) both;
+  }
+  .af-backdrop {
+    animation: af-backdrop-in var(--af-normal) var(--af-ease) both;
+  }
+
+  .af-skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: #f1f5f9;
+  }
+  .af-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.75), transparent);
+    animation: af-shimmer 1.1s linear infinite;
+  }
+
+  /* Card that lifts on hover; the shadow is a pseudo-element faded in with
+     opacity so nothing but transform/opacity animates. */
+  .af-lift {
+    position: relative;
+    transition: transform var(--af-fast) var(--af-ease);
+  }
+  .af-lift::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 14px 30px -18px rgb(15 23 42 / 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--af-fast) var(--af-ease);
+  }
+  .af-lift:hover,
+  .af-lift:focus-within {
+    transform: translateY(-2px);
+  }
+  .af-lift:hover::before,
+  .af-lift:focus-within::before {
+    opacity: 1;
+  }
+  .af-lift:active {
+    transform: translateY(0);
+  }
+
+  /* Accent underline that grows from the left. */
+  .af-underline {
+    position: relative;
+  }
+  .af-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--af-accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--af-normal) var(--af-ease);
+  }
+  .af-underline:hover::after,
+  .af-underline:focus-visible::after,
+  .af-underline[aria-selected='true']::after,
+  .af-underline[aria-current='true']::after {
+    transform: scaleX(1);
+  }
+
+  .af-fade {
+    transition: opacity var(--af-normal) var(--af-ease);
+  }
+
+  .af-press {
+    transition: transform var(--af-fast) var(--af-ease),
+      opacity var(--af-fast) var(--af-ease);
+  }
+  .af-press:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .af-bar-fill {
+    transform-origin: left;
+    transition: transform var(--af-normal) var(--af-ease);
+  }
+
+  .af-focus:focus-visible {
+    outline: 2px solid var(--af-accent);
+    outline-offset: 2px;
+  }
+
+  .af-num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-enter,
+  .af-drawer,
+  .af-backdrop,
+  .af-skeleton::after {
+    animation: none;
+  }
+  .af-lift,
+  .af-lift::before,
+  .af-underline::after,
+  .af-fade,
+  .af-press,
+  .af-bar-fill {
+    transition: none;
+  }
+  .af-lift:hover,
+  .af-lift:focus-within {
+    transform: none;
+  }
+  .animate-spin {
+    animation-duration: 1.6s;
+  }
+}

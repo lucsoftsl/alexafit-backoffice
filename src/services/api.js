@@ -189,9 +189,7 @@ export const sendPushNotification = async (
       `${API_BASE_FOODSYNC_URL}/notifications/sendPushNotification`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: await getHeaders(),
         body: JSON.stringify({
           pushNotificationToken,
           notificationTitle,
