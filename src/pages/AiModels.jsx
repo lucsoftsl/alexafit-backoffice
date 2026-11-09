@@ -298,13 +298,6 @@ const AiModels = () => {
       </header>
 
       <div className="space-y-3">
-        {data?.envForcedProvider ? (
-          <Banner tone="warn">
-            {t('admin.ai.envForced', {
-              provider: providerLabel(data.envForcedProvider)
-            })}
-          </Banner>
-        ) : null}
         {data?.meta?.readError ? (
           <Banner tone="bad">
             {t('admin.ai.readError', { code: data.meta.readError })}

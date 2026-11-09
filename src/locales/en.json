@@ -1630,7 +1630,6 @@
       "errorRate": "Error rate",
       "fallbackRate": "Fallback rate",
       "slowestP95": "Slowest p95",
-      "envForced": "The server has AI_PROVIDER set, so features without a provider chosen here run on {{provider}}. A provider you pick for a feature wins.",
       "readError": "The settings could not be read ({{code}}), so the built-in models are running.",
       "nothingSaved": "Nothing is saved yet: every feature runs exactly as before (built-in providers and models).",
       "loadFailed": "Could not load the AI settings.",

@@ -1623,7 +1623,6 @@
       "errorRate": "Taux d'erreur",
       "fallbackRate": "Taux de repli",
       "slowestP95": "p95 le plus lent",
-      "envForced": "Le serveur définit AI_PROVIDER : les fonctions sans fournisseur choisi ici tournent sur {{provider}}. Un fournisseur choisi pour une fonction l'emporte.",
       "readError": "Les réglages n'ont pas pu être lus ({{code}}) ; les modèles intégrés sont utilisés.",
       "nothingSaved": "Rien n'est encore enregistré : chaque fonction tourne exactement comme avant (fournisseurs et modèles intégrés).",
       "loadFailed": "Impossible de charger les réglages IA.",

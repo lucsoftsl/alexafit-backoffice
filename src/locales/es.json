@@ -1655,7 +1655,6 @@
       "errorRate": "Tasa de errores",
       "fallbackRate": "Tasa de respaldo",
       "slowestP95": "p95 más lento",
-      "envForced": "El servidor tiene AI_PROVIDER definido: las funciones sin proveedor elegido aquí usan {{provider}}. Un proveedor elegido para una función tiene prioridad.",
       "readError": "No se pudieron leer los ajustes ({{code}}), así que se usan los modelos integrados.",
       "nothingSaved": "Aún no hay nada guardado: cada función funciona exactamente como antes (proveedores y modelos integrados).",
       "loadFailed": "No se pudieron cargar los ajustes de IA.",

@@ -1625,7 +1625,6 @@
       "errorRate": "Rată de erori",
       "fallbackRate": "Rată de rezervă",
       "slowestP95": "Cel mai lent p95",
-      "envForced": "Serverul are setat AI_PROVIDER, așa că funcțiile fără furnizor ales aici rulează pe {{provider}}. Furnizorul ales pentru o funcție are prioritate.",
       "readError": "Setările nu au putut fi citite ({{code}}), așa că rulează modelele implicite.",
       "nothingSaved": "Nimic salvat încă: fiecare funcție rulează exact ca înainte (furnizori și modele implicite).",
       "loadFailed": "Nu am putut încărca setările AI.",
