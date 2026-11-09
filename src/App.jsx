@@ -44,6 +44,7 @@ const Surveys = lazy(() => import('./pages/Surveys'))
 const AiModels = lazy(() => import('./pages/AiModels'))
 const Gamification = lazy(() => import('./pages/Gamification'))
 const Alerts = lazy(() => import('./pages/Alerts'))
+const AppControls = lazy(() => import('./pages/AppControls'))
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -180,7 +181,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'ai', 'alerts', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
+    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'ai', 'alerts', 'app-controls', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems', 'messages', 'surveys']
     // Nutritionist-only pages
@@ -295,6 +296,8 @@ function App() {
         return <Analytics onNavigate={handleNavigate} />
       case 'alerts':
         return <Alerts />
+      case 'app-controls':
+        return <AppControls />
       case 'ai':
         return <AiModels />
       case 'gamification':

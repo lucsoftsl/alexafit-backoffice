@@ -180,6 +180,12 @@ export const getTierLimits = ({ signal } = {}) =>
 export const saveTierLimits = tierLimits =>
   call(api('/backoffice/ai/tier-limits'), { method: 'PUT', body: tierLimits })
 
+export const getAppConfig = ({ signal } = {}) =>
+  call(api('/backoffice/app-config'), { signal })
+
+export const saveAppConfig = config =>
+  call(api('/backoffice/app-config'), { method: 'PUT', body: config })
+
 export const getAbuseAlerts = ({ signal, ...filters } = {}) =>
   call(api(`/backoffice/alerts${query(filters)}`), { signal })
 export const getAlertsSummary = () => call(api('/backoffice/alerts/summary'))

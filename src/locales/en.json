@@ -301,7 +301,8 @@
     "surveys": "Surveys",
     "ai": "AI models",
     "gamification": "Gamification",
-    "alerts": "Alerts"
+    "alerts": "Alerts",
+    "appControls": "App controls"
   },
   "pages": {
     "messages": {
@@ -1567,6 +1568,29 @@
   "Today": "Today",
   "Yesterday": "Yesterday",
   "admin": {
+    "appControls": {
+      "title": "App controls",
+      "subtitle": "Switches the mobile apps read when they start.",
+      "loading": "Loading…",
+      "tableMissing": "The settings table is missing. Run migration D_001 first.",
+      "saveFailed": "Could not save. Your change was undone.",
+      "ota": {
+        "title": "Over-the-air updates",
+        "description": "When off, the apps stop contacting the update server from their next launch. Devices keep the bundle they already have."
+      },
+      "tours": {
+        "title": "Guided tours",
+        "description": "Show tutorials to new installs, and offer them again in Help. Changes reach the apps the next time they start.",
+        "pages": {
+          "dashboard": "Home and bottom bar",
+          "recipes": "Recipes",
+          "fasting": "Fasting",
+          "coaching": "Coaching",
+          "progress": "Progress",
+          "profile": "Profile"
+        }
+      }
+    },
     "common": {
       "refresh": "Refresh",
       "refreshAll": "Refresh all",

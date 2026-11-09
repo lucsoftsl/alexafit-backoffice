@@ -333,7 +333,8 @@
     "surveys": "Encuestas",
     "ai": "Modelos de IA",
     "gamification": "Gamificación",
-    "alerts": "Alertas"
+    "alerts": "Alertas",
+    "appControls": "Controles de la app"
   },
   "pages": {
     "messages": {
@@ -1589,6 +1590,29 @@
     }
   },
   "admin": {
+    "appControls": {
+      "title": "Controles de la app",
+      "subtitle": "Opciones que las apps móviles leen al iniciarse.",
+      "loading": "Cargando…",
+      "tableMissing": "Falta la tabla de ajustes. Ejecuta primero la migración D_001.",
+      "saveFailed": "No se pudo guardar. Tu cambio se ha deshecho.",
+      "ota": {
+        "title": "Actualizaciones over-the-air",
+        "description": "Si se desactiva, las apps dejan de contactar con el servidor de actualizaciones desde su próximo inicio. Los dispositivos conservan el paquete que ya tienen."
+      },
+      "tours": {
+        "title": "Tutoriales guiados",
+        "description": "Muestra los tutoriales en las instalaciones nuevas y los ofrece de nuevo en Ayuda. Los cambios llegan a las apps la próxima vez que se inicien.",
+        "pages": {
+          "dashboard": "Inicio y barra inferior",
+          "recipes": "Recetas",
+          "fasting": "Ayuno",
+          "coaching": "Coaching",
+          "progress": "Progreso",
+          "profile": "Perfil"
+        }
+      }
+    },
     "common": {
       "refresh": "Actualizar",
       "refreshAll": "Actualizar todo",

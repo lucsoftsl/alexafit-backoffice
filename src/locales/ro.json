@@ -301,7 +301,8 @@
     "surveys": "Chestionare",
     "ai": "Modele AI",
     "gamification": "Gamificare",
-    "alerts": "Alerte"
+    "alerts": "Alerte",
+    "appControls": "Control aplicație"
   },
   "pages": {
     "messages": {
@@ -1559,6 +1560,29 @@
     }
   },
   "admin": {
+    "appControls": {
+      "title": "Control aplicație",
+      "subtitle": "Comutatoare citite de aplicațiile mobile la pornire.",
+      "loading": "Se încarcă…",
+      "tableMissing": "Tabelul de setări lipsește. Rulează mai întâi migrarea D_001.",
+      "saveFailed": "Nu s-a putut salva. Modificarea a fost anulată.",
+      "ota": {
+        "title": "Actualizări over-the-air",
+        "description": "Când este oprit, aplicațiile nu mai contactează serverul de actualizări de la următoarea pornire. Dispozitivele păstrează pachetul pe care îl au deja."
+      },
+      "tours": {
+        "title": "Tururi ghidate",
+        "description": "Afișează tutorialele pentru instalările noi și oferă-le din nou în Ajutor. Modificările ajung în aplicații la următoarea pornire.",
+        "pages": {
+          "dashboard": "Acasă și bara de jos",
+          "recipes": "Rețete",
+          "fasting": "Post",
+          "coaching": "Coaching",
+          "progress": "Progres",
+          "profile": "Profil"
+        }
+      }
+    },
     "common": {
       "refresh": "Reîmprospătează",
       "refreshAll": "Reîmprospătează tot",

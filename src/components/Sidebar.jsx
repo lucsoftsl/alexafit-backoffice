@@ -20,6 +20,7 @@ import {
   TrashIcon,
   CpuChipIcon,
   ExclamationTriangleIcon,
+  AdjustmentsHorizontalIcon,
   TrophyIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
@@ -78,6 +79,7 @@ const Sidebar = ({
     { id: 'subscribers', labelKey: 'sidebar.subscribers', icon: UserGroupIcon, adminOnly: true },
     { id: 'analytics', labelKey: 'sidebar.analytics', icon: ChartBarIcon, adminOnly: true },
     { id: 'alerts', labelKey: 'sidebar.alerts', icon: ExclamationTriangleIcon, adminOnly: true },
+    { id: 'app-controls', labelKey: 'sidebar.appControls', fallbackLabel: 'App controls', icon: AdjustmentsHorizontalIcon, adminOnly: true },
     { id: 'ai', labelKey: 'sidebar.ai', fallbackLabel: 'AI models', icon: CpuChipIcon, adminOnly: true },
     { id: 'gamification', labelKey: 'sidebar.gamification', fallbackLabel: 'Gamification', icon: TrophyIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },

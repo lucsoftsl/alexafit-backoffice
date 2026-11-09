@@ -301,7 +301,8 @@
     "surveys": "Sondages",
     "ai": "Modèles IA",
     "gamification": "Gamification",
-    "alerts": "Alertes"
+    "alerts": "Alertes",
+    "appControls": "Contrôles de l'app"
   },
   "pages": {
     "messages": {
@@ -1557,6 +1558,29 @@
     }
   },
   "admin": {
+    "appControls": {
+      "title": "Contrôles de l'app",
+      "subtitle": "Options lues par les applications mobiles au démarrage.",
+      "loading": "Chargement…",
+      "tableMissing": "La table des paramètres est absente. Lancez d’abord la migration D_001.",
+      "saveFailed": "Enregistrement impossible. Votre modification a été annulée.",
+      "ota": {
+        "title": "Mises à jour over-the-air",
+        "description": "Une fois désactivées, les applications ne contactent plus le serveur de mise à jour dès leur prochain lancement. Les appareils conservent le bundle déjà installé."
+      },
+      "tours": {
+        "title": "Visites guidées",
+        "description": "Affiche les tutoriels aux nouvelles installations et les propose à nouveau dans Aide. Les changements s'appliquent au prochain démarrage des applications.",
+        "pages": {
+          "dashboard": "Accueil et barre du bas",
+          "recipes": "Recettes",
+          "fasting": "Jeûne",
+          "coaching": "Coaching",
+          "progress": "Progrès",
+          "profile": "Profil"
+        }
+      }
+    },
     "common": {
       "refresh": "Actualiser",
       "refreshAll": "Tout actualiser",
