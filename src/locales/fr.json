@@ -302,7 +302,8 @@
     "ai": "Modèles IA",
     "gamification": "Gamification",
     "alerts": "Alertes",
-    "appControls": "Contrôles de l'app"
+    "appControls": "Contrôles de l'app",
+    "orbHunt": "Chasse aux orbes"
   },
   "pages": {
     "messages": {
@@ -1579,6 +1580,28 @@
           "progress": "Progrès",
           "profile": "Profil"
         }
+      },
+      "orbHunt": {
+        "title": "Chasse aux orbes",
+        "description": "Interrupteur général de la chasse. Désactivé, toutes les routes Chasse aux orbes de l’app répondent « en pause ».",
+        "exploreTitle": "Chasse aux orbes : exploration et repères",
+        "exploreDescription": "Coupe uniquement les fonctions GPS (orbes à pied et repères). Pas, séries et Super Orbes continuent de fonctionner.",
+        "appCheckTitle": "Vérification de l'appareil (App Check)",
+        "appCheckDescription": "Vérifie que les captures d'orbes viennent de la vraie app AlexaFit sur un appareil authentique (Play Integrity / App Attest).",
+        "appCheckModes": {
+          "off": "Désactivé",
+          "monitor": "Surveillance",
+          "enforce": "Obligatoire"
+        },
+        "appCheckHelp": {
+          "off": "Aucune vérification.",
+          "monitor": "Vérifié et enregistré à chaque capture (voir les preuves de l'orbe), rien n'est refusé. À utiliser jusqu'à ce que la console Firebase soit configurée et que la plupart des utilisateurs aient la nouvelle version.",
+          "enforce": "Les captures sans jeton valide sont refusées. Les utilisateurs d'anciennes versions doivent mettre à jour."
+        }
+      },
+      "sliceGame": {
+        "title": "Mini-jeu Slice ’n Dice",
+        "description": "Désactivé, l’app masque tous les accès au jeu : l’icône du tableau de bord, la ligne du profil et les liens de duel."
       }
     },
     "common": {
@@ -1999,6 +2022,627 @@
         "reason": "Motif",
         "dropped": "Événements rejetés",
         "project": "Projet"
+      }
+    },
+    "orbHunt": {
+      "tabs": {
+        "overview": "Vue d’ensemble",
+        "campaigns": "Campagnes",
+        "participants": "Participants",
+        "payouts": "Versements",
+        "map": "Carte",
+        "fraud": "File de fraude",
+        "audit": "Journal d’audit"
+      },
+      "page": {
+        "eyebrow": "Gamification",
+        "title": "Chasse aux orbes",
+        "subtitle": "Configurez la campagne, suivez la progression et gérez le support, les versements et les fraudes.",
+        "campaign": "Campagne",
+        "noCampaign": "Aucune campagne pour l’instant. Créez-en une d’abord.",
+        "goToCampaigns": "Aller aux campagnes →"
+      },
+      "status": {
+        "DRAFT": "Brouillon",
+        "LIVE": "En cours",
+        "ENDED": "Terminée",
+        "ARCHIVED": "Archivée"
+      },
+      "common": {
+        "close": "Fermer",
+        "cancel": "Annuler",
+        "confirm": "Confirmer",
+        "dismiss": "Masquer",
+        "details": "Détails",
+        "refresh": "Actualiser",
+        "reset": "Réinitialiser",
+        "exportCsv": "Exporter en CSV",
+        "optional": "facultatif",
+        "range": "{{min}}–{{max}}",
+        "pagination": "Pagination",
+        "pageOf": "Page {{page}} sur {{pages}} · {{total}} au total",
+        "previous": "Page précédente",
+        "next": "Page suivante",
+        "noteRequired": "Note (obligatoire, conservée dans le journal d’audit)",
+        "noteOptional": "Note (facultative)",
+        "noteHint": "Au moins {{min}} caractères."
+      },
+      "errors": {
+        "ANOTHER_LIVE": "Une autre campagne est en cours. Terminez-la avant de publier celle-ci.",
+        "CAMPAIGN_OVER": "La date de fin est passée. Reportez-la d’abord dans le futur.",
+        "CAMPAIGN_ARCHIVED": "Les campagnes archivées sont en lecture seule.",
+        "CAMPAIGN_NOT_FOUND": "Campagne introuvable. Rechargez la page.",
+        "SLOT_IN_USE": "Des utilisateurs ont déjà collecté cet emplacement : il ne peut être ni supprimé ni changer de type.",
+        "INVALID_TRANSITION": "Ce changement de statut n’est pas autorisé pour l’instant. Rechargez et réessayez.",
+        "NOTE_REQUIRED": "Une note de 3 à 1000 caractères est requise.",
+        "USER_NOT_FOUND": "Aucun utilisateur avec cet identifiant ou e-mail.",
+        "ORB_NOT_FOUND": "Orbe introuvable.",
+        "ALREADY_COLLECTED": "L’utilisateur possède déjà cet orbe.",
+        "ALREADY_REVOKED": "Cet orbe a déjà été révoqué.",
+        "WISH_GRANTED": "Le vœu a été accordé. Annulez le versement avant de réinitialiser la progression.",
+        "WISH_NOT_GRANTED": "Seuls les vœux accordés peuvent être annulés. Rechargez pour voir l’état actuel.",
+        "WISH_NOT_FAILED": "Seuls les versements échoués ou bloqués peuvent être relancés. Rechargez pour voir l’état actuel.",
+        "WISH_NOT_FOUND": "Vœu introuvable.",
+        "INSUFFICIENT_FUNDS": "L’utilisateur n’a pas assez de pièces.",
+        "PIN_NOT_FOUND": "Repère introuvable. Rechargez la carte.",
+        "TIMEOUT": "Le serveur a mis trop de temps à répondre. Réessayez.",
+        "NETWORK": "Erreur réseau. Vérifiez votre connexion et réessayez.",
+        "FORBIDDEN": "Seuls les administrateurs peuvent utiliser la console Chasse aux orbes.",
+        "INVALID": "Le serveur a refusé la saisie :",
+        "generic": "Une erreur est survenue. Réessayez."
+      },
+      "sourceTypes": {
+        "STEPS": "Pas",
+        "ACTIVE_DAYS": "Jours actifs",
+        "STREAK": "Série de saisies",
+        "EXPLORE": "Exploration"
+      },
+      "kinds": {
+        "REGULAR": "Orbe normal",
+        "SUPER": "Super Orbe",
+        "PIN": "Orbe de repère"
+      },
+      "wishStatus": {
+        "PENDING": "En attente",
+        "GRANTED": "Accordé",
+        "FAILED": "Échoué",
+        "REVERTED": "Annulé"
+      },
+      "wishTypes": {
+        "COINS": "Pièces",
+        "PREMIUM_DAYS": "Jours Premium"
+      },
+      "wishUnits": {
+        "COINS": "pièces",
+        "PREMIUM_DAYS": "jours Premium"
+      },
+      "reasons": {
+        "OK": "Attrapées",
+        "REJECTED": "Refusées",
+        "NO_CAMPAIGN": "Aucune campagne",
+        "BLOCKED": "Utilisateur bloqué",
+        "ORB_LOCKED": "Orbe encore verrouillé",
+        "ALREADY_COLLECTED": "Déjà collecté",
+        "CONDITION_NOT_MET": "Condition non remplie",
+        "STEPS_IMPLAUSIBLE": "Pas invraisemblables",
+        "SUPER_LIMIT": "Limite de Super Orbes par campagne",
+        "SUPER_WEEK_LIMIT": "Limite hebdomadaire de Super Orbes",
+        "BAD_DATE": "Date invalide",
+        "SPAWN_LIMIT": "Limite quotidienne d’apparitions",
+        "SPAWN_NOT_FOUND": "Apparition introuvable",
+        "SPAWN_EXPIRED": "Apparition expirée",
+        "LOW_ACCURACY": "Précision GPS faible",
+        "MOCK_LOCATION": "Position simulée",
+        "TOO_FAR": "Trop loin",
+        "TOO_FAST": "Déplacement trop rapide",
+        "STEPS_TOO_LOW": "Trop peu de pas",
+        "PIN_INACTIVE": "Repère inactif",
+        "PIN_DAY_LIMIT": "Limite quotidienne de repères",
+        "IMPOSSIBLE_TRAVEL": "Déplacement impossible",
+        "EXPLORE_DISABLED": "Exploration désactivée",
+        "WISH_NOT_READY": "Vœu pas prêt",
+        "PAYOUT_FAILED": "Versement échoué"
+      },
+      "results": {
+        "OK": "OK",
+        "REJECTED": "Refusée"
+      },
+      "actions": {
+        "CATCH": "Capture",
+        "SUPER": "Demande de Super Orbe",
+        "SPAWN": "Demande d’apparition",
+        "EXPLORE": "Capture d’exploration",
+        "PIN": "Capture de repère",
+        "WISH": "Vœu"
+      },
+      "decisions": {
+        "DISMISSED": "Écarté",
+        "BLOCKED": "Bloqué"
+      },
+      "auditActions": {
+        "CAMPAIGN_CREATE": "Campagne créée",
+        "CAMPAIGN_UPDATE": "Campagne modifiée",
+        "CAMPAIGN_PUBLISH": "Campagne publiée",
+        "CAMPAIGN_END": "Campagne terminée",
+        "CAMPAIGN_ARCHIVE": "Campagne archivée",
+        "PIN_CREATE": "Repère créé",
+        "PIN_UPDATE": "Repère modifié",
+        "PIN_DELETE": "Repère supprimé",
+        "PIN_DEACTIVATE": "Repère désactivé",
+        "ORB_GRANT": "Orbe accordé",
+        "ORB_REVOKE": "Orbe révoqué",
+        "PROGRESS_RESET": "Progression réinitialisée",
+        "USER_BLOCK": "Utilisateur bloqué",
+        "USER_UNBLOCK": "Utilisateur débloqué",
+        "NOTE": "Note",
+        "PAYOUT_RETRY": "Versement relancé",
+        "PAYOUT_REVERT": "Versement annulé",
+        "FLAG_DISMISS": "Signalement écarté"
+      },
+      "overview": {
+        "participants": "Participants",
+        "blockedHint": "{{count}} bloqués",
+        "active1d": "Actifs 24 h",
+        "active7d": "Actifs 7 jours",
+        "completed": "Terminés",
+        "wishes": "Vœux",
+        "wishesHint": "{{failed}} échoués · {{reverted}} annulés",
+        "coinsPaid": "Pièces versées",
+        "coinWishes": "{{count}} vœux en pièces",
+        "premiumDays": "Jours Premium",
+        "premiumWishes": "{{count}} vœux Premium",
+        "openFlags": "Signalements ouverts",
+        "emptyTitle": "Personne n’a encore rejoint",
+        "emptyHint": "Les chiffres apparaissent dès que les utilisateurs ouvrent la chasse dans l’app.",
+        "funnelEyebrow": "Entonnoir",
+        "funnel": "Utilisateurs par emplacements remplis",
+        "filledLabel": "{{count}} remplis",
+        "users": "Utilisateurs",
+        "slotsEyebrow": "Emplacements",
+        "perSlot": "Collectés par emplacement",
+        "collected": "Collectés",
+        "dailyEyebrow": "30 derniers jours",
+        "daily": "Orbes, inscriptions et vœux par jour",
+        "orbs": "Orbes",
+        "joins": "Inscriptions",
+        "noDaily": "Aucune activité sur les 30 derniers jours.",
+        "attemptsEyebrow": "7 derniers jours",
+        "attempts": "Tentatives par motif",
+        "noAttempts": "Aucune tentative sur les 7 derniers jours.",
+        "orbsEyebrow": "Orbes",
+        "orbKinds": "Orbes par type",
+        "regularOrbs": "Normaux",
+        "superOrbs": "Super Orbes",
+        "pinOrbs": "Orbes de repère",
+        "revokedOrbs": "Révoqués"
+      },
+      "campaigns": {
+        "intro": "Une seule campagne peut être en cours à la fois. Publier exige une date de fin future et au moins un emplacement.",
+        "new": "Nouvelle campagne",
+        "emptyTitle": "Aucune campagne",
+        "emptyHint": "Créez la première ; elle démarre en brouillon à partir du modèle par défaut.",
+        "campaign": "Campagne",
+        "status": "Statut",
+        "dates": "Dates",
+        "slots": "Emplacements",
+        "participants": "Participants",
+        "wishesGranted": "Vœux accordés",
+        "actions": "Actions",
+        "edit": "Modifier",
+        "view": "Voir",
+        "saved": "« {{title}} » enregistrée.",
+        "action": {
+          "publish": "Publier",
+          "end": "Terminer",
+          "archive": "Archiver",
+          "duplicate": "Dupliquer"
+        },
+        "confirm": {
+          "publish": {
+            "title": "Publier la campagne ?",
+            "message": "« {{title}} » sera immédiatement en cours pour tous les utilisateurs de l’app."
+          },
+          "end": {
+            "title": "Terminer la campagne ?",
+            "message": "La chasse s’arrête pour « {{title}} ». Ceux qui l’ont terminée peuvent encore faire leur vœu pendant le délai de grâce."
+          },
+          "archive": {
+            "title": "Archiver la campagne ?",
+            "message": "« {{title}} » passe en lecture seule et ne pourra plus être publiée."
+          },
+          "duplicate": {
+            "title": "Dupliquer la campagne ?",
+            "message": "Crée un nouveau brouillon copié de « {{title}} » avec les mêmes emplacements et réglages. Ajustez les dates avant de publier."
+          }
+        },
+        "done": {
+          "publish": "« {{title}} » est en cours.",
+          "end": "« {{title}} » est terminée.",
+          "archive": "« {{title}} » a été archivée.",
+          "duplicate": "Brouillon « {{title}} » créé."
+        }
+      },
+      "editor": {
+        "back": "Retour",
+        "newTitle": "Nouvelle campagne",
+        "editTitle": "Modifier la campagne",
+        "save": "Enregistrer",
+        "create": "Créer le brouillon",
+        "liveWarning": "En cours : les changements touchent tout de suite les utilisateurs",
+        "archivedReadOnly": "Cette campagne est archivée et ne peut qu’être consultée.",
+        "fixFirst": "Corrigez d’abord :",
+        "problems": {
+          "titleRequired": "Le titre anglais est obligatoire.",
+          "datesRequired": "Renseignez une date de début et de fin.",
+          "endBeforeStart": "La fin doit être après le début.",
+          "tooLong": "Une campagne dure au maximum {{days}} jours.",
+          "noSlots": "Ajoutez au moins un emplacement.",
+          "optionId": "Les identifiants des options de vœu doivent être des slugs en minuscules (a–z, 0–9, - et _).",
+          "optionDuplicate": "Les identifiants des options de vœu doivent être uniques.",
+          "daysWindow": "Emplacement {{slot}} : les jours ne peuvent pas dépasser la fenêtre.",
+          "distanceOrder": "Emplacement {{slot}} : la distance minimale doit être inférieure à la maximale."
+        },
+        "datesEyebrow": "Calendrier",
+        "dates": "Dates",
+        "startsAt": "Début",
+        "endsAt": "Fin",
+        "maxDays": "Au maximum {{days}} jours après le début. Heures dans votre fuseau horaire.",
+        "contentEyebrow": "Textes",
+        "content": "Contenu par langue",
+        "language": "Langue",
+        "enRequired": "L’anglais sert de repli pour toutes les langues ; son titre est obligatoire.",
+        "fallsBackToEn": "Les champs vides reprennent l’anglais dans l’app.",
+        "title": "Titre",
+        "description": "Description",
+        "wishText": "Texte du vœu",
+        "themeEyebrow": "Apparence",
+        "theme": "Thème",
+        "color": "Couleur du thème",
+        "colorHint": "Utilisez une couleur #rrggbb.",
+        "orbArt": "Visuel de l’orbe (URL https)",
+        "spiritArt": "Visuel de l’esprit (URL https)",
+        "preview": "Aperçu",
+        "upload": "Importer",
+        "uploading": "Import…",
+        "uploadFailed": "Échec de l’import. Réessayez ou collez une URL https.",
+        "httpsOnly": "Doit être une URL https://."
+      },
+      "slots": {
+        "eyebrow": "Constructeur d’emplacements",
+        "title": "Emplacements ({{count}}/{{max}})",
+        "intro": "Le numéro d’emplacement suit l’ordre de la liste. Les emplacements déjà collectés ne peuvent être ni supprimés ni changer de type ; objectifs, noms, visuels et dates de déblocage restent modifiables.",
+        "add": "Ajouter",
+        "type": "Type",
+        "new": "Nouveau",
+        "collectedBy": "Collecté par {{count}}",
+        "lockedType": "Déjà collecté : type verrouillé.",
+        "lockedRemove": "Des utilisateurs ont collecté cet emplacement ; suppression impossible.",
+        "moveUp": "Monter l’emplacement {{slot}}",
+        "moveDown": "Descendre l’emplacement {{slot}}",
+        "remove": "Supprimer l’emplacement {{slot}}",
+        "name": "Nom",
+        "art": "Visuel (URL https)",
+        "unlocksAt": "Se débloque le",
+        "config": {
+          "steps": "Pas en une journée",
+          "days": "Jours",
+          "windowDays": "Fenêtre (jours)",
+          "minDistanceM": "Distance min. (m)",
+          "maxDistanceM": "Distance max. (m)"
+        },
+        "help": {
+          "STEPS": "Atteindre le nombre de pas en une journée locale (remonté par Apple Santé / Health Connect).",
+          "ACTIVE_DAYS": "Faire de l’exercice au moins « jours » sur les « fenêtre » derniers jours, à partir du début de la campagne.",
+          "STREAK": "La série de saisies alimentaires atteint le nombre de jours.",
+          "EXPLORE": "Marcher jusqu’à un point généré. Les distances par défaut viennent des réglages d’exploration de la campagne."
+        }
+      },
+      "wishOptions": {
+        "eyebrow": "Récompense",
+        "title": "Options de vœu",
+        "intro": "Entre {{min}} et {{max}} options. Pièces 1–1000, jours Premium 1–90.",
+        "add": "Ajouter une option",
+        "remove": "Supprimer l’option",
+        "id": "Identifiant",
+        "idHint": "Slug en minuscules, unique",
+        "type": "Type",
+        "amount": "Montant"
+      },
+      "settings": {
+        "eyebrow": "Règles",
+        "title": "Réglages",
+        "groups": {
+          "superOrb": "Super Orbe",
+          "activity": "Activité",
+          "steps": "Pas",
+          "explore": "Exploration",
+          "pins": "Repères",
+          "wish": "Vœu"
+        },
+        "groupHelp": {
+          "superOrb": "Une journée saine rapporte un joker : repas saisis, assez de kcal, exercice et un check-in récent.",
+          "activity": "Quand une entrée Santé synchronisée compte comme exercice.",
+          "steps": "Au-delà, le nombre de pas est jugé invraisemblable et signalé.",
+          "explore": "Distances d’apparition, rayon de capture et limites anti-triche pour les orbes à pied.",
+          "pins": "Rayon de recherche des repères et nombre de captures par jour et par utilisateur.",
+          "wish": "Jokers utilisables par vœu et délai de grâce après la fin."
+        },
+        "fields": {
+          "superOrb": {
+            "enabled": "Activé",
+            "minMeals": "Types de repas min.",
+            "minDayKcal": "Kcal min. saisies",
+            "requireExercise": "Exiger de l’exercice",
+            "requireCheckIn": "Exiger un check-in",
+            "checkInWindowDays": "Fenêtre de check-in (jours)",
+            "maxPerCampaign": "Max. par campagne",
+            "maxPerWeek": "Max. par semaine"
+          },
+          "activity": {
+            "minSyncedActiveKcal": "Kcal actives synchronisées min."
+          },
+          "steps": {
+            "maxPlausibleSteps": "Pas plausibles max."
+          },
+          "explore": {
+            "enabled": "Activé",
+            "minDistanceM": "Distance min. (m)",
+            "maxDistanceM": "Distance max. (m)",
+            "catchRadiusM": "Rayon de capture (m)",
+            "spawnTtlHours": "Durée d’une apparition (h)",
+            "maxSpawnsPerDay": "Apparitions max. par jour",
+            "maxSpeedMps": "Vitesse max. (m/s)",
+            "minStepsRatio": "Ratio de pas min.",
+            "maxAccuracyM": "Précision GPS max. (m)"
+          },
+          "pins": {
+            "searchRadiusKm": "Rayon de recherche (km)",
+            "maxPerDay": "Captures de repères max. par jour"
+          },
+          "wish": {
+            "maxWildcards": "Jokers max. par vœu",
+            "graceDays": "Délai de grâce (jours)"
+          }
+        }
+      },
+      "participants": {
+        "search": "Rechercher",
+        "searchPlaceholder": "ID utilisateur, e-mail ou nom",
+        "filter": "Filtre",
+        "filters": {
+          "all": "Tout le monde",
+          "completed": "Terminé",
+          "wished": "Vœu accordé",
+          "wishFailed": "Vœu échoué",
+          "readyNoWish": "Terminé, sans vœu",
+          "flagged": "Signalés",
+          "blocked": "Bloqués"
+        },
+        "platform": "Plateforme",
+        "anyPlatform": "Toutes",
+        "minFilled": "Emplacements remplis min.",
+        "sort": "Tri",
+        "sorts": {
+          "activity": "Dernière activité",
+          "orbs": "Le plus d’orbes",
+          "joined": "Inscrits récemment",
+          "flags": "Le plus de signalements"
+        },
+        "openDirect": "Ouvrir un utilisateur directement",
+        "openDirectPlaceholder": "E-mail ou ID utilisateur",
+        "open": "Ouvrir",
+        "openRow": "Ouvrir {{name}}",
+        "emptyTitle": "Aucun participant ne correspond",
+        "emptyHint": "Essayez un autre filtre ou une autre recherche.",
+        "user": "Utilisateur",
+        "progress": "Progression",
+        "counts": "{{regular}} normaux · {{wildcards}} jokers",
+        "wish": "Vœu",
+        "flags": "Signalements",
+        "lastActivity": "Dernière activité",
+        "joined": "Inscrit",
+        "blocked": "Bloqué"
+      },
+      "detail": {
+        "userId": "ID utilisateur",
+        "userType": "Type · statut",
+        "joined": "Inscrit",
+        "lastActivity": "Dernière activité",
+        "coins": "Solde de pièces",
+        "notJoined": "Cet utilisateur n’a pas encore rejoint la campagne. Accorder un orbe ou le bloquer l’ajoute.",
+        "blockedSince": "Bloqué depuis le {{when}} : {{reason}}",
+        "grant": "Accorder un orbe",
+        "addNote": "Ajouter une note",
+        "block": "Bloquer",
+        "unblock": "Débloquer",
+        "reset": "Réinitialiser la progression",
+        "revoke": "Révoquer",
+        "grantKind": "Type d’orbe",
+        "grantREGULAR": "Orbe normal pour un emplacement",
+        "grantSUPER": "Super Orbe (joker)",
+        "grantSlot": "Emplacement",
+        "pickSlot": "Choisissez un emplacement vide",
+        "superHint": "Remplit n’importe quel emplacement vide, dans la limite de jokers de la campagne.",
+        "slotsEyebrow": "Emplacements",
+        "completion": "{{filled}} sur {{total}} remplis",
+        "completionHint": "{{regular}} normaux + {{wildcardsUsed}} jokers utilisés sur {{wildcards}} · {{missing}} manquants",
+        "complete": "Terminé",
+        "collected": "Collecté",
+        "empty": "Vide",
+        "evidence": "Preuves",
+        "wildcardsEyebrow": "Jokers",
+        "wildcards": "Jokers détenus ({{count}})",
+        "noWildcards": "Aucun joker.",
+        "wishEyebrow": "Récompense",
+        "wish": "Vœu",
+        "noWish": "Aucun vœu pour l’instant.",
+        "wishCreated": "Fait",
+        "wishGranted": "Accordé",
+        "wishReverted": "Annulé",
+        "wishError": "Erreur",
+        "historyEyebrow": "Historique",
+        "history": "Tous les orbes (y compris révoqués)",
+        "noOrbs": "Aucun orbe pour l’instant.",
+        "revoked": "Révoqué",
+        "revokedBecause": "Révoqué le {{when}} : {{reason}}",
+        "adminGrant": "Accordé par un administrateur",
+        "attemptsEyebrow": "Chronologie",
+        "attempts": "Tentatives ({{count}}, 200 dernières)",
+        "noAttempts": "Aucune tentative.",
+        "flagged": "Signalé",
+        "spawnsEyebrow": "Exploration",
+        "spawns": "Apparitions",
+        "noSpawns": "Aucune apparition.",
+        "spawnDistance": "à {{distance}} m · rayon {{radius}} m",
+        "fallback": "point de repli",
+        "auditEyebrow": "Support",
+        "audit": "Entrées d’audit",
+        "noAudit": "Aucune action d’administrateur.",
+        "confirm": {
+          "grant": {
+            "title": "Accorder un orbe",
+            "message": "L’orbe compte immédiatement et est marqué comme accordé par vous."
+          },
+          "revoke": {
+            "title": "Révoquer cet orbe ?",
+            "message": "L’emplacement redevient vide. L’orbe reste visible dans l’historique comme révoqué."
+          },
+          "reset": {
+            "title": "Réinitialiser toute la progression ?",
+            "message": "Révoque tous les orbes et fait expirer les apparitions ouvertes. Un vœu accordé doit d’abord être annulé."
+          },
+          "block": {
+            "title": "Bloquer cet utilisateur ?",
+            "message": "Il ne peut plus attraper d’orbes ni faire de vœu. Les signalements ouverts sont clos et les apparitions expirent."
+          },
+          "unblock": {
+            "title": "Débloquer cet utilisateur ?",
+            "message": "Il peut de nouveau participer à la chasse."
+          },
+          "note": {
+            "title": "Ajouter une note",
+            "message": "Les notes vont dans le journal d’audit de cet utilisateur."
+          }
+        },
+        "done": {
+          "grant": "Orbe accordé.",
+          "revoke": "Orbe révoqué.",
+          "reset": "Progression réinitialisée.",
+          "block": "Utilisateur bloqué.",
+          "unblock": "Utilisateur débloqué.",
+          "note": "Note ajoutée."
+        }
+      },
+      "payouts": {
+        "status": "Statut",
+        "anyStatus": "Tous les statuts",
+        "type": "Type",
+        "anyType": "Tous les types",
+        "wish": "Vœu",
+        "dates": "Dates",
+        "whitelistDiff": "Liste blanche Premium (avant → après)",
+        "changedTo": "devient",
+        "retry": "Relancer",
+        "revert": "Annuler",
+        "emptyTitle": "Aucun versement ne correspond",
+        "emptyHint": "Les vœux apparaissent ici dès que les utilisateurs les font.",
+        "retried": "Versement relancé. Nouveau statut : {{status}}.",
+        "reverted": "Versement annulé",
+        "coinsTakenBack": "{{count}} pièces reprises",
+        "shortfall": "{{count}} pièces n’ont pas pu être reprises (solde insuffisant)",
+        "whitelist": {
+          "RESTORED": "liste blanche Premium restaurée",
+          "SHORTENED": "fin Premium avancée",
+          "UNCHANGED": "liste blanche Premium inchangée"
+        },
+        "confirm": {
+          "retry": {
+            "title": "Relancer le versement ?",
+            "message": "Nouvelle tentative de verser {{amount}} {{unit}}. Sans risque : le versement ne peut pas être appliqué deux fois."
+          },
+          "revert": {
+            "title": "Annuler le versement ?",
+            "message": "Reprend {{amount}} {{unit}} autant que possible (pièces dans la limite du solde ; Premium restauré ou raccourci)."
+          }
+        }
+      },
+      "map": {
+        "intro": "Cliquez sur la carte pour placer un repère, sur un repère pour le modifier.",
+        "showPins": "Repères",
+        "showHeat": "Carte de chaleur des captures",
+        "heatKind": "Captures {{kind}}",
+        "heatPrivacy": "Les cellules font ~1 km ; aucun utilisateur individuel n’est affiché.",
+        "pickHint": "Cliquez n’importe où sur la carte pour créer un repère, ou choisissez-en un dans la liste.",
+        "newPin": "Nouveau repère",
+        "editPin": "Modifier le repère",
+        "name": "Nom",
+        "description": "Description",
+        "lat": "Latitude",
+        "lng": "Longitude",
+        "radius": "Rayon (m)",
+        "activeFrom": "Actif du",
+        "activeTo": "Actif jusqu’au",
+        "isActive": "Actif",
+        "active": "Actif",
+        "inactive": "Inactif",
+        "create": "Créer le repère",
+        "delete": "Supprimer",
+        "catches": "{{count}} captures",
+        "pins": "Repères ({{count}})",
+        "noPins": "Aucun repère pour l’instant.",
+        "tilesNote": "Fonds de carte © contributeurs OpenStreetMap.",
+        "confirmDelete": {
+          "title": "Supprimer le repère ?",
+          "message": "« {{name}} » sera supprimé. Si quelqu’un l’a déjà capturé, il est seulement désactivé pour que son orbe reste valide."
+        },
+        "done": {
+          "created": "Repère « {{name}} » créé.",
+          "updated": "Repère « {{name}} » enregistré.",
+          "deleted": "Repère « {{name}} » supprimé.",
+          "deactivated": "« {{name}} » avait déjà été capturé : il a été désactivé au lieu d’être supprimé."
+        }
+      },
+      "fraud": {
+        "intro": "Tentatives jugées suspectes (pas invraisemblables, position simulée, déplacement trop rapide ou impossible). Écartez les fausses alertes ou bloquez l’utilisateur.",
+        "includeReviewed": "Inclure les traités",
+        "reason": "Motif",
+        "details": "Détails",
+        "flagCount": "Signalements",
+        "when": "Quand",
+        "dismiss": "Écarter",
+        "block": "Bloquer l’utilisateur",
+        "emptyTitle": "Rien à traiter",
+        "emptyHint": "Les tentatives signalées apparaissent ici.",
+        "travelSummary": "Saut de {{km}} km en {{minutes}} min",
+        "stepsSummary": "{{steps}} pas déclarés",
+        "gpsSummary": "Précision GPS {{accuracy}} m · simulée {{mocked}}",
+        "confirm": {
+          "DISMISSED": {
+            "title": "Écarter ce signalement ?",
+            "message": "Marque la tentative de {{user}} comme fausse alerte."
+          },
+          "BLOCKED": {
+            "title": "Bloquer cet utilisateur ?",
+            "message": "{{user}} est bloqué pour la campagne et tous ses signalements ouverts sont clos."
+          }
+        },
+        "done": {
+          "DISMISSED": "Signalement écarté.",
+          "BLOCKED": "Utilisateur bloqué."
+        }
+      },
+      "audit": {
+        "userFilter": "ID de l’utilisateur ciblé",
+        "userFilterHint": "Laissez vide pour toutes les entrées.",
+        "apply": "Appliquer",
+        "emptyTitle": "Aucune entrée d’audit",
+        "admin": "Administrateur",
+        "action": "Action",
+        "target": "Cible",
+        "note": "Note",
+        "change": "Changement",
+        "before": "Avant",
+        "after": "Après"
       }
     }
   }

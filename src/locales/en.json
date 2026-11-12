@@ -302,7 +302,8 @@
     "ai": "AI models",
     "gamification": "Gamification",
     "alerts": "Alerts",
-    "appControls": "App controls"
+    "appControls": "App controls",
+    "orbHunt": "Orb Hunt"
   },
   "pages": {
     "messages": {
@@ -1589,6 +1590,28 @@
           "progress": "Progress",
           "profile": "Profile"
         }
+      },
+      "orbHunt": {
+        "title": "Orb Hunt",
+        "description": "Kill switch for the whole hunt. When off, every Orb Hunt app route answers “paused”.",
+        "exploreTitle": "Orb Hunt: explore and pins",
+        "exploreDescription": "Turns off GPS features only (walking orbs and admin pins). Steps, streaks and Super Orbs keep working.",
+        "appCheckTitle": "Device verification (App Check)",
+        "appCheckDescription": "Checks that orb catches come from the real AlexaFit app on a genuine device (Play Integrity / App Attest).",
+        "appCheckModes": {
+          "off": "Off",
+          "monitor": "Monitor",
+          "enforce": "Enforce"
+        },
+        "appCheckHelp": {
+          "off": "Not checked at all.",
+          "monitor": "Checked and recorded on every catch (see orb evidence), nothing is refused. Use this until the Firebase console is set up and most users have the new app version.",
+          "enforce": "Catches without a valid token are refused. Users on old app versions must update."
+        }
+      },
+      "sliceGame": {
+        "title": "Slice ’n Dice minigame",
+        "description": "When off, the app hides every way into the game: the Dashboard icon, the Profile row and duel links."
       }
     },
     "common": {
@@ -2000,6 +2023,627 @@
         "reason": "Reason",
         "dropped": "Dropped events",
         "project": "Project"
+      }
+    },
+    "orbHunt": {
+      "tabs": {
+        "overview": "Overview",
+        "campaigns": "Campaigns",
+        "participants": "Participants",
+        "payouts": "Payouts",
+        "map": "Map",
+        "fraud": "Fraud queue",
+        "audit": "Audit log"
+      },
+      "page": {
+        "eyebrow": "Gamification",
+        "title": "Orb Hunt",
+        "subtitle": "Configure the campaign, follow progress and handle support, payouts and fraud.",
+        "campaign": "Campaign",
+        "noCampaign": "No campaign yet. Create one first.",
+        "goToCampaigns": "Go to Campaigns →"
+      },
+      "status": {
+        "DRAFT": "Draft",
+        "LIVE": "Live",
+        "ENDED": "Ended",
+        "ARCHIVED": "Archived"
+      },
+      "common": {
+        "close": "Close",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "dismiss": "Dismiss",
+        "details": "Details",
+        "refresh": "Refresh",
+        "reset": "Reset",
+        "exportCsv": "Export CSV",
+        "optional": "optional",
+        "range": "{{min}}–{{max}}",
+        "pagination": "Pagination",
+        "pageOf": "Page {{page}} of {{pages}} · {{total}} total",
+        "previous": "Previous page",
+        "next": "Next page",
+        "noteRequired": "Note (required, kept in the audit log)",
+        "noteOptional": "Note (optional)",
+        "noteHint": "At least {{min}} characters."
+      },
+      "errors": {
+        "ANOTHER_LIVE": "Another campaign is live. End it before publishing this one.",
+        "CAMPAIGN_OVER": "The end date is in the past. Move it into the future first.",
+        "CAMPAIGN_ARCHIVED": "Archived campaigns are read-only.",
+        "CAMPAIGN_NOT_FOUND": "Campaign not found. Reload the page.",
+        "SLOT_IN_USE": "Users already collected this slot, so it can’t be removed or change type.",
+        "INVALID_TRANSITION": "This status change isn’t allowed now. Reload and try again.",
+        "NOTE_REQUIRED": "A note of 3–1000 characters is required.",
+        "USER_NOT_FOUND": "No user with this ID or e-mail.",
+        "ORB_NOT_FOUND": "Orb not found.",
+        "ALREADY_COLLECTED": "The user already has this orb.",
+        "ALREADY_REVOKED": "This orb was already revoked.",
+        "WISH_GRANTED": "The wish was granted. Revert the payout before resetting progress.",
+        "WISH_NOT_GRANTED": "Only granted wishes can be reverted. Reload to see the current state.",
+        "WISH_NOT_FAILED": "Only failed or stuck payouts can be retried. Reload to see the current state.",
+        "WISH_NOT_FOUND": "Wish not found.",
+        "INSUFFICIENT_FUNDS": "The user doesn’t have enough coins for this.",
+        "PIN_NOT_FOUND": "Pin not found. Reload the map.",
+        "TIMEOUT": "The server took too long to answer. Try again.",
+        "NETWORK": "Network error. Check your connection and try again.",
+        "FORBIDDEN": "Only admins can use the Orb Hunt console.",
+        "INVALID": "The server rejected the input:",
+        "generic": "Something went wrong. Try again."
+      },
+      "sourceTypes": {
+        "STEPS": "Steps",
+        "ACTIVE_DAYS": "Active days",
+        "STREAK": "Logging streak",
+        "EXPLORE": "Explore"
+      },
+      "kinds": {
+        "REGULAR": "Regular orb",
+        "SUPER": "Super Orb",
+        "PIN": "Pin orb"
+      },
+      "wishStatus": {
+        "PENDING": "Pending",
+        "GRANTED": "Granted",
+        "FAILED": "Failed",
+        "REVERTED": "Reverted"
+      },
+      "wishTypes": {
+        "COINS": "Coins",
+        "PREMIUM_DAYS": "Premium days"
+      },
+      "wishUnits": {
+        "COINS": "coins",
+        "PREMIUM_DAYS": "premium days"
+      },
+      "reasons": {
+        "OK": "Caught",
+        "REJECTED": "Rejected",
+        "NO_CAMPAIGN": "No campaign",
+        "BLOCKED": "User blocked",
+        "ORB_LOCKED": "Orb still locked",
+        "ALREADY_COLLECTED": "Already collected",
+        "CONDITION_NOT_MET": "Condition not met",
+        "STEPS_IMPLAUSIBLE": "Implausible steps",
+        "SUPER_LIMIT": "Super Orb campaign limit",
+        "SUPER_WEEK_LIMIT": "Super Orb weekly limit",
+        "BAD_DATE": "Invalid date",
+        "SPAWN_LIMIT": "Daily spawn limit",
+        "SPAWN_NOT_FOUND": "Spawn not found",
+        "SPAWN_EXPIRED": "Spawn expired",
+        "LOW_ACCURACY": "Low GPS accuracy",
+        "MOCK_LOCATION": "Mock location",
+        "TOO_FAR": "Too far away",
+        "TOO_FAST": "Moving too fast",
+        "STEPS_TOO_LOW": "Too few steps walked",
+        "PIN_INACTIVE": "Pin inactive",
+        "PIN_DAY_LIMIT": "Daily pin limit",
+        "IMPOSSIBLE_TRAVEL": "Impossible travel",
+        "EXPLORE_DISABLED": "Explore disabled",
+        "WISH_NOT_READY": "Wish not ready",
+        "PAYOUT_FAILED": "Payout failed"
+      },
+      "results": {
+        "OK": "OK",
+        "REJECTED": "Rejected"
+      },
+      "actions": {
+        "CATCH": "Catch",
+        "SUPER": "Super Orb claim",
+        "SPAWN": "Spawn request",
+        "EXPLORE": "Explore catch",
+        "PIN": "Pin catch",
+        "WISH": "Wish"
+      },
+      "decisions": {
+        "DISMISSED": "Dismissed",
+        "BLOCKED": "Blocked"
+      },
+      "auditActions": {
+        "CAMPAIGN_CREATE": "Campaign created",
+        "CAMPAIGN_UPDATE": "Campaign updated",
+        "CAMPAIGN_PUBLISH": "Campaign published",
+        "CAMPAIGN_END": "Campaign ended",
+        "CAMPAIGN_ARCHIVE": "Campaign archived",
+        "PIN_CREATE": "Pin created",
+        "PIN_UPDATE": "Pin updated",
+        "PIN_DELETE": "Pin deleted",
+        "PIN_DEACTIVATE": "Pin deactivated",
+        "ORB_GRANT": "Orb granted",
+        "ORB_REVOKE": "Orb revoked",
+        "PROGRESS_RESET": "Progress reset",
+        "USER_BLOCK": "User blocked",
+        "USER_UNBLOCK": "User unblocked",
+        "NOTE": "Note",
+        "PAYOUT_RETRY": "Payout retried",
+        "PAYOUT_REVERT": "Payout reverted",
+        "FLAG_DISMISS": "Flag dismissed"
+      },
+      "overview": {
+        "participants": "Participants",
+        "blockedHint": "{{count}} blocked",
+        "active1d": "Active 24 h",
+        "active7d": "Active 7 days",
+        "completed": "Completed",
+        "wishes": "Wishes",
+        "wishesHint": "{{failed}} failed · {{reverted}} reverted",
+        "coinsPaid": "Coins paid",
+        "coinWishes": "{{count}} coin wishes",
+        "premiumDays": "Premium days",
+        "premiumWishes": "{{count}} premium wishes",
+        "openFlags": "Open flags",
+        "emptyTitle": "Nobody has joined yet",
+        "emptyHint": "Numbers appear as soon as users open the hunt in the app.",
+        "funnelEyebrow": "Funnel",
+        "funnel": "Users by slots filled",
+        "filledLabel": "{{count}} filled",
+        "users": "Users",
+        "slotsEyebrow": "Slots",
+        "perSlot": "Collected per slot",
+        "collected": "Collected",
+        "dailyEyebrow": "Last 30 days",
+        "daily": "Daily orbs, joins and wishes",
+        "orbs": "Orbs",
+        "joins": "Joins",
+        "noDaily": "No activity in the last 30 days.",
+        "attemptsEyebrow": "Last 7 days",
+        "attempts": "Attempts by reason",
+        "noAttempts": "No attempts in the last 7 days.",
+        "orbsEyebrow": "Orbs",
+        "orbKinds": "Orbs by kind",
+        "regularOrbs": "Regular",
+        "superOrbs": "Super Orbs",
+        "pinOrbs": "Pin orbs",
+        "revokedOrbs": "Revoked"
+      },
+      "campaigns": {
+        "intro": "Only one campaign can be live at a time. Publishing needs a future end date and at least one slot.",
+        "new": "New campaign",
+        "emptyTitle": "No campaigns yet",
+        "emptyHint": "Create the first one; it starts as a draft from the default template.",
+        "campaign": "Campaign",
+        "status": "Status",
+        "dates": "Dates",
+        "slots": "Slots",
+        "participants": "Participants",
+        "wishesGranted": "Wishes granted",
+        "actions": "Actions",
+        "edit": "Edit",
+        "view": "View",
+        "saved": "“{{title}}” saved.",
+        "action": {
+          "publish": "Publish",
+          "end": "End",
+          "archive": "Archive",
+          "duplicate": "Duplicate"
+        },
+        "confirm": {
+          "publish": {
+            "title": "Publish campaign?",
+            "message": "“{{title}}” goes live for every app user right away."
+          },
+          "end": {
+            "title": "End campaign?",
+            "message": "Hunting stops for “{{title}}”. Users who completed it can still make their wish during the grace period."
+          },
+          "archive": {
+            "title": "Archive campaign?",
+            "message": "“{{title}}” becomes read-only and can’t be published again."
+          },
+          "duplicate": {
+            "title": "Duplicate campaign?",
+            "message": "Creates a new draft copy of “{{title}}” with the same slots and settings. Adjust the dates before publishing."
+          }
+        },
+        "done": {
+          "publish": "“{{title}}” is live.",
+          "end": "“{{title}}” has ended.",
+          "archive": "“{{title}}” was archived.",
+          "duplicate": "Draft “{{title}}” created."
+        }
+      },
+      "editor": {
+        "back": "Back",
+        "newTitle": "New campaign",
+        "editTitle": "Edit campaign",
+        "save": "Save",
+        "create": "Create draft",
+        "liveWarning": "Live: changes reach users immediately",
+        "archivedReadOnly": "This campaign is archived and can only be viewed.",
+        "fixFirst": "Fix these first:",
+        "problems": {
+          "titleRequired": "The English title is required.",
+          "datesRequired": "Set both a start and an end date.",
+          "endBeforeStart": "The end must be after the start.",
+          "tooLong": "A campaign can run for at most {{days}} days.",
+          "noSlots": "Add at least one slot.",
+          "optionId": "Wish option IDs must be lowercase slugs (a–z, 0–9, - and _).",
+          "optionDuplicate": "Wish option IDs must be unique.",
+          "daysWindow": "Slot {{slot}}: days can’t exceed the window.",
+          "distanceOrder": "Slot {{slot}}: minimum distance must be below the maximum."
+        },
+        "datesEyebrow": "Schedule",
+        "dates": "Dates",
+        "startsAt": "Starts",
+        "endsAt": "Ends",
+        "maxDays": "At most {{days}} days after the start. Times are in your local time zone.",
+        "contentEyebrow": "Copy",
+        "content": "Content per language",
+        "language": "Language",
+        "enRequired": "English is the fallback for every language; its title is required.",
+        "fallsBackToEn": "Empty fields fall back to English in the app.",
+        "title": "Title",
+        "description": "Description",
+        "wishText": "Wish text",
+        "themeEyebrow": "Look",
+        "theme": "Theme",
+        "color": "Theme colour",
+        "colorHint": "Use a #rrggbb colour.",
+        "orbArt": "Orb art (https URL)",
+        "spiritArt": "Spirit art (https URL)",
+        "preview": "Preview",
+        "upload": "Upload",
+        "uploading": "Uploading…",
+        "uploadFailed": "Upload failed. Try again or paste an https URL.",
+        "httpsOnly": "Must be an https:// URL."
+      },
+      "slots": {
+        "eyebrow": "Slot builder",
+        "title": "Slots ({{count}}/{{max}})",
+        "intro": "The slot number is the list order. Slots users already collected can’t be removed or change type; targets, names, art and unlock dates stay editable.",
+        "add": "Add slot",
+        "type": "Type",
+        "new": "New",
+        "collectedBy": "Collected by {{count}}",
+        "lockedType": "Already collected: type is locked.",
+        "lockedRemove": "Users collected this slot; it can’t be removed.",
+        "moveUp": "Move slot {{slot}} up",
+        "moveDown": "Move slot {{slot}} down",
+        "remove": "Remove slot {{slot}}",
+        "name": "Name",
+        "art": "Art (https URL)",
+        "unlocksAt": "Unlocks at",
+        "config": {
+          "steps": "Steps in one day",
+          "days": "Days",
+          "windowDays": "Window (days)",
+          "minDistanceM": "Min distance (m)",
+          "maxDistanceM": "Max distance (m)"
+        },
+        "help": {
+          "STEPS": "Reach the step count on one local day (reported from Apple Health / Health Connect).",
+          "ACTIVE_DAYS": "Exercise on at least “days” of the last “window” days, counted from the campaign start.",
+          "STREAK": "The food-logging streak reaches the number of days.",
+          "EXPLORE": "Walk to a spawned point. Distances default to the campaign explore settings."
+        }
+      },
+      "wishOptions": {
+        "eyebrow": "Reward",
+        "title": "Wish options",
+        "intro": "Between {{min}} and {{max}} options. Coins 1–1000, premium days 1–90.",
+        "add": "Add option",
+        "remove": "Remove option",
+        "id": "ID",
+        "idHint": "Lowercase slug, unique",
+        "type": "Type",
+        "amount": "Amount"
+      },
+      "settings": {
+        "eyebrow": "Rules",
+        "title": "Settings",
+        "groups": {
+          "superOrb": "Super Orb",
+          "activity": "Activity",
+          "steps": "Steps",
+          "explore": "Explore",
+          "pins": "Pins",
+          "wish": "Wish"
+        },
+        "groupHelp": {
+          "superOrb": "A healthy day earns a wildcard: meals logged, enough kcal, exercise and a recent check-in.",
+          "activity": "When a synced Health entry counts as exercise.",
+          "steps": "Step counts above this are treated as implausible and flagged.",
+          "explore": "Spawn distances, catch radius and anti-cheat limits for walking orbs.",
+          "pins": "How far the app looks for admin pins, and how many a user can catch per day.",
+          "wish": "Wildcards usable per wish and the grace period after the end."
+        },
+        "fields": {
+          "superOrb": {
+            "enabled": "Enabled",
+            "minMeals": "Min meal types",
+            "minDayKcal": "Min kcal logged",
+            "requireExercise": "Require exercise",
+            "requireCheckIn": "Require check-in",
+            "checkInWindowDays": "Check-in window (days)",
+            "maxPerCampaign": "Max per campaign",
+            "maxPerWeek": "Max per week"
+          },
+          "activity": {
+            "minSyncedActiveKcal": "Min synced active kcal"
+          },
+          "steps": {
+            "maxPlausibleSteps": "Max plausible steps"
+          },
+          "explore": {
+            "enabled": "Enabled",
+            "minDistanceM": "Min distance (m)",
+            "maxDistanceM": "Max distance (m)",
+            "catchRadiusM": "Catch radius (m)",
+            "spawnTtlHours": "Spawn lifetime (h)",
+            "maxSpawnsPerDay": "Max spawns per day",
+            "maxSpeedMps": "Max speed (m/s)",
+            "minStepsRatio": "Min steps ratio",
+            "maxAccuracyM": "Max GPS accuracy (m)"
+          },
+          "pins": {
+            "searchRadiusKm": "Search radius (km)",
+            "maxPerDay": "Max pin catches per day"
+          },
+          "wish": {
+            "maxWildcards": "Max wildcards per wish",
+            "graceDays": "Grace period (days)"
+          }
+        }
+      },
+      "participants": {
+        "search": "Search",
+        "searchPlaceholder": "User ID, e-mail or name",
+        "filter": "Filter",
+        "filters": {
+          "all": "Everyone",
+          "completed": "Completed",
+          "wished": "Wish granted",
+          "wishFailed": "Wish failed",
+          "readyNoWish": "Complete, no wish yet",
+          "flagged": "Flagged",
+          "blocked": "Blocked"
+        },
+        "platform": "Platform",
+        "anyPlatform": "Any",
+        "minFilled": "Min slots filled",
+        "sort": "Sort",
+        "sorts": {
+          "activity": "Last activity",
+          "orbs": "Most orbs",
+          "joined": "Recently joined",
+          "flags": "Most flags"
+        },
+        "openDirect": "Open a user directly",
+        "openDirectPlaceholder": "E-mail or user ID",
+        "open": "Open",
+        "openRow": "Open {{name}}",
+        "emptyTitle": "No participants match",
+        "emptyHint": "Try another filter or search.",
+        "user": "User",
+        "progress": "Progress",
+        "counts": "{{regular}} regular · {{wildcards}} wildcards",
+        "wish": "Wish",
+        "flags": "Flags",
+        "lastActivity": "Last activity",
+        "joined": "Joined",
+        "blocked": "Blocked"
+      },
+      "detail": {
+        "userId": "User ID",
+        "userType": "Type · status",
+        "joined": "Joined",
+        "lastActivity": "Last activity",
+        "coins": "Coin balance",
+        "notJoined": "This user hasn’t joined the campaign yet. Granting an orb or blocking adds them.",
+        "blockedSince": "Blocked since {{when}}: {{reason}}",
+        "grant": "Grant orb",
+        "addNote": "Add note",
+        "block": "Block",
+        "unblock": "Unblock",
+        "reset": "Reset progress",
+        "revoke": "Revoke",
+        "grantKind": "Orb kind",
+        "grantREGULAR": "Regular orb for a slot",
+        "grantSUPER": "Super Orb (wildcard)",
+        "grantSlot": "Slot",
+        "pickSlot": "Pick an empty slot",
+        "superHint": "Fills any empty slot, within the campaign’s wildcard limit.",
+        "slotsEyebrow": "Slots",
+        "completion": "{{filled}} of {{total}} filled",
+        "completionHint": "{{regular}} regular + {{wildcardsUsed}} of {{wildcards}} wildcards used · {{missing}} missing",
+        "complete": "Complete",
+        "collected": "Collected",
+        "empty": "Empty",
+        "evidence": "Evidence",
+        "wildcardsEyebrow": "Wildcards",
+        "wildcards": "Wildcards held ({{count}})",
+        "noWildcards": "No wildcards.",
+        "wishEyebrow": "Reward",
+        "wish": "Wish",
+        "noWish": "No wish made yet.",
+        "wishCreated": "Made",
+        "wishGranted": "Granted",
+        "wishReverted": "Reverted",
+        "wishError": "Error",
+        "historyEyebrow": "History",
+        "history": "All orbs (including revoked)",
+        "noOrbs": "No orbs yet.",
+        "revoked": "Revoked",
+        "revokedBecause": "Revoked {{when}}: {{reason}}",
+        "adminGrant": "Granted by an admin",
+        "attemptsEyebrow": "Timeline",
+        "attempts": "Attempts ({{count}}, latest 200)",
+        "noAttempts": "No attempts.",
+        "flagged": "Flagged",
+        "spawnsEyebrow": "Explore",
+        "spawns": "Spawns",
+        "noSpawns": "No spawns.",
+        "spawnDistance": "{{distance}} m away · radius {{radius}} m",
+        "fallback": "fallback point",
+        "auditEyebrow": "Support",
+        "audit": "Audit entries",
+        "noAudit": "No admin actions yet.",
+        "confirm": {
+          "grant": {
+            "title": "Grant an orb",
+            "message": "The orb counts right away and is marked as granted by you."
+          },
+          "revoke": {
+            "title": "Revoke this orb?",
+            "message": "The slot becomes empty again. The orb stays visible in the history as revoked."
+          },
+          "reset": {
+            "title": "Reset all progress?",
+            "message": "Revokes every orb and expires open spawns. A granted wish must be reverted first."
+          },
+          "block": {
+            "title": "Block this user?",
+            "message": "They can no longer catch orbs or wish. Open flags are closed and spawns expire."
+          },
+          "unblock": {
+            "title": "Unblock this user?",
+            "message": "They can take part in the hunt again."
+          },
+          "note": {
+            "title": "Add a note",
+            "message": "Notes go into this user’s audit log."
+          }
+        },
+        "done": {
+          "grant": "Orb granted.",
+          "revoke": "Orb revoked.",
+          "reset": "Progress reset.",
+          "block": "User blocked.",
+          "unblock": "User unblocked.",
+          "note": "Note added."
+        }
+      },
+      "payouts": {
+        "status": "Status",
+        "anyStatus": "Any status",
+        "type": "Type",
+        "anyType": "Any type",
+        "wish": "Wish",
+        "dates": "Dates",
+        "whitelistDiff": "Premium whitelist (before → after)",
+        "changedTo": "changed to",
+        "retry": "Retry",
+        "revert": "Revert",
+        "emptyTitle": "No payouts match",
+        "emptyHint": "Wishes appear here as soon as users make them.",
+        "retried": "Payout retried. New status: {{status}}.",
+        "reverted": "Payout reverted",
+        "coinsTakenBack": "{{count}} coins taken back",
+        "shortfall": "{{count}} coins could not be taken back (balance too low)",
+        "whitelist": {
+          "RESTORED": "premium whitelist restored",
+          "SHORTENED": "premium end date shortened",
+          "UNCHANGED": "premium whitelist unchanged"
+        },
+        "confirm": {
+          "retry": {
+            "title": "Retry payout?",
+            "message": "Tries again to pay {{amount}} {{unit}}. It’s safe: the payout can’t be applied twice."
+          },
+          "revert": {
+            "title": "Revert payout?",
+            "message": "Takes back {{amount}} {{unit}} as far as possible (coins up to the current balance; premium restored or shortened)."
+          }
+        }
+      },
+      "map": {
+        "intro": "Click the map to place a pin. Click a pin to edit it.",
+        "showPins": "Pins",
+        "showHeat": "Catch heatmap",
+        "heatKind": "{{kind}} catches",
+        "heatPrivacy": "Heatmap cells are ~1 km wide; individual users are never shown.",
+        "pickHint": "Click anywhere on the map to start a new pin, or pick one from the list.",
+        "newPin": "New pin",
+        "editPin": "Edit pin",
+        "name": "Name",
+        "description": "Description",
+        "lat": "Latitude",
+        "lng": "Longitude",
+        "radius": "Radius (m)",
+        "activeFrom": "Active from",
+        "activeTo": "Active until",
+        "isActive": "Active",
+        "active": "Active",
+        "inactive": "Inactive",
+        "create": "Create pin",
+        "delete": "Delete",
+        "catches": "{{count}} catches",
+        "pins": "Pins ({{count}})",
+        "noPins": "No pins yet.",
+        "tilesNote": "Map tiles © OpenStreetMap contributors.",
+        "confirmDelete": {
+          "title": "Delete pin?",
+          "message": "“{{name}}” is deleted. If someone already caught it, it is only deactivated so their orb stays valid."
+        },
+        "done": {
+          "created": "Pin “{{name}}” created.",
+          "updated": "Pin “{{name}}” saved.",
+          "deleted": "Pin “{{name}}” deleted.",
+          "deactivated": "“{{name}}” was already caught, so it was deactivated instead of deleted."
+        }
+      },
+      "fraud": {
+        "intro": "Attempts flagged as suspicious (implausible steps, mock location, moving too fast, impossible travel). Dismiss false alarms or block the user.",
+        "includeReviewed": "Include reviewed",
+        "reason": "Reason",
+        "details": "Details",
+        "flagCount": "User flags",
+        "when": "When",
+        "dismiss": "Dismiss",
+        "block": "Block user",
+        "emptyTitle": "Nothing to review",
+        "emptyHint": "Flagged attempts show up here.",
+        "travelSummary": "Jumped {{km}} km in {{minutes}} min",
+        "stepsSummary": "{{steps}} steps reported",
+        "gpsSummary": "GPS accuracy {{accuracy}} m · mocked {{mocked}}",
+        "confirm": {
+          "DISMISSED": {
+            "title": "Dismiss this flag?",
+            "message": "Marks the attempt from {{user}} as a false alarm."
+          },
+          "BLOCKED": {
+            "title": "Block this user?",
+            "message": "{{user}} is blocked from the campaign and all their open flags are closed."
+          }
+        },
+        "done": {
+          "DISMISSED": "Flag dismissed.",
+          "BLOCKED": "User blocked."
+        }
+      },
+      "audit": {
+        "userFilter": "Target user ID",
+        "userFilterHint": "Leave empty for every entry.",
+        "apply": "Apply",
+        "emptyTitle": "No audit entries",
+        "admin": "Admin",
+        "action": "Action",
+        "target": "Target",
+        "note": "Note",
+        "change": "Change",
+        "before": "Before",
+        "after": "After"
       }
     }
   }

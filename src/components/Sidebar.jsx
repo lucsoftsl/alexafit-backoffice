@@ -21,7 +21,8 @@ import {
   CpuChipIcon,
   ExclamationTriangleIcon,
   AdjustmentsHorizontalIcon,
-  TrophyIcon
+  TrophyIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
@@ -82,6 +83,7 @@ const Sidebar = ({
     { id: 'app-controls', labelKey: 'sidebar.appControls', fallbackLabel: 'App controls', icon: AdjustmentsHorizontalIcon, adminOnly: true },
     { id: 'ai', labelKey: 'sidebar.ai', fallbackLabel: 'AI models', icon: CpuChipIcon, adminOnly: true },
     { id: 'gamification', labelKey: 'sidebar.gamification', fallbackLabel: 'Gamification', icon: TrophyIcon, adminOnly: true },
+    { id: 'orb-hunt', labelKey: 'sidebar.orbHunt', fallbackLabel: 'Orb Hunt', icon: SparklesIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
     { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },
     { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false },

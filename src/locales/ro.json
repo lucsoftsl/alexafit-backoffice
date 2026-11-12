@@ -302,7 +302,8 @@
     "ai": "Modele AI",
     "gamification": "Gamificare",
     "alerts": "Alerte",
-    "appControls": "Control aplicație"
+    "appControls": "Control aplicație",
+    "orbHunt": "Vânătoarea de Globuri"
   },
   "pages": {
     "messages": {
@@ -1581,6 +1582,28 @@
           "progress": "Progres",
           "profile": "Profil"
         }
+      },
+      "orbHunt": {
+        "title": "Vânătoarea de Globuri",
+        "description": "Întrerupător general pentru vânătoare. Când e oprit, toate rutele Orb Hunt din aplicație răspund „în pauză”.",
+        "exploreTitle": "Vânătoarea de Globuri: explorare și pinuri",
+        "exploreDescription": "Oprește doar funcțiile GPS (globuri de explorare și pinuri). Pașii, seriile și Super Globurile funcționează în continuare.",
+        "appCheckTitle": "Verificarea dispozitivului (App Check)",
+        "appCheckDescription": "Verifică dacă orbele sunt prinse din aplicația AlexaFit reală, pe un dispozitiv autentic (Play Integrity / App Attest).",
+        "appCheckModes": {
+          "off": "Oprit",
+          "monitor": "Monitorizare",
+          "enforce": "Obligatoriu"
+        },
+        "appCheckHelp": {
+          "off": "Nu se verifică deloc.",
+          "monitor": "Se verifică și se înregistrează la fiecare prindere (vezi dovezile orbei), nimic nu e refuzat. Folosește asta până e configurată consola Firebase și majoritatea utilizatorilor au noua versiune.",
+          "enforce": "Prinderile fără un token valid sunt refuzate. Utilizatorii cu versiuni vechi trebuie să actualizeze aplicația."
+        }
+      },
+      "sliceGame": {
+        "title": "Minijocul Slice ’n Dice",
+        "description": "Când e oprit, aplicația ascunde orice acces la joc: iconița de pe Dashboard, rândul din Profil și linkurile de duel."
       }
     },
     "common": {
@@ -2001,6 +2024,627 @@
         "reason": "Motiv",
         "dropped": "Evenimente respinse",
         "project": "Proiect"
+      }
+    },
+    "orbHunt": {
+      "tabs": {
+        "overview": "Prezentare",
+        "campaigns": "Campanii",
+        "participants": "Participanți",
+        "payouts": "Plăți",
+        "map": "Hartă",
+        "fraud": "Coadă fraude",
+        "audit": "Jurnal audit"
+      },
+      "page": {
+        "eyebrow": "Gamificare",
+        "title": "Vânătoarea de Globuri",
+        "subtitle": "Configurează campania, urmărește progresul și gestionează suportul, plățile și fraudele.",
+        "campaign": "Campanie",
+        "noCampaign": "Încă nu există nicio campanie. Creează una mai întâi.",
+        "goToCampaigns": "Mergi la Campanii →"
+      },
+      "status": {
+        "DRAFT": "Ciornă",
+        "LIVE": "Activă",
+        "ENDED": "Încheiată",
+        "ARCHIVED": "Arhivată"
+      },
+      "common": {
+        "close": "Închide",
+        "cancel": "Anulează",
+        "confirm": "Confirmă",
+        "dismiss": "Închide",
+        "details": "Detalii",
+        "refresh": "Reîmprospătează",
+        "reset": "Resetează",
+        "exportCsv": "Exportă CSV",
+        "optional": "opțional",
+        "range": "{{min}}–{{max}}",
+        "pagination": "Paginare",
+        "pageOf": "Pagina {{page}} din {{pages}} · {{total}} în total",
+        "previous": "Pagina anterioară",
+        "next": "Pagina următoare",
+        "noteRequired": "Notă (obligatorie, păstrată în jurnalul de audit)",
+        "noteOptional": "Notă (opțională)",
+        "noteHint": "Cel puțin {{min}} caractere."
+      },
+      "errors": {
+        "ANOTHER_LIVE": "O altă campanie este activă. Încheie-o înainte de a o publica pe aceasta.",
+        "CAMPAIGN_OVER": "Data de încheiere a trecut. Mut-o mai întâi în viitor.",
+        "CAMPAIGN_ARCHIVED": "Campaniile arhivate nu pot fi modificate.",
+        "CAMPAIGN_NOT_FOUND": "Campania nu a fost găsită. Reîncarcă pagina.",
+        "SLOT_IN_USE": "Utilizatorii au colectat deja acest slot, deci nu poate fi șters sau schimbat ca tip.",
+        "INVALID_TRANSITION": "Această schimbare de stare nu este permisă acum. Reîncarcă și încearcă din nou.",
+        "NOTE_REQUIRED": "Este necesară o notă de 3–1000 de caractere.",
+        "USER_NOT_FOUND": "Niciun utilizator cu acest ID sau e-mail.",
+        "ORB_NOT_FOUND": "Globul nu a fost găsit.",
+        "ALREADY_COLLECTED": "Utilizatorul are deja acest glob.",
+        "ALREADY_REVOKED": "Acest glob a fost deja revocat.",
+        "WISH_GRANTED": "Dorința a fost acordată. Anulează plata înainte de a reseta progresul.",
+        "WISH_NOT_GRANTED": "Doar dorințele acordate pot fi anulate. Reîncarcă pentru starea actuală.",
+        "WISH_NOT_FAILED": "Doar plățile eșuate sau blocate pot fi reîncercate. Reîncarcă pentru starea actuală.",
+        "WISH_NOT_FOUND": "Dorința nu a fost găsită.",
+        "INSUFFICIENT_FUNDS": "Utilizatorul nu are suficiente monede.",
+        "PIN_NOT_FOUND": "Pinul nu a fost găsit. Reîncarcă harta.",
+        "TIMEOUT": "Serverul a răspuns prea greu. Încearcă din nou.",
+        "NETWORK": "Eroare de rețea. Verifică conexiunea și încearcă din nou.",
+        "FORBIDDEN": "Doar administratorii pot folosi consola Vânătoarea de Globuri.",
+        "INVALID": "Serverul a respins datele:",
+        "generic": "Ceva n-a mers. Încearcă din nou."
+      },
+      "sourceTypes": {
+        "STEPS": "Pași",
+        "ACTIVE_DAYS": "Zile active",
+        "STREAK": "Serie de înregistrări",
+        "EXPLORE": "Explorare"
+      },
+      "kinds": {
+        "REGULAR": "Glob obișnuit",
+        "SUPER": "Super Glob",
+        "PIN": "Glob de pin"
+      },
+      "wishStatus": {
+        "PENDING": "În așteptare",
+        "GRANTED": "Acordată",
+        "FAILED": "Eșuată",
+        "REVERTED": "Anulată"
+      },
+      "wishTypes": {
+        "COINS": "Monede",
+        "PREMIUM_DAYS": "Zile Premium"
+      },
+      "wishUnits": {
+        "COINS": "monede",
+        "PREMIUM_DAYS": "zile Premium"
+      },
+      "reasons": {
+        "OK": "Prinse",
+        "REJECTED": "Respinse",
+        "NO_CAMPAIGN": "Nicio campanie",
+        "BLOCKED": "Utilizator blocat",
+        "ORB_LOCKED": "Glob încă blocat",
+        "ALREADY_COLLECTED": "Deja colectat",
+        "CONDITION_NOT_MET": "Condiție neîndeplinită",
+        "STEPS_IMPLAUSIBLE": "Pași neplauzibili",
+        "SUPER_LIMIT": "Limita de Super Globuri pe campanie",
+        "SUPER_WEEK_LIMIT": "Limita săptămânală de Super Globuri",
+        "BAD_DATE": "Dată invalidă",
+        "SPAWN_LIMIT": "Limita zilnică de apariții",
+        "SPAWN_NOT_FOUND": "Apariție negăsită",
+        "SPAWN_EXPIRED": "Apariție expirată",
+        "LOW_ACCURACY": "Precizie GPS scăzută",
+        "MOCK_LOCATION": "Locație falsă",
+        "TOO_FAR": "Prea departe",
+        "TOO_FAST": "Deplasare prea rapidă",
+        "STEPS_TOO_LOW": "Prea puțini pași",
+        "PIN_INACTIVE": "Pin inactiv",
+        "PIN_DAY_LIMIT": "Limita zilnică de pinuri",
+        "IMPOSSIBLE_TRAVEL": "Deplasare imposibilă",
+        "EXPLORE_DISABLED": "Explorare dezactivată",
+        "WISH_NOT_READY": "Dorință indisponibilă",
+        "PAYOUT_FAILED": "Plată eșuată"
+      },
+      "results": {
+        "OK": "OK",
+        "REJECTED": "Respinsă"
+      },
+      "actions": {
+        "CATCH": "Prindere",
+        "SUPER": "Revendicare Super Glob",
+        "SPAWN": "Cerere de apariție",
+        "EXPLORE": "Prindere explorare",
+        "PIN": "Prindere pin",
+        "WISH": "Dorință"
+      },
+      "decisions": {
+        "DISMISSED": "Respinsă",
+        "BLOCKED": "Blocat"
+      },
+      "auditActions": {
+        "CAMPAIGN_CREATE": "Campanie creată",
+        "CAMPAIGN_UPDATE": "Campanie actualizată",
+        "CAMPAIGN_PUBLISH": "Campanie publicată",
+        "CAMPAIGN_END": "Campanie încheiată",
+        "CAMPAIGN_ARCHIVE": "Campanie arhivată",
+        "PIN_CREATE": "Pin creat",
+        "PIN_UPDATE": "Pin actualizat",
+        "PIN_DELETE": "Pin șters",
+        "PIN_DEACTIVATE": "Pin dezactivat",
+        "ORB_GRANT": "Glob acordat",
+        "ORB_REVOKE": "Glob revocat",
+        "PROGRESS_RESET": "Progres resetat",
+        "USER_BLOCK": "Utilizator blocat",
+        "USER_UNBLOCK": "Utilizator deblocat",
+        "NOTE": "Notă",
+        "PAYOUT_RETRY": "Plată reîncercată",
+        "PAYOUT_REVERT": "Plată anulată",
+        "FLAG_DISMISS": "Semnalare respinsă"
+      },
+      "overview": {
+        "participants": "Participanți",
+        "blockedHint": "{{count}} blocați",
+        "active1d": "Activi 24 h",
+        "active7d": "Activi 7 zile",
+        "completed": "Finalizați",
+        "wishes": "Dorințe",
+        "wishesHint": "{{failed}} eșuate · {{reverted}} anulate",
+        "coinsPaid": "Monede plătite",
+        "coinWishes": "{{count}} dorințe de monede",
+        "premiumDays": "Zile Premium",
+        "premiumWishes": "{{count}} dorințe Premium",
+        "openFlags": "Semnalări deschise",
+        "emptyTitle": "Nimeni nu s-a alăturat încă",
+        "emptyHint": "Cifrele apar imediat ce utilizatorii deschid vânătoarea în aplicație.",
+        "funnelEyebrow": "Pâlnie",
+        "funnel": "Utilizatori după sloturi completate",
+        "filledLabel": "{{count}} completate",
+        "users": "Utilizatori",
+        "slotsEyebrow": "Sloturi",
+        "perSlot": "Colectate pe slot",
+        "collected": "Colectate",
+        "dailyEyebrow": "Ultimele 30 de zile",
+        "daily": "Globuri, înscrieri și dorințe pe zi",
+        "orbs": "Globuri",
+        "joins": "Înscrieri",
+        "noDaily": "Nicio activitate în ultimele 30 de zile.",
+        "attemptsEyebrow": "Ultimele 7 zile",
+        "attempts": "Încercări după motiv",
+        "noAttempts": "Nicio încercare în ultimele 7 zile.",
+        "orbsEyebrow": "Globuri",
+        "orbKinds": "Globuri după tip",
+        "regularOrbs": "Obișnuite",
+        "superOrbs": "Super Globuri",
+        "pinOrbs": "Globuri de pin",
+        "revokedOrbs": "Revocate"
+      },
+      "campaigns": {
+        "intro": "O singură campanie poate fi activă la un moment dat. Publicarea necesită o dată de încheiere în viitor și cel puțin un slot.",
+        "new": "Campanie nouă",
+        "emptyTitle": "Încă nu există campanii",
+        "emptyHint": "Creează prima campanie; pornește ca ciornă din șablonul implicit.",
+        "campaign": "Campanie",
+        "status": "Stare",
+        "dates": "Perioadă",
+        "slots": "Sloturi",
+        "participants": "Participanți",
+        "wishesGranted": "Dorințe acordate",
+        "actions": "Acțiuni",
+        "edit": "Editează",
+        "view": "Vezi",
+        "saved": "„{{title}}” a fost salvată.",
+        "action": {
+          "publish": "Publică",
+          "end": "Încheie",
+          "archive": "Arhivează",
+          "duplicate": "Duplică"
+        },
+        "confirm": {
+          "publish": {
+            "title": "Publici campania?",
+            "message": "„{{title}}” devine activă imediat pentru toți utilizatorii aplicației."
+          },
+          "end": {
+            "title": "Închei campania?",
+            "message": "Vânătoarea se oprește pentru „{{title}}”. Cei care au terminat își pot pune dorința în perioada de grație."
+          },
+          "archive": {
+            "title": "Arhivezi campania?",
+            "message": "„{{title}}” devine doar pentru citire și nu mai poate fi publicată."
+          },
+          "duplicate": {
+            "title": "Duplici campania?",
+            "message": "Creează o ciornă nouă, copie a „{{title}}”, cu aceleași sloturi și setări. Ajustează datele înainte de publicare."
+          }
+        },
+        "done": {
+          "publish": "„{{title}}” este activă.",
+          "end": "„{{title}}” s-a încheiat.",
+          "archive": "„{{title}}” a fost arhivată.",
+          "duplicate": "Ciorna „{{title}}” a fost creată."
+        }
+      },
+      "editor": {
+        "back": "Înapoi",
+        "newTitle": "Campanie nouă",
+        "editTitle": "Editează campania",
+        "save": "Salvează",
+        "create": "Creează ciorna",
+        "liveWarning": "Activă: modificările ajung imediat la utilizatori",
+        "archivedReadOnly": "Această campanie este arhivată și poate fi doar vizualizată.",
+        "fixFirst": "Corectează mai întâi:",
+        "problems": {
+          "titleRequired": "Titlul în engleză este obligatoriu.",
+          "datesRequired": "Setează data de început și de încheiere.",
+          "endBeforeStart": "Sfârșitul trebuie să fie după început.",
+          "tooLong": "O campanie poate dura cel mult {{days}} de zile.",
+          "noSlots": "Adaugă cel puțin un slot.",
+          "optionId": "ID-urile opțiunilor de dorință trebuie să fie slug-uri cu litere mici (a–z, 0–9, - și _).",
+          "optionDuplicate": "ID-urile opțiunilor de dorință trebuie să fie unice.",
+          "daysWindow": "Slotul {{slot}}: zilele nu pot depăși fereastra.",
+          "distanceOrder": "Slotul {{slot}}: distanța minimă trebuie să fie sub cea maximă."
+        },
+        "datesEyebrow": "Program",
+        "dates": "Perioadă",
+        "startsAt": "Începe",
+        "endsAt": "Se încheie",
+        "maxDays": "Cel mult {{days}} de zile după început. Orele sunt în fusul tău orar.",
+        "contentEyebrow": "Texte",
+        "content": "Conținut pe limbă",
+        "language": "Limbă",
+        "enRequired": "Engleza este rezerva pentru toate limbile; titlul ei este obligatoriu.",
+        "fallsBackToEn": "Câmpurile goale folosesc engleza în aplicație.",
+        "title": "Titlu",
+        "description": "Descriere",
+        "wishText": "Textul dorinței",
+        "themeEyebrow": "Aspect",
+        "theme": "Temă",
+        "color": "Culoarea temei",
+        "colorHint": "Folosește o culoare #rrggbb.",
+        "orbArt": "Imagine glob (URL https)",
+        "spiritArt": "Imagine spirit (URL https)",
+        "preview": "Previzualizare",
+        "upload": "Încarcă",
+        "uploading": "Se încarcă…",
+        "uploadFailed": "Încărcarea a eșuat. Reîncearcă sau lipește un URL https.",
+        "httpsOnly": "Trebuie să fie un URL https://."
+      },
+      "slots": {
+        "eyebrow": "Constructor de sloturi",
+        "title": "Sloturi ({{count}}/{{max}})",
+        "intro": "Numărul slotului este ordinea din listă. Sloturile deja colectate nu pot fi șterse sau schimbate ca tip; țintele, numele, imaginile și datele de deblocare rămân editabile.",
+        "add": "Adaugă slot",
+        "type": "Tip",
+        "new": "Nou",
+        "collectedBy": "Colectat de {{count}}",
+        "lockedType": "Deja colectat: tipul este blocat.",
+        "lockedRemove": "Utilizatorii au colectat acest slot; nu poate fi șters.",
+        "moveUp": "Mută slotul {{slot}} în sus",
+        "moveDown": "Mută slotul {{slot}} în jos",
+        "remove": "Șterge slotul {{slot}}",
+        "name": "Nume",
+        "art": "Imagine (URL https)",
+        "unlocksAt": "Se deblochează la",
+        "config": {
+          "steps": "Pași într-o zi",
+          "days": "Zile",
+          "windowDays": "Fereastră (zile)",
+          "minDistanceM": "Distanță minimă (m)",
+          "maxDistanceM": "Distanță maximă (m)"
+        },
+        "help": {
+          "STEPS": "Atinge numărul de pași într-o zi locală (raportat din Apple Health / Health Connect).",
+          "ACTIVE_DAYS": "Exerciții în cel puțin „zile” din ultimele „fereastră” zile, numărate de la începutul campaniei.",
+          "STREAK": "Seria de înregistrare a alimentelor atinge numărul de zile.",
+          "EXPLORE": "Mergi până la un punct generat. Distanțele implicite vin din setările de explorare ale campaniei."
+        }
+      },
+      "wishOptions": {
+        "eyebrow": "Recompensă",
+        "title": "Opțiuni de dorință",
+        "intro": "Între {{min}} și {{max}} opțiuni. Monede 1–1000, zile Premium 1–90.",
+        "add": "Adaugă opțiune",
+        "remove": "Șterge opțiunea",
+        "id": "ID",
+        "idHint": "Slug cu litere mici, unic",
+        "type": "Tip",
+        "amount": "Cantitate"
+      },
+      "settings": {
+        "eyebrow": "Reguli",
+        "title": "Setări",
+        "groups": {
+          "superOrb": "Super Glob",
+          "activity": "Activitate",
+          "steps": "Pași",
+          "explore": "Explorare",
+          "pins": "Pinuri",
+          "wish": "Dorință"
+        },
+        "groupHelp": {
+          "superOrb": "O zi sănătoasă aduce un joker: mese înregistrate, suficiente kcal, exerciții și un check-in recent.",
+          "activity": "Când o înregistrare sincronizată din Health contează ca exercițiu.",
+          "steps": "Numărul de pași peste această valoare este considerat neplauzibil și semnalat.",
+          "explore": "Distanțe de apariție, raza de prindere și limite anti-fraudă pentru globurile de explorare.",
+          "pins": "Cât de departe caută aplicația pinuri și câte poate prinde un utilizator pe zi.",
+          "wish": "Jokeri utilizabili pe dorință și perioada de grație după încheiere."
+        },
+        "fields": {
+          "superOrb": {
+            "enabled": "Activat",
+            "minMeals": "Tipuri de mese minime",
+            "minDayKcal": "Kcal minime înregistrate",
+            "requireExercise": "Necesită exercițiu",
+            "requireCheckIn": "Necesită check-in",
+            "checkInWindowDays": "Fereastră check-in (zile)",
+            "maxPerCampaign": "Maxim pe campanie",
+            "maxPerWeek": "Maxim pe săptămână"
+          },
+          "activity": {
+            "minSyncedActiveKcal": "Kcal active sincronizate minime"
+          },
+          "steps": {
+            "maxPlausibleSteps": "Pași plauzibili maximi"
+          },
+          "explore": {
+            "enabled": "Activat",
+            "minDistanceM": "Distanță minimă (m)",
+            "maxDistanceM": "Distanță maximă (m)",
+            "catchRadiusM": "Raza de prindere (m)",
+            "spawnTtlHours": "Durata apariției (h)",
+            "maxSpawnsPerDay": "Apariții maxime pe zi",
+            "maxSpeedMps": "Viteză maximă (m/s)",
+            "minStepsRatio": "Raport minim de pași",
+            "maxAccuracyM": "Precizie GPS maximă (m)"
+          },
+          "pins": {
+            "searchRadiusKm": "Raza de căutare (km)",
+            "maxPerDay": "Prinderi de pinuri maxime pe zi"
+          },
+          "wish": {
+            "maxWildcards": "Jokeri maximi pe dorință",
+            "graceDays": "Perioadă de grație (zile)"
+          }
+        }
+      },
+      "participants": {
+        "search": "Caută",
+        "searchPlaceholder": "ID utilizator, e-mail sau nume",
+        "filter": "Filtru",
+        "filters": {
+          "all": "Toți",
+          "completed": "Finalizați",
+          "wished": "Dorință acordată",
+          "wishFailed": "Dorință eșuată",
+          "readyNoWish": "Finalizat, fără dorință",
+          "flagged": "Semnalați",
+          "blocked": "Blocați"
+        },
+        "platform": "Platformă",
+        "anyPlatform": "Oricare",
+        "minFilled": "Sloturi completate minime",
+        "sort": "Sortare",
+        "sorts": {
+          "activity": "Ultima activitate",
+          "orbs": "Cele mai multe globuri",
+          "joined": "Înscriși recent",
+          "flags": "Cele mai multe semnalări"
+        },
+        "openDirect": "Deschide direct un utilizator",
+        "openDirectPlaceholder": "E-mail sau ID utilizator",
+        "open": "Deschide",
+        "openRow": "Deschide {{name}}",
+        "emptyTitle": "Niciun participant nu corespunde",
+        "emptyHint": "Încearcă alt filtru sau altă căutare.",
+        "user": "Utilizator",
+        "progress": "Progres",
+        "counts": "{{regular}} obișnuite · {{wildcards}} jokeri",
+        "wish": "Dorință",
+        "flags": "Semnalări",
+        "lastActivity": "Ultima activitate",
+        "joined": "Înscris",
+        "blocked": "Blocat"
+      },
+      "detail": {
+        "userId": "ID utilizator",
+        "userType": "Tip · stare",
+        "joined": "Înscris",
+        "lastActivity": "Ultima activitate",
+        "coins": "Sold monede",
+        "notJoined": "Utilizatorul nu s-a alăturat încă. Acordarea unui glob sau blocarea îl adaugă.",
+        "blockedSince": "Blocat din {{when}}: {{reason}}",
+        "grant": "Acordă glob",
+        "addNote": "Adaugă notă",
+        "block": "Blochează",
+        "unblock": "Deblochează",
+        "reset": "Resetează progresul",
+        "revoke": "Revocă",
+        "grantKind": "Tip de glob",
+        "grantREGULAR": "Glob obișnuit pentru un slot",
+        "grantSUPER": "Super Glob (joker)",
+        "grantSlot": "Slot",
+        "pickSlot": "Alege un slot gol",
+        "superHint": "Completează orice slot gol, în limita de jokeri a campaniei.",
+        "slotsEyebrow": "Sloturi",
+        "completion": "{{filled}} din {{total}} completate",
+        "completionHint": "{{regular}} obișnuite + {{wildcardsUsed}} din {{wildcards}} jokeri folosiți · {{missing}} lipsă",
+        "complete": "Finalizat",
+        "collected": "Colectat",
+        "empty": "Gol",
+        "evidence": "Dovezi",
+        "wildcardsEyebrow": "Jokeri",
+        "wildcards": "Jokeri deținuți ({{count}})",
+        "noWildcards": "Niciun joker.",
+        "wishEyebrow": "Recompensă",
+        "wish": "Dorință",
+        "noWish": "Nicio dorință încă.",
+        "wishCreated": "Creată",
+        "wishGranted": "Acordată",
+        "wishReverted": "Anulată",
+        "wishError": "Eroare",
+        "historyEyebrow": "Istoric",
+        "history": "Toate globurile (inclusiv revocate)",
+        "noOrbs": "Încă niciun glob.",
+        "revoked": "Revocat",
+        "revokedBecause": "Revocat {{when}}: {{reason}}",
+        "adminGrant": "Acordat de un administrator",
+        "attemptsEyebrow": "Cronologie",
+        "attempts": "Încercări ({{count}}, ultimele 200)",
+        "noAttempts": "Nicio încercare.",
+        "flagged": "Semnalat",
+        "spawnsEyebrow": "Explorare",
+        "spawns": "Apariții",
+        "noSpawns": "Nicio apariție.",
+        "spawnDistance": "la {{distance}} m · rază {{radius}} m",
+        "fallback": "punct de rezervă",
+        "auditEyebrow": "Suport",
+        "audit": "Intrări de audit",
+        "noAudit": "Încă nicio acțiune de administrator.",
+        "confirm": {
+          "grant": {
+            "title": "Acordă un glob",
+            "message": "Globul contează imediat și este marcat ca acordat de tine."
+          },
+          "revoke": {
+            "title": "Revoci acest glob?",
+            "message": "Slotul devine din nou gol. Globul rămâne în istoric ca revocat."
+          },
+          "reset": {
+            "title": "Resetezi tot progresul?",
+            "message": "Revocă toate globurile și expiră aparițiile deschise. O dorință acordată trebuie anulată mai întâi."
+          },
+          "block": {
+            "title": "Blochezi acest utilizator?",
+            "message": "Nu mai poate prinde globuri sau pune dorințe. Semnalările deschise se închid și aparițiile expiră."
+          },
+          "unblock": {
+            "title": "Deblochezi acest utilizator?",
+            "message": "Poate participa din nou la vânătoare."
+          },
+          "note": {
+            "title": "Adaugă o notă",
+            "message": "Notele ajung în jurnalul de audit al utilizatorului."
+          }
+        },
+        "done": {
+          "grant": "Glob acordat.",
+          "revoke": "Glob revocat.",
+          "reset": "Progres resetat.",
+          "block": "Utilizator blocat.",
+          "unblock": "Utilizator deblocat.",
+          "note": "Notă adăugată."
+        }
+      },
+      "payouts": {
+        "status": "Stare",
+        "anyStatus": "Orice stare",
+        "type": "Tip",
+        "anyType": "Orice tip",
+        "wish": "Dorință",
+        "dates": "Date",
+        "whitelistDiff": "Whitelist Premium (înainte → după)",
+        "changedTo": "schimbat în",
+        "retry": "Reîncearcă",
+        "revert": "Anulează",
+        "emptyTitle": "Nicio plată nu corespunde",
+        "emptyHint": "Dorințele apar aici imediat ce utilizatorii le fac.",
+        "retried": "Plata a fost reîncercată. Stare nouă: {{status}}.",
+        "reverted": "Plată anulată",
+        "coinsTakenBack": "{{count}} monede retrase",
+        "shortfall": "{{count}} monede nu au putut fi retrase (sold insuficient)",
+        "whitelist": {
+          "RESTORED": "whitelist Premium restaurată",
+          "SHORTENED": "data de sfârșit Premium scurtată",
+          "UNCHANGED": "whitelist Premium neschimbată"
+        },
+        "confirm": {
+          "retry": {
+            "title": "Reîncerci plata?",
+            "message": "Încearcă din nou să plătească {{amount}} {{unit}}. Este sigur: plata nu poate fi aplicată de două ori."
+          },
+          "revert": {
+            "title": "Anulezi plata?",
+            "message": "Retrage {{amount}} {{unit}} cât se poate (monede până la soldul curent; Premium restaurat sau scurtat)."
+          }
+        }
+      },
+      "map": {
+        "intro": "Click pe hartă pentru a plasa un pin. Click pe un pin pentru a-l edita.",
+        "showPins": "Pinuri",
+        "showHeat": "Hartă termică a prinderilor",
+        "heatKind": "Prinderi {{kind}}",
+        "heatPrivacy": "Celulele hărții termice au ~1 km; utilizatorii individuali nu sunt afișați niciodată.",
+        "pickHint": "Click oriunde pe hartă pentru un pin nou sau alege unul din listă.",
+        "newPin": "Pin nou",
+        "editPin": "Editează pinul",
+        "name": "Nume",
+        "description": "Descriere",
+        "lat": "Latitudine",
+        "lng": "Longitudine",
+        "radius": "Rază (m)",
+        "activeFrom": "Activ de la",
+        "activeTo": "Activ până la",
+        "isActive": "Activ",
+        "active": "Activ",
+        "inactive": "Inactiv",
+        "create": "Creează pinul",
+        "delete": "Șterge",
+        "catches": "{{count}} prinderi",
+        "pins": "Pinuri ({{count}})",
+        "noPins": "Încă niciun pin.",
+        "tilesNote": "Hărți © contribuitorii OpenStreetMap.",
+        "confirmDelete": {
+          "title": "Ștergi pinul?",
+          "message": "„{{name}}” va fi șters. Dacă cineva l-a prins deja, doar se dezactivează, ca globul să rămână valid."
+        },
+        "done": {
+          "created": "Pinul „{{name}}” a fost creat.",
+          "updated": "Pinul „{{name}}” a fost salvat.",
+          "deleted": "Pinul „{{name}}” a fost șters.",
+          "deactivated": "„{{name}}” fusese deja prins, așa că a fost dezactivat în loc să fie șters."
+        }
+      },
+      "fraud": {
+        "intro": "Încercări semnalate ca suspecte (pași neplauzibili, locație falsă, deplasare prea rapidă, deplasare imposibilă). Respinge alarmele false sau blochează utilizatorul.",
+        "includeReviewed": "Include cele analizate",
+        "reason": "Motiv",
+        "details": "Detalii",
+        "flagCount": "Semnalări utilizator",
+        "when": "Când",
+        "dismiss": "Respinge",
+        "block": "Blochează utilizatorul",
+        "emptyTitle": "Nimic de analizat",
+        "emptyHint": "Încercările semnalate apar aici.",
+        "travelSummary": "Salt de {{km}} km în {{minutes}} min",
+        "stepsSummary": "{{steps}} pași raportați",
+        "gpsSummary": "Precizie GPS {{accuracy}} m · simulată {{mocked}}",
+        "confirm": {
+          "DISMISSED": {
+            "title": "Respingi această semnalare?",
+            "message": "Marchează încercarea lui {{user}} ca alarmă falsă."
+          },
+          "BLOCKED": {
+            "title": "Blochezi acest utilizator?",
+            "message": "{{user}} este blocat în campanie și toate semnalările deschise se închid."
+          }
+        },
+        "done": {
+          "DISMISSED": "Semnalare respinsă.",
+          "BLOCKED": "Utilizator blocat."
+        }
+      },
+      "audit": {
+        "userFilter": "ID utilizator vizat",
+        "userFilterHint": "Lasă gol pentru toate intrările.",
+        "apply": "Aplică",
+        "emptyTitle": "Nicio intrare de audit",
+        "admin": "Administrator",
+        "action": "Acțiune",
+        "target": "Țintă",
+        "note": "Notă",
+        "change": "Modificare",
+        "before": "Înainte",
+        "after": "După"
       }
     }
   }

@@ -334,7 +334,8 @@
     "ai": "Modelos de IA",
     "gamification": "Gamificación",
     "alerts": "Alertas",
-    "appControls": "Controles de la app"
+    "appControls": "Controles de la app",
+    "orbHunt": "Caza de Orbes"
   },
   "pages": {
     "messages": {
@@ -1611,6 +1612,28 @@
           "progress": "Progreso",
           "profile": "Perfil"
         }
+      },
+      "orbHunt": {
+        "title": "Caza de Orbes",
+        "description": "Interruptor general de la caza. Si está apagado, todas las rutas de Caza de Orbes de la app responden «en pausa».",
+        "exploreTitle": "Caza de Orbes: exploración y pines",
+        "exploreDescription": "Desactiva solo las funciones GPS (orbes a pie y pines). Pasos, rachas y Super Orbes siguen funcionando.",
+        "appCheckTitle": "Verificación del dispositivo (App Check)",
+        "appCheckDescription": "Comprueba que las capturas de orbes vienen de la app AlexaFit real en un dispositivo auténtico (Play Integrity / App Attest).",
+        "appCheckModes": {
+          "off": "Desactivado",
+          "monitor": "Supervisión",
+          "enforce": "Obligatorio"
+        },
+        "appCheckHelp": {
+          "off": "No se comprueba.",
+          "monitor": "Se comprueba y se registra en cada captura (ver las pruebas del orbe), no se rechaza nada. Úsalo hasta configurar la consola de Firebase y que la mayoría tenga la nueva versión.",
+          "enforce": "Se rechazan las capturas sin un token válido. Quien tenga versiones antiguas debe actualizar."
+        }
+      },
+      "sliceGame": {
+        "title": "Minijuego Slice ’n Dice",
+        "description": "Si está desactivado, la app oculta todos los accesos al juego: el icono del panel, la fila del perfil y los enlaces de duelo."
       }
     },
     "common": {
@@ -2031,6 +2054,627 @@
         "reason": "Motivo",
         "dropped": "Eventos descartados",
         "project": "Proyecto"
+      }
+    },
+    "orbHunt": {
+      "tabs": {
+        "overview": "Resumen",
+        "campaigns": "Campañas",
+        "participants": "Participantes",
+        "payouts": "Pagos",
+        "map": "Mapa",
+        "fraud": "Cola de fraude",
+        "audit": "Registro de auditoría"
+      },
+      "page": {
+        "eyebrow": "Gamificación",
+        "title": "Caza de Orbes",
+        "subtitle": "Configura la campaña, sigue el progreso y gestiona soporte, pagos y fraude.",
+        "campaign": "Campaña",
+        "noCampaign": "Aún no hay campañas. Crea una primero.",
+        "goToCampaigns": "Ir a Campañas →"
+      },
+      "status": {
+        "DRAFT": "Borrador",
+        "LIVE": "En curso",
+        "ENDED": "Finalizada",
+        "ARCHIVED": "Archivada"
+      },
+      "common": {
+        "close": "Cerrar",
+        "cancel": "Cancelar",
+        "confirm": "Confirmar",
+        "dismiss": "Cerrar",
+        "details": "Detalles",
+        "refresh": "Actualizar",
+        "reset": "Restablecer",
+        "exportCsv": "Exportar CSV",
+        "optional": "opcional",
+        "range": "{{min}}–{{max}}",
+        "pagination": "Paginación",
+        "pageOf": "Página {{page}} de {{pages}} · {{total}} en total",
+        "previous": "Página anterior",
+        "next": "Página siguiente",
+        "noteRequired": "Nota (obligatoria, se guarda en el registro de auditoría)",
+        "noteOptional": "Nota (opcional)",
+        "noteHint": "Al menos {{min}} caracteres."
+      },
+      "errors": {
+        "ANOTHER_LIVE": "Hay otra campaña en curso. Finalízala antes de publicar esta.",
+        "CAMPAIGN_OVER": "La fecha de fin ya pasó. Muévela primero al futuro.",
+        "CAMPAIGN_ARCHIVED": "Las campañas archivadas son de solo lectura.",
+        "CAMPAIGN_NOT_FOUND": "Campaña no encontrada. Recarga la página.",
+        "SLOT_IN_USE": "Los usuarios ya recogieron esta casilla, así que no se puede eliminar ni cambiar de tipo.",
+        "INVALID_TRANSITION": "Este cambio de estado no está permitido ahora. Recarga e inténtalo de nuevo.",
+        "NOTE_REQUIRED": "Se requiere una nota de 3 a 1000 caracteres.",
+        "USER_NOT_FOUND": "Ningún usuario con este ID o correo.",
+        "ORB_NOT_FOUND": "Orbe no encontrado.",
+        "ALREADY_COLLECTED": "El usuario ya tiene este orbe.",
+        "ALREADY_REVOKED": "Este orbe ya fue revocado.",
+        "WISH_GRANTED": "El deseo fue concedido. Revierte el pago antes de reiniciar el progreso.",
+        "WISH_NOT_GRANTED": "Solo se pueden revertir deseos concedidos. Recarga para ver el estado actual.",
+        "WISH_NOT_FAILED": "Solo se pueden reintentar pagos fallidos o atascados. Recarga para ver el estado actual.",
+        "WISH_NOT_FOUND": "Deseo no encontrado.",
+        "INSUFFICIENT_FUNDS": "El usuario no tiene suficientes monedas.",
+        "PIN_NOT_FOUND": "Pin no encontrado. Recarga el mapa.",
+        "TIMEOUT": "El servidor tardó demasiado en responder. Inténtalo de nuevo.",
+        "NETWORK": "Error de red. Comprueba tu conexión e inténtalo de nuevo.",
+        "FORBIDDEN": "Solo los administradores pueden usar la consola Caza de Orbes.",
+        "INVALID": "El servidor rechazó los datos:",
+        "generic": "Algo salió mal. Inténtalo de nuevo."
+      },
+      "sourceTypes": {
+        "STEPS": "Pasos",
+        "ACTIVE_DAYS": "Días activos",
+        "STREAK": "Racha de registro",
+        "EXPLORE": "Explorar"
+      },
+      "kinds": {
+        "REGULAR": "Orbe normal",
+        "SUPER": "Super Orbe",
+        "PIN": "Orbe de pin"
+      },
+      "wishStatus": {
+        "PENDING": "Pendiente",
+        "GRANTED": "Concedido",
+        "FAILED": "Fallido",
+        "REVERTED": "Revertido"
+      },
+      "wishTypes": {
+        "COINS": "Monedas",
+        "PREMIUM_DAYS": "Días Premium"
+      },
+      "wishUnits": {
+        "COINS": "monedas",
+        "PREMIUM_DAYS": "días Premium"
+      },
+      "reasons": {
+        "OK": "Atrapadas",
+        "REJECTED": "Rechazadas",
+        "NO_CAMPAIGN": "Sin campaña",
+        "BLOCKED": "Usuario bloqueado",
+        "ORB_LOCKED": "Orbe aún bloqueado",
+        "ALREADY_COLLECTED": "Ya recogido",
+        "CONDITION_NOT_MET": "Condición no cumplida",
+        "STEPS_IMPLAUSIBLE": "Pasos inverosímiles",
+        "SUPER_LIMIT": "Límite de Super Orbes por campaña",
+        "SUPER_WEEK_LIMIT": "Límite semanal de Super Orbes",
+        "BAD_DATE": "Fecha no válida",
+        "SPAWN_LIMIT": "Límite diario de apariciones",
+        "SPAWN_NOT_FOUND": "Aparición no encontrada",
+        "SPAWN_EXPIRED": "Aparición caducada",
+        "LOW_ACCURACY": "Baja precisión GPS",
+        "MOCK_LOCATION": "Ubicación simulada",
+        "TOO_FAR": "Demasiado lejos",
+        "TOO_FAST": "Movimiento demasiado rápido",
+        "STEPS_TOO_LOW": "Muy pocos pasos",
+        "PIN_INACTIVE": "Pin inactivo",
+        "PIN_DAY_LIMIT": "Límite diario de pines",
+        "IMPOSSIBLE_TRAVEL": "Desplazamiento imposible",
+        "EXPLORE_DISABLED": "Exploración desactivada",
+        "WISH_NOT_READY": "Deseo no disponible",
+        "PAYOUT_FAILED": "Pago fallido"
+      },
+      "results": {
+        "OK": "OK",
+        "REJECTED": "Rechazado"
+      },
+      "actions": {
+        "CATCH": "Captura",
+        "SUPER": "Reclamar Super Orbe",
+        "SPAWN": "Solicitud de aparición",
+        "EXPLORE": "Captura de exploración",
+        "PIN": "Captura de pin",
+        "WISH": "Deseo"
+      },
+      "decisions": {
+        "DISMISSED": "Descartada",
+        "BLOCKED": "Bloqueado"
+      },
+      "auditActions": {
+        "CAMPAIGN_CREATE": "Campaña creada",
+        "CAMPAIGN_UPDATE": "Campaña actualizada",
+        "CAMPAIGN_PUBLISH": "Campaña publicada",
+        "CAMPAIGN_END": "Campaña finalizada",
+        "CAMPAIGN_ARCHIVE": "Campaña archivada",
+        "PIN_CREATE": "Pin creado",
+        "PIN_UPDATE": "Pin actualizado",
+        "PIN_DELETE": "Pin eliminado",
+        "PIN_DEACTIVATE": "Pin desactivado",
+        "ORB_GRANT": "Orbe concedido",
+        "ORB_REVOKE": "Orbe revocado",
+        "PROGRESS_RESET": "Progreso reiniciado",
+        "USER_BLOCK": "Usuario bloqueado",
+        "USER_UNBLOCK": "Usuario desbloqueado",
+        "NOTE": "Nota",
+        "PAYOUT_RETRY": "Pago reintentado",
+        "PAYOUT_REVERT": "Pago revertido",
+        "FLAG_DISMISS": "Alerta descartada"
+      },
+      "overview": {
+        "participants": "Participantes",
+        "blockedHint": "{{count}} bloqueados",
+        "active1d": "Activos 24 h",
+        "active7d": "Activos 7 días",
+        "completed": "Completados",
+        "wishes": "Deseos",
+        "wishesHint": "{{failed}} fallidos · {{reverted}} revertidos",
+        "coinsPaid": "Monedas pagadas",
+        "coinWishes": "{{count}} deseos de monedas",
+        "premiumDays": "Días Premium",
+        "premiumWishes": "{{count}} deseos Premium",
+        "openFlags": "Alertas abiertas",
+        "emptyTitle": "Nadie se ha unido todavía",
+        "emptyHint": "Las cifras aparecen en cuanto los usuarios abren la caza en la app.",
+        "funnelEyebrow": "Embudo",
+        "funnel": "Usuarios por casillas completadas",
+        "filledLabel": "{{count}} completadas",
+        "users": "Usuarios",
+        "slotsEyebrow": "Casillas",
+        "perSlot": "Recogidos por casilla",
+        "collected": "Recogidos",
+        "dailyEyebrow": "Últimos 30 días",
+        "daily": "Orbes, altas y deseos por día",
+        "orbs": "Orbes",
+        "joins": "Altas",
+        "noDaily": "Sin actividad en los últimos 30 días.",
+        "attemptsEyebrow": "Últimos 7 días",
+        "attempts": "Intentos por motivo",
+        "noAttempts": "Sin intentos en los últimos 7 días.",
+        "orbsEyebrow": "Orbes",
+        "orbKinds": "Orbes por tipo",
+        "regularOrbs": "Normales",
+        "superOrbs": "Super Orbes",
+        "pinOrbs": "Orbes de pin",
+        "revokedOrbs": "Revocados"
+      },
+      "campaigns": {
+        "intro": "Solo puede haber una campaña en curso a la vez. Publicar requiere una fecha de fin futura y al menos una casilla.",
+        "new": "Nueva campaña",
+        "emptyTitle": "Aún no hay campañas",
+        "emptyHint": "Crea la primera; empieza como borrador con la plantilla predeterminada.",
+        "campaign": "Campaña",
+        "status": "Estado",
+        "dates": "Fechas",
+        "slots": "Casillas",
+        "participants": "Participantes",
+        "wishesGranted": "Deseos concedidos",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "view": "Ver",
+        "saved": "«{{title}}» guardada.",
+        "action": {
+          "publish": "Publicar",
+          "end": "Finalizar",
+          "archive": "Archivar",
+          "duplicate": "Duplicar"
+        },
+        "confirm": {
+          "publish": {
+            "title": "¿Publicar la campaña?",
+            "message": "«{{title}}» se activará de inmediato para todos los usuarios de la app."
+          },
+          "end": {
+            "title": "¿Finalizar la campaña?",
+            "message": "La caza se detiene en «{{title}}». Quienes la completaron aún pueden pedir su deseo durante el periodo de gracia."
+          },
+          "archive": {
+            "title": "¿Archivar la campaña?",
+            "message": "«{{title}}» pasará a solo lectura y no podrá publicarse de nuevo."
+          },
+          "duplicate": {
+            "title": "¿Duplicar la campaña?",
+            "message": "Crea un nuevo borrador copiado de «{{title}}» con las mismas casillas y ajustes. Ajusta las fechas antes de publicar."
+          }
+        },
+        "done": {
+          "publish": "«{{title}}» está en curso.",
+          "end": "«{{title}}» ha finalizado.",
+          "archive": "«{{title}}» se ha archivado.",
+          "duplicate": "Borrador «{{title}}» creado."
+        }
+      },
+      "editor": {
+        "back": "Volver",
+        "newTitle": "Nueva campaña",
+        "editTitle": "Editar campaña",
+        "save": "Guardar",
+        "create": "Crear borrador",
+        "liveWarning": "En curso: los cambios llegan de inmediato a los usuarios",
+        "archivedReadOnly": "Esta campaña está archivada y solo se puede consultar.",
+        "fixFirst": "Corrige primero:",
+        "problems": {
+          "titleRequired": "El título en inglés es obligatorio.",
+          "datesRequired": "Indica una fecha de inicio y de fin.",
+          "endBeforeStart": "El fin debe ser posterior al inicio.",
+          "tooLong": "Una campaña puede durar como máximo {{days}} días.",
+          "noSlots": "Añade al menos una casilla.",
+          "optionId": "Los ID de las opciones de deseo deben ser slugs en minúsculas (a–z, 0–9, - y _).",
+          "optionDuplicate": "Los ID de las opciones de deseo deben ser únicos.",
+          "daysWindow": "Casilla {{slot}}: los días no pueden superar la ventana.",
+          "distanceOrder": "Casilla {{slot}}: la distancia mínima debe ser menor que la máxima."
+        },
+        "datesEyebrow": "Calendario",
+        "dates": "Fechas",
+        "startsAt": "Inicio",
+        "endsAt": "Fin",
+        "maxDays": "Como máximo {{days}} días después del inicio. Horas en tu zona horaria.",
+        "contentEyebrow": "Textos",
+        "content": "Contenido por idioma",
+        "language": "Idioma",
+        "enRequired": "El inglés es el respaldo de todos los idiomas; su título es obligatorio.",
+        "fallsBackToEn": "Los campos vacíos usan el inglés en la app.",
+        "title": "Título",
+        "description": "Descripción",
+        "wishText": "Texto del deseo",
+        "themeEyebrow": "Aspecto",
+        "theme": "Tema",
+        "color": "Color del tema",
+        "colorHint": "Usa un color #rrggbb.",
+        "orbArt": "Imagen del orbe (URL https)",
+        "spiritArt": "Imagen del espíritu (URL https)",
+        "preview": "Vista previa",
+        "upload": "Subir",
+        "uploading": "Subiendo…",
+        "uploadFailed": "Error al subir. Inténtalo de nuevo o pega una URL https.",
+        "httpsOnly": "Debe ser una URL https://."
+      },
+      "slots": {
+        "eyebrow": "Constructor de casillas",
+        "title": "Casillas ({{count}}/{{max}})",
+        "intro": "El número de casilla es el orden de la lista. Las casillas ya recogidas no se pueden eliminar ni cambiar de tipo; los objetivos, nombres, imágenes y fechas de desbloqueo siguen siendo editables.",
+        "add": "Añadir casilla",
+        "type": "Tipo",
+        "new": "Nueva",
+        "collectedBy": "Recogida por {{count}}",
+        "lockedType": "Ya recogida: el tipo está bloqueado.",
+        "lockedRemove": "Los usuarios recogieron esta casilla; no se puede eliminar.",
+        "moveUp": "Subir la casilla {{slot}}",
+        "moveDown": "Bajar la casilla {{slot}}",
+        "remove": "Eliminar la casilla {{slot}}",
+        "name": "Nombre",
+        "art": "Imagen (URL https)",
+        "unlocksAt": "Se desbloquea el",
+        "config": {
+          "steps": "Pasos en un día",
+          "days": "Días",
+          "windowDays": "Ventana (días)",
+          "minDistanceM": "Distancia mín. (m)",
+          "maxDistanceM": "Distancia máx. (m)"
+        },
+        "help": {
+          "STEPS": "Alcanzar los pasos en un día local (según Apple Salud / Health Connect).",
+          "ACTIVE_DAYS": "Hacer ejercicio al menos «días» de los últimos «ventana» días, desde el inicio de la campaña.",
+          "STREAK": "La racha de registro de comidas alcanza el número de días.",
+          "EXPLORE": "Caminar hasta un punto generado. Las distancias por defecto salen de los ajustes de exploración de la campaña."
+        }
+      },
+      "wishOptions": {
+        "eyebrow": "Recompensa",
+        "title": "Opciones de deseo",
+        "intro": "Entre {{min}} y {{max}} opciones. Monedas 1–1000, días Premium 1–90.",
+        "add": "Añadir opción",
+        "remove": "Eliminar opción",
+        "id": "ID",
+        "idHint": "Slug en minúsculas, único",
+        "type": "Tipo",
+        "amount": "Cantidad"
+      },
+      "settings": {
+        "eyebrow": "Reglas",
+        "title": "Ajustes",
+        "groups": {
+          "superOrb": "Super Orbe",
+          "activity": "Actividad",
+          "steps": "Pasos",
+          "explore": "Explorar",
+          "pins": "Pines",
+          "wish": "Deseo"
+        },
+        "groupHelp": {
+          "superOrb": "Un día saludable da un comodín: comidas registradas, suficientes kcal, ejercicio y un check-in reciente.",
+          "activity": "Cuándo una entrada sincronizada de Salud cuenta como ejercicio.",
+          "steps": "Por encima de esto, los pasos se consideran inverosímiles y se marcan.",
+          "explore": "Distancias de aparición, radio de captura y límites antitrampas para los orbes a pie.",
+          "pins": "Hasta dónde busca la app los pines y cuántos puede atrapar un usuario al día.",
+          "wish": "Comodines por deseo y periodo de gracia tras el fin."
+        },
+        "fields": {
+          "superOrb": {
+            "enabled": "Activado",
+            "minMeals": "Tipos de comida mín.",
+            "minDayKcal": "Kcal mín. registradas",
+            "requireExercise": "Exigir ejercicio",
+            "requireCheckIn": "Exigir check-in",
+            "checkInWindowDays": "Ventana de check-in (días)",
+            "maxPerCampaign": "Máx. por campaña",
+            "maxPerWeek": "Máx. por semana"
+          },
+          "activity": {
+            "minSyncedActiveKcal": "Kcal activas sincronizadas mín."
+          },
+          "steps": {
+            "maxPlausibleSteps": "Pasos plausibles máx."
+          },
+          "explore": {
+            "enabled": "Activado",
+            "minDistanceM": "Distancia mín. (m)",
+            "maxDistanceM": "Distancia máx. (m)",
+            "catchRadiusM": "Radio de captura (m)",
+            "spawnTtlHours": "Duración de la aparición (h)",
+            "maxSpawnsPerDay": "Apariciones máx. por día",
+            "maxSpeedMps": "Velocidad máx. (m/s)",
+            "minStepsRatio": "Proporción mín. de pasos",
+            "maxAccuracyM": "Precisión GPS máx. (m)"
+          },
+          "pins": {
+            "searchRadiusKm": "Radio de búsqueda (km)",
+            "maxPerDay": "Capturas de pines máx. por día"
+          },
+          "wish": {
+            "maxWildcards": "Comodines máx. por deseo",
+            "graceDays": "Periodo de gracia (días)"
+          }
+        }
+      },
+      "participants": {
+        "search": "Buscar",
+        "searchPlaceholder": "ID de usuario, correo o nombre",
+        "filter": "Filtro",
+        "filters": {
+          "all": "Todos",
+          "completed": "Completado",
+          "wished": "Deseo concedido",
+          "wishFailed": "Deseo fallido",
+          "readyNoWish": "Completo, sin deseo",
+          "flagged": "Marcados",
+          "blocked": "Bloqueados"
+        },
+        "platform": "Plataforma",
+        "anyPlatform": "Cualquiera",
+        "minFilled": "Casillas completadas mín.",
+        "sort": "Orden",
+        "sorts": {
+          "activity": "Última actividad",
+          "orbs": "Más orbes",
+          "joined": "Unidos recientemente",
+          "flags": "Más alertas"
+        },
+        "openDirect": "Abrir un usuario directamente",
+        "openDirectPlaceholder": "Correo o ID de usuario",
+        "open": "Abrir",
+        "openRow": "Abrir {{name}}",
+        "emptyTitle": "Ningún participante coincide",
+        "emptyHint": "Prueba otro filtro u otra búsqueda.",
+        "user": "Usuario",
+        "progress": "Progreso",
+        "counts": "{{regular}} normales · {{wildcards}} comodines",
+        "wish": "Deseo",
+        "flags": "Alertas",
+        "lastActivity": "Última actividad",
+        "joined": "Unido",
+        "blocked": "Bloqueado"
+      },
+      "detail": {
+        "userId": "ID de usuario",
+        "userType": "Tipo · estado",
+        "joined": "Unido",
+        "lastActivity": "Última actividad",
+        "coins": "Saldo de monedas",
+        "notJoined": "Este usuario aún no se ha unido. Conceder un orbe o bloquearlo lo añade.",
+        "blockedSince": "Bloqueado desde {{when}}: {{reason}}",
+        "grant": "Conceder orbe",
+        "addNote": "Añadir nota",
+        "block": "Bloquear",
+        "unblock": "Desbloquear",
+        "reset": "Reiniciar progreso",
+        "revoke": "Revocar",
+        "grantKind": "Tipo de orbe",
+        "grantREGULAR": "Orbe normal para una casilla",
+        "grantSUPER": "Super Orbe (comodín)",
+        "grantSlot": "Casilla",
+        "pickSlot": "Elige una casilla vacía",
+        "superHint": "Rellena cualquier casilla vacía, dentro del límite de comodines de la campaña.",
+        "slotsEyebrow": "Casillas",
+        "completion": "{{filled}} de {{total}} completadas",
+        "completionHint": "{{regular}} normales + {{wildcardsUsed}} de {{wildcards}} comodines usados · faltan {{missing}}",
+        "complete": "Completo",
+        "collected": "Recogido",
+        "empty": "Vacía",
+        "evidence": "Pruebas",
+        "wildcardsEyebrow": "Comodines",
+        "wildcards": "Comodines obtenidos ({{count}})",
+        "noWildcards": "Sin comodines.",
+        "wishEyebrow": "Recompensa",
+        "wish": "Deseo",
+        "noWish": "Aún no hay deseo.",
+        "wishCreated": "Pedido",
+        "wishGranted": "Concedido",
+        "wishReverted": "Revertido",
+        "wishError": "Error",
+        "historyEyebrow": "Historial",
+        "history": "Todos los orbes (incluidos revocados)",
+        "noOrbs": "Aún no hay orbes.",
+        "revoked": "Revocado",
+        "revokedBecause": "Revocado {{when}}: {{reason}}",
+        "adminGrant": "Concedido por un administrador",
+        "attemptsEyebrow": "Cronología",
+        "attempts": "Intentos ({{count}}, últimos 200)",
+        "noAttempts": "Sin intentos.",
+        "flagged": "Marcado",
+        "spawnsEyebrow": "Explorar",
+        "spawns": "Apariciones",
+        "noSpawns": "Sin apariciones.",
+        "spawnDistance": "a {{distance}} m · radio {{radius}} m",
+        "fallback": "punto de respaldo",
+        "auditEyebrow": "Soporte",
+        "audit": "Entradas de auditoría",
+        "noAudit": "Aún no hay acciones de administrador.",
+        "confirm": {
+          "grant": {
+            "title": "Conceder un orbe",
+            "message": "El orbe cuenta de inmediato y queda marcado como concedido por ti."
+          },
+          "revoke": {
+            "title": "¿Revocar este orbe?",
+            "message": "La casilla vuelve a quedar vacía. El orbe sigue en el historial como revocado."
+          },
+          "reset": {
+            "title": "¿Reiniciar todo el progreso?",
+            "message": "Revoca todos los orbes y caduca las apariciones abiertas. Un deseo concedido debe revertirse antes."
+          },
+          "block": {
+            "title": "¿Bloquear a este usuario?",
+            "message": "Ya no podrá atrapar orbes ni pedir deseos. Las alertas abiertas se cierran y las apariciones caducan."
+          },
+          "unblock": {
+            "title": "¿Desbloquear a este usuario?",
+            "message": "Podrá volver a participar en la caza."
+          },
+          "note": {
+            "title": "Añadir una nota",
+            "message": "Las notas se guardan en el registro de auditoría del usuario."
+          }
+        },
+        "done": {
+          "grant": "Orbe concedido.",
+          "revoke": "Orbe revocado.",
+          "reset": "Progreso reiniciado.",
+          "block": "Usuario bloqueado.",
+          "unblock": "Usuario desbloqueado.",
+          "note": "Nota añadida."
+        }
+      },
+      "payouts": {
+        "status": "Estado",
+        "anyStatus": "Cualquier estado",
+        "type": "Tipo",
+        "anyType": "Cualquier tipo",
+        "wish": "Deseo",
+        "dates": "Fechas",
+        "whitelistDiff": "Lista blanca Premium (antes → después)",
+        "changedTo": "cambia a",
+        "retry": "Reintentar",
+        "revert": "Revertir",
+        "emptyTitle": "Ningún pago coincide",
+        "emptyHint": "Los deseos aparecen aquí en cuanto los usuarios los piden.",
+        "retried": "Pago reintentado. Nuevo estado: {{status}}.",
+        "reverted": "Pago revertido",
+        "coinsTakenBack": "{{count}} monedas retiradas",
+        "shortfall": "{{count}} monedas no se pudieron retirar (saldo insuficiente)",
+        "whitelist": {
+          "RESTORED": "lista blanca Premium restaurada",
+          "SHORTENED": "fecha de fin Premium acortada",
+          "UNCHANGED": "lista blanca Premium sin cambios"
+        },
+        "confirm": {
+          "retry": {
+            "title": "¿Reintentar el pago?",
+            "message": "Vuelve a intentar pagar {{amount}} {{unit}}. Es seguro: el pago no se puede aplicar dos veces."
+          },
+          "revert": {
+            "title": "¿Revertir el pago?",
+            "message": "Retira {{amount}} {{unit}} en lo posible (monedas hasta el saldo actual; Premium restaurado o acortado)."
+          }
+        }
+      },
+      "map": {
+        "intro": "Haz clic en el mapa para colocar un pin y en un pin para editarlo.",
+        "showPins": "Pines",
+        "showHeat": "Mapa de calor de capturas",
+        "heatKind": "Capturas {{kind}}",
+        "heatPrivacy": "Las celdas miden ~1 km; nunca se muestran usuarios individuales.",
+        "pickHint": "Haz clic en cualquier punto del mapa para crear un pin, o elige uno de la lista.",
+        "newPin": "Nuevo pin",
+        "editPin": "Editar pin",
+        "name": "Nombre",
+        "description": "Descripción",
+        "lat": "Latitud",
+        "lng": "Longitud",
+        "radius": "Radio (m)",
+        "activeFrom": "Activo desde",
+        "activeTo": "Activo hasta",
+        "isActive": "Activo",
+        "active": "Activo",
+        "inactive": "Inactivo",
+        "create": "Crear pin",
+        "delete": "Eliminar",
+        "catches": "{{count}} capturas",
+        "pins": "Pines ({{count}})",
+        "noPins": "Aún no hay pines.",
+        "tilesNote": "Mapas © colaboradores de OpenStreetMap.",
+        "confirmDelete": {
+          "title": "¿Eliminar el pin?",
+          "message": "«{{name}}» se eliminará. Si alguien ya lo atrapó, solo se desactiva para que su orbe siga siendo válido."
+        },
+        "done": {
+          "created": "Pin «{{name}}» creado.",
+          "updated": "Pin «{{name}}» guardado.",
+          "deleted": "Pin «{{name}}» eliminado.",
+          "deactivated": "«{{name}}» ya se había atrapado, así que se desactivó en lugar de eliminarse."
+        }
+      },
+      "fraud": {
+        "intro": "Intentos marcados como sospechosos (pasos inverosímiles, ubicación simulada, movimiento demasiado rápido, desplazamiento imposible). Descarta las falsas alarmas o bloquea al usuario.",
+        "includeReviewed": "Incluir revisados",
+        "reason": "Motivo",
+        "details": "Detalles",
+        "flagCount": "Alertas del usuario",
+        "when": "Cuándo",
+        "dismiss": "Descartar",
+        "block": "Bloquear usuario",
+        "emptyTitle": "Nada que revisar",
+        "emptyHint": "Los intentos marcados aparecen aquí.",
+        "travelSummary": "Salto de {{km}} km en {{minutes}} min",
+        "stepsSummary": "{{steps}} pasos reportados",
+        "gpsSummary": "Precisión GPS {{accuracy}} m · simulada {{mocked}}",
+        "confirm": {
+          "DISMISSED": {
+            "title": "¿Descartar esta alerta?",
+            "message": "Marca el intento de {{user}} como falsa alarma."
+          },
+          "BLOCKED": {
+            "title": "¿Bloquear a este usuario?",
+            "message": "{{user}} queda bloqueado en la campaña y se cierran todas sus alertas abiertas."
+          }
+        },
+        "done": {
+          "DISMISSED": "Alerta descartada.",
+          "BLOCKED": "Usuario bloqueado."
+        }
+      },
+      "audit": {
+        "userFilter": "ID del usuario afectado",
+        "userFilterHint": "Déjalo vacío para ver todas las entradas.",
+        "apply": "Aplicar",
+        "emptyTitle": "Sin entradas de auditoría",
+        "admin": "Administrador",
+        "action": "Acción",
+        "target": "Objetivo",
+        "note": "Nota",
+        "change": "Cambio",
+        "before": "Antes",
+        "after": "Después"
       }
     }
   }
