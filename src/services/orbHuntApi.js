@@ -120,6 +120,10 @@ export const createPin = (campaignId, input) =>
 export const updatePin = (pinId, input) =>
   call(`/pins/${enc(pinId)}`, { method: 'PUT', body: input })
 
+/** Permanently deletes an ARCHIVED campaign. Resolves `{ deleted, id }`. */
+export const deleteCampaign = (id, note) =>
+  call(`/campaigns/${enc(id)}`, { method: 'DELETE', body: { note } })
+
 /** Resolves `{ outcome: 'DELETED' | 'DEACTIVATED' }`. */
 export const deletePin = (pinId, note) =>
   call(`/pins/${enc(pinId)}`, { method: 'DELETE', body: { note } })

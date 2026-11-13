@@ -2121,7 +2121,9 @@
         "NETWORK": "Error de red. Comprueba tu conexión e inténtalo de nuevo.",
         "FORBIDDEN": "Solo los administradores pueden usar la consola Caza de Orbes.",
         "INVALID": "El servidor rechazó los datos:",
-        "generic": "Algo salió mal. Inténtalo de nuevo."
+        "generic": "Algo salió mal. Inténtalo de nuevo.",
+        "NOT_ARCHIVED": "Solo se pueden eliminar campañas archivadas. Archívala primero.",
+        "PAYOUT_PENDING": "Todavía se está pagando un deseo de esta campaña. Inténtalo de nuevo en un minuto."
       },
       "sourceTypes": {
         "STEPS": "Pasos",
@@ -2209,7 +2211,8 @@
         "NOTE": "Nota",
         "PAYOUT_RETRY": "Pago reintentado",
         "PAYOUT_REVERT": "Pago revertido",
-        "FLAG_DISMISS": "Alerta descartada"
+        "FLAG_DISMISS": "Alerta descartada",
+        "CAMPAIGN_DELETE": "Campaña eliminada"
       },
       "overview": {
         "participants": "Participantes",
@@ -2267,7 +2270,8 @@
           "publish": "Publicar",
           "end": "Finalizar",
           "archive": "Archivar",
-          "duplicate": "Duplicar"
+          "duplicate": "Duplicar",
+          "delete": "Eliminar"
         },
         "confirm": {
           "publish": {
@@ -2285,13 +2289,18 @@
           "duplicate": {
             "title": "¿Duplicar la campaña?",
             "message": "Crea un nuevo borrador copiado de «{{title}}» con las mismas casillas y ajustes. Ajusta las fechas antes de publicar."
+          },
+          "delete": {
+            "title": "¿Eliminar la campaña definitivamente?",
+            "message": "Se borrarán «{{title}}» y todos sus datos (casillas, pines, participantes, orbes recogidos, intentos y deseos). No se puede deshacer. Las monedas y días premium ya entregados se quedan con los usuarios; el registro de auditoría se conserva."
           }
         },
         "done": {
           "publish": "«{{title}}» está en curso.",
           "end": "«{{title}}» ha finalizado.",
           "archive": "«{{title}}» se ha archivado.",
-          "duplicate": "Borrador «{{title}}» creado."
+          "duplicate": "Borrador «{{title}}» creado.",
+          "delete": "«{{title}}» se ha eliminado."
         }
       },
       "editor": {

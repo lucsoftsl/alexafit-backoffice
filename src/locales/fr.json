@@ -2089,7 +2089,9 @@
         "NETWORK": "Erreur réseau. Vérifiez votre connexion et réessayez.",
         "FORBIDDEN": "Seuls les administrateurs peuvent utiliser la console Chasse aux orbes.",
         "INVALID": "Le serveur a refusé la saisie :",
-        "generic": "Une erreur est survenue. Réessayez."
+        "generic": "Une erreur est survenue. Réessayez.",
+        "NOT_ARCHIVED": "Seules les campagnes archivées peuvent être supprimées. Archivez-la d’abord.",
+        "PAYOUT_PENDING": "Un versement de vœu est encore en cours pour cette campagne. Réessayez dans une minute."
       },
       "sourceTypes": {
         "STEPS": "Pas",
@@ -2177,7 +2179,8 @@
         "NOTE": "Note",
         "PAYOUT_RETRY": "Versement relancé",
         "PAYOUT_REVERT": "Versement annulé",
-        "FLAG_DISMISS": "Signalement écarté"
+        "FLAG_DISMISS": "Signalement écarté",
+        "CAMPAIGN_DELETE": "Campagne supprimée"
       },
       "overview": {
         "participants": "Participants",
@@ -2235,7 +2238,8 @@
           "publish": "Publier",
           "end": "Terminer",
           "archive": "Archiver",
-          "duplicate": "Dupliquer"
+          "duplicate": "Dupliquer",
+          "delete": "Supprimer"
         },
         "confirm": {
           "publish": {
@@ -2253,13 +2257,18 @@
           "duplicate": {
             "title": "Dupliquer la campagne ?",
             "message": "Crée un nouveau brouillon copié de « {{title}} » avec les mêmes emplacements et réglages. Ajustez les dates avant de publier."
+          },
+          "delete": {
+            "title": "Supprimer définitivement la campagne ?",
+            "message": "« {{title}} » et toutes ses données (emplacements, épingles, participants, orbes collectés, tentatives et vœux) seront effacées. Action irréversible. Les pièces et jours premium déjà versés restent aux utilisateurs ; le journal d’audit est conservé."
           }
         },
         "done": {
           "publish": "« {{title}} » est en cours.",
           "end": "« {{title}} » est terminée.",
           "archive": "« {{title}} » a été archivée.",
-          "duplicate": "Brouillon « {{title}} » créé."
+          "duplicate": "Brouillon « {{title}} » créé.",
+          "delete": "« {{title}} » a été supprimée."
         }
       },
       "editor": {

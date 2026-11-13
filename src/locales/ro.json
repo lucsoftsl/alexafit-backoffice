@@ -2091,7 +2091,9 @@
         "NETWORK": "Eroare de rețea. Verifică conexiunea și încearcă din nou.",
         "FORBIDDEN": "Doar administratorii pot folosi consola Vânătoarea de Globuri.",
         "INVALID": "Serverul a respins datele:",
-        "generic": "Ceva n-a mers. Încearcă din nou."
+        "generic": "Ceva n-a mers. Încearcă din nou.",
+        "NOT_ARCHIVED": "Doar campaniile arhivate pot fi șterse. Arhiveaz-o mai întâi.",
+        "PAYOUT_PENDING": "O recompensă pentru această campanie este încă în curs de plată. Încearcă din nou peste un minut."
       },
       "sourceTypes": {
         "STEPS": "Pași",
@@ -2179,7 +2181,8 @@
         "NOTE": "Notă",
         "PAYOUT_RETRY": "Plată reîncercată",
         "PAYOUT_REVERT": "Plată anulată",
-        "FLAG_DISMISS": "Semnalare respinsă"
+        "FLAG_DISMISS": "Semnalare respinsă",
+        "CAMPAIGN_DELETE": "Campanie ștearsă"
       },
       "overview": {
         "participants": "Participanți",
@@ -2237,7 +2240,8 @@
           "publish": "Publică",
           "end": "Încheie",
           "archive": "Arhivează",
-          "duplicate": "Duplică"
+          "duplicate": "Duplică",
+          "delete": "Șterge"
         },
         "confirm": {
           "publish": {
@@ -2255,13 +2259,18 @@
           "duplicate": {
             "title": "Duplici campania?",
             "message": "Creează o ciornă nouă, copie a „{{title}}”, cu aceleași sloturi și setări. Ajustează datele înainte de publicare."
+          },
+          "delete": {
+            "title": "Ștergi campania definitiv?",
+            "message": "„{{title}}” și toate datele ei (sloturi, pini, participanți, globuri colectate, încercări și dorințe) vor fi șterse. Acțiunea nu poate fi anulată. Monedele și zilele premium deja acordate rămân la utilizatori; jurnalul de audit se păstrează."
           }
         },
         "done": {
           "publish": "„{{title}}” este activă.",
           "end": "„{{title}}” s-a încheiat.",
           "archive": "„{{title}}” a fost arhivată.",
-          "duplicate": "Ciorna „{{title}}” a fost creată."
+          "duplicate": "Ciorna „{{title}}” a fost creată.",
+          "delete": "„{{title}}” a fost ștearsă."
         }
       },
       "editor": {

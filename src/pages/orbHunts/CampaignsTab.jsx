@@ -4,6 +4,7 @@ import { PlusIcon } from '@heroicons/react/24/outline'
 
 import {
   changeCampaignStatus,
+  deleteCampaign,
   duplicateCampaign
 } from '../../services/orbHuntApi'
 import { formatNumber } from '../../components/admin/format'
@@ -27,6 +28,11 @@ import {
 } from './ui'
 
 const ACTION_TONE = { publish: 'success', end: 'danger', archive: 'secondary' }
+const CONFIRM_TONE = {
+  end: 'danger',
+  delete: 'danger',
+  publish: 'success'
+}
 
 const CampaignsTab = ({
   campaigns,
@@ -61,8 +67,19 @@ const CampaignsTab = ({
     )
   }
 
-  const runAction = async () => {
+  const runAction = async note => {
     const { action, campaign } = confirm
+    if (action === 'delete') {
+      await deleteCampaign(campaign.id, note)
+      setNotice(
+        t('admin.orbHunt.campaigns.done.delete', {
+          title: campaignTitle(campaign, lang)
+        })
+      )
+      if (campaign.id === selectedId) onSelect(null)
+      onChanged()
+      return
+    }
     const detail =
       action === 'duplicate'
         ? await duplicateCampaign(campaign.id)
@@ -191,6 +208,15 @@ const CampaignsTab = ({
                     >
                       {t('admin.orbHunt.campaigns.action.duplicate')}
                     </Button>
+                    {campaign.status === 'ARCHIVED' ? (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setConfirm({ action: 'delete', campaign })}
+                      >
+                        {t('admin.orbHunt.campaigns.action.delete')}
+                      </Button>
+                    ) : null}
                   </div>
                 </Td>
               </tr>
@@ -209,13 +235,8 @@ const CampaignsTab = ({
             }
           )}
           confirmLabel={t(`admin.orbHunt.campaigns.action.${confirm.action}`)}
-          tone={
-            confirm.action === 'end'
-              ? 'danger'
-              : confirm.action === 'publish'
-                ? 'success'
-                : 'primary'
-          }
+          tone={CONFIRM_TONE[confirm.action] || 'primary'}
+          requireNote={confirm.action === 'delete'}
           onConfirm={runAction}
           onClose={() => setConfirm(null)}
         />

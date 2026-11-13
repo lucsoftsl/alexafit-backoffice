@@ -2090,7 +2090,9 @@
         "NETWORK": "Network error. Check your connection and try again.",
         "FORBIDDEN": "Only admins can use the Orb Hunt console.",
         "INVALID": "The server rejected the input:",
-        "generic": "Something went wrong. Try again."
+        "generic": "Something went wrong. Try again.",
+        "NOT_ARCHIVED": "Only archived campaigns can be deleted. Archive it first.",
+        "PAYOUT_PENDING": "A wish payout is still running for this campaign. Try again in a minute."
       },
       "sourceTypes": {
         "STEPS": "Steps",
@@ -2178,7 +2180,8 @@
         "NOTE": "Note",
         "PAYOUT_RETRY": "Payout retried",
         "PAYOUT_REVERT": "Payout reverted",
-        "FLAG_DISMISS": "Flag dismissed"
+        "FLAG_DISMISS": "Flag dismissed",
+        "CAMPAIGN_DELETE": "Campaign deleted"
       },
       "overview": {
         "participants": "Participants",
@@ -2236,7 +2239,8 @@
           "publish": "Publish",
           "end": "End",
           "archive": "Archive",
-          "duplicate": "Duplicate"
+          "duplicate": "Duplicate",
+          "delete": "Delete"
         },
         "confirm": {
           "publish": {
@@ -2254,13 +2258,18 @@
           "duplicate": {
             "title": "Duplicate campaign?",
             "message": "Creates a new draft copy of “{{title}}” with the same slots and settings. Adjust the dates before publishing."
+          },
+          "delete": {
+            "title": "Delete campaign permanently?",
+            "message": "“{{title}}” and all its data (slots, pins, participants, collected orbs, attempts and wish records) will be erased. This can’t be undone. Coins and premium days already paid out stay with the users; the audit log is kept."
           }
         },
         "done": {
           "publish": "“{{title}}” is live.",
           "end": "“{{title}}” has ended.",
           "archive": "“{{title}}” was archived.",
-          "duplicate": "Draft “{{title}}” created."
+          "duplicate": "Draft “{{title}}” created.",
+          "delete": "“{{title}}” was deleted."
         }
       },
       "editor": {
