@@ -1602,6 +1602,10 @@
       "sliceGame": {
         "title": "Mini-jeu Slice ’n Dice",
         "description": "Désactivé, l’app masque tous les accès au jeu : l’icône du tableau de bord, la ligne du profil et les liens de duel."
+      },
+      "quickLauncher": {
+        "title": "Lanceur rapide du tableau de bord",
+        "description": "Raccourci flottant sur le tableau de bord vers Orb Hunt, les quêtes du jour et Slice ’n Dice, avec un badge pour ce qui attend. Désactivé, l’app le masque."
       }
     },
     "common": {

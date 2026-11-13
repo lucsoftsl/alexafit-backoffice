@@ -105,6 +105,11 @@ const AppControls = () => {
   const setSliceGame = patch =>
     save({ ...config, sliceGame: { ...sliceGame, ...patch } })
 
+  // Same for quickLauncher (added after sliceGame).
+  const quickLauncher = { enabled: true, ...(config?.quickLauncher || {}) }
+  const setQuickLauncher = patch =>
+    save({ ...config, quickLauncher: { ...quickLauncher, ...patch } })
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
@@ -171,6 +176,16 @@ const AppControls = () => {
               checked={sliceGame.enabled}
               disabled={isSaving}
               onChange={enabled => setSliceGame({ enabled })}
+            />
+          </section>
+
+          <section className="rounded-2xl border border-gray-200 bg-white px-6 py-2 shadow-sm">
+            <ControlRow
+              title={t('admin.appControls.quickLauncher.title')}
+              description={t('admin.appControls.quickLauncher.description')}
+              checked={quickLauncher.enabled}
+              disabled={isSaving}
+              onChange={enabled => setQuickLauncher({ enabled })}
             />
           </section>
 

@@ -1612,6 +1612,10 @@
       "sliceGame": {
         "title": "Slice ’n Dice minigame",
         "description": "When off, the app hides every way into the game: the Dashboard icon, the Profile row and duel links."
+      },
+      "quickLauncher": {
+        "title": "Dashboard quick launcher",
+        "description": "Floating shortcut on the Dashboard to Orb Hunt, daily quests and Slice ’n Dice, with a badge for anything waiting. When off, the app hides it."
       }
     },
     "common": {

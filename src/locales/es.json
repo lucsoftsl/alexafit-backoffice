@@ -1634,6 +1634,10 @@
       "sliceGame": {
         "title": "Minijuego Slice ’n Dice",
         "description": "Si está desactivado, la app oculta todos los accesos al juego: el icono del panel, la fila del perfil y los enlaces de duelo."
+      },
+      "quickLauncher": {
+        "title": "Lanzador rápido del panel",
+        "description": "Acceso flotante en el panel a Orb Hunt, las misiones diarias y Slice ’n Dice, con una insignia para lo pendiente. Si está desactivado, la app lo oculta."
       }
     },
     "common": {

@@ -1604,6 +1604,10 @@
       "sliceGame": {
         "title": "Minijocul Slice ’n Dice",
         "description": "Când e oprit, aplicația ascunde orice acces la joc: iconița de pe Dashboard, rândul din Profil și linkurile de duel."
+      },
+      "quickLauncher": {
+        "title": "Lansator rapid pe Dashboard",
+        "description": "Scurtătură plutitoare pe Dashboard către Orb Hunt, misiunile zilnice și Slice ’n Dice, cu o insignă pentru ce așteaptă. Când este oprit, aplicația îl ascunde."
       }
     },
     "common": {
