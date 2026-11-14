@@ -303,7 +303,8 @@
     "gamification": "Gamification",
     "alerts": "Alerts",
     "appControls": "App controls",
-    "orbHunt": "Orb Hunt"
+    "orbHunt": "Orb Hunt",
+    "theTable": "The Table"
   },
   "pages": {
     "messages": {
@@ -1616,6 +1617,18 @@
       "quickLauncher": {
         "title": "Dashboard quick launcher",
         "description": "Floating shortcut on the Dashboard to Orb Hunt, daily quests and Slice ’n Dice, with a badge for anything waiting. When off, the app hides it."
+      },
+      "theTable": {
+        "title": "The Table (social feed)",
+        "description": "Friends and the shared feed of meals, exercises and milestones. When off, people who used The Table see the message below instead; nothing is deleted.",
+        "messageTitle": "Message while switched off",
+        "messageHint": "People who already used The Table see this instead of the feed. Empty languages fall back to English, then to the app's built-in text. Their friends and posts are kept.",
+        "messageHeading": "Heading",
+        "messageHeadingPlaceholder": "The Table is taking a break",
+        "messageBody": "Message",
+        "messageBodyPlaceholder": "We are working on something. Your friends and posts are safe, and The Table will be back soon.",
+        "messageSave": "Save message",
+        "messageReset": "Discard changes"
       }
     },
     "common": {
@@ -2027,7 +2040,17 @@
         "reason": "Reason",
         "dropped": "Dropped events",
         "project": "Project"
-      }
+      },
+      "refreshing": "Refreshing…",
+      "lastUpdated": "Updated {{time}}",
+      "review": "Review",
+      "actions": "Actions",
+      "noteHint": "Write a short note first — it is saved with the alert so others know why it was closed.",
+      "resolveHelp": "Resolve closes the alert. Acknowledge keeps it visible as seen.",
+      "delete": "Delete alert",
+      "deleteConfirm": "Delete this alert permanently? Its history and note are removed. Any restriction it started keeps running until it expires.",
+      "deleteYes": "Yes, delete",
+      "cancel": "Cancel"
     },
     "orbHunt": {
       "tabs": {
@@ -2657,6 +2680,251 @@
         "change": "Change",
         "before": "Before",
         "after": "After"
+      }
+    },
+    "theTable": {
+      "page": {
+        "eyebrow": "Community",
+        "title": "The Table",
+        "subtitle": "Moderate the social feed: handle reports within 24 hours, review posts and manage the curated posts new users see."
+      },
+      "tabs": {
+        "overview": "Overview",
+        "reports": "Reports",
+        "posts": "Posts",
+        "curated": "Curated"
+      },
+      "badge": {
+        "openReports_one": "{{count}} open report",
+        "openReports_other": "{{count}} open reports"
+      },
+      "common": {
+        "refresh": "Refresh",
+        "loadMore": "Load more"
+      },
+      "overview": {
+        "openReports": "Open reports",
+        "openReportsHint": "Apple expects reports to be handled within 24 hours.",
+        "reviewNow": "Review now",
+        "hiddenAuto": "Auto-hidden posts",
+        "hiddenAutoHint": "Hidden after 3 reports, waiting for a decision",
+        "pendingPhotoChecks": "Unchecked photos",
+        "pendingPhotoChecksHint": "Gemini could not check these photos",
+        "review": "Review",
+        "posts24h": "Posts (24 h)",
+        "activeUsers7d": "Active users (7 d)",
+        "friendships": "Friendships",
+        "friendshipsHint": "Accepted friend pairs"
+      },
+      "reports": {
+        "filterLabel": "Report status",
+        "slaHint": "Oldest first matters: reports older than 24 hours are marked overdue.",
+        "empty": {
+          "OPEN": "No open reports",
+          "ACTIONED": "No actioned reports yet",
+          "DISMISSED": "No dismissed reports yet"
+        },
+        "emptyOpenHint": "The queue is clear. New reports show up here and in the menu badge.",
+        "targetPost": "Post",
+        "targetUser": "User",
+        "otherReports_one": "+{{count}} other report on this target",
+        "otherReports_other": "+{{count}} other reports on this target",
+        "reportedBy": "Reported by",
+        "overdue": "over 24 h",
+        "targetGone": "The reported post or user no longer exists."
+      },
+      "reportStatus": {
+        "OPEN": "Open",
+        "ACTIONED": "Actioned",
+        "DISMISSED": "Dismissed"
+      },
+      "reasons": {
+        "SPAM": "Spam",
+        "NUDITY": "Nudity",
+        "HARASSMENT": "Harassment",
+        "HATE": "Hate",
+        "SELF_HARM": "Self-harm",
+        "OTHER": "Other"
+      },
+      "postStatus": {
+        "VISIBLE": "Visible",
+        "HIDDEN_AUTO": "Auto-hidden",
+        "HIDDEN_ADMIN": "Hidden by admin",
+        "DELETED": "Deleted by author"
+      },
+      "types": {
+        "MEAL_LOGGED": "Meal logged",
+        "FOOD_CREATED": "Food created",
+        "RECIPE_CREATED": "Recipe created",
+        "EXERCISE_LOGGED": "Exercise logged",
+        "EXERCISE_CREATED": "Exercise created",
+        "STREAK": "Streak",
+        "LEVEL_UP": "Level up",
+        "BADGE": "Badge",
+        "CHALLENGE": "Challenge",
+        "GOAL_STREAK": "Goal streak",
+        "WEIGHT_MILESTONE": "Weight milestone",
+        "COINS_EARNED": "Coins earned",
+        "GAME_RESULT": "Game result",
+        "ORB_FOUND": "Orb found",
+        "WISH_GRANTED": "Wish granted",
+        "CURATED": "Curated card"
+      },
+      "groups": {
+        "FOOD": "Food",
+        "EXERCISE": "Exercise",
+        "PROGRESS": "Progress",
+        "FUN": "Fun"
+      },
+      "audience": {
+        "FRIENDS": "Friends",
+        "PUBLIC": "Public"
+      },
+      "payload": {
+        "MEAL_LOGGED": "{{mealType}} · {{count}} items · {{kcal}} kcal · P {{protein}} / C {{carbs}} / F {{fat}}",
+        "FOOD_CREATED": "{{name}} · {{kcal}} kcal per {{serving}}",
+        "RECIPE_CREATED": "{{name}} · {{kcal}} kcal per serving · {{servings}} servings",
+        "EXERCISE_LOGGED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "EXERCISE_CREATED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "STREAK": "{{days}}-day streak",
+        "LEVEL_UP": "Reached level {{level}}",
+        "BADGE": "Badge: {{name}}",
+        "CHALLENGE": "{{kind}} · {{title}} · {{result}}",
+        "GOAL_STREAK": "{{goal}} goal hit {{days}} days in a row",
+        "WEIGHT_MILESTONE": "Weight change {{delta}} · goal reached {{goal}}",
+        "COINS_EARNED": "{{amount}} coins · {{reason}}",
+        "GAME_RESULT": "Slice {{mode}} · score {{score}} · {{result}} vs {{opponent}}",
+        "ORB_FOUND": "{{campaignTitle}} · {{orbName}} ({{collected}}/{{total}})",
+        "WISH_GRANTED": "{{campaignTitle}} · {{wishLabel}}",
+        "CURATED": "{{title}}"
+      },
+      "post": {
+        "openPhoto": "Open photo in a new tab",
+        "reports_one": "{{count}} report",
+        "reports_other": "{{count}} reports",
+        "photoPending": "Photo not checked",
+        "curatedAuthor": "AlexaFit (curated)",
+        "likes_one": "{{count}} like",
+        "likes_other": "{{count}} likes",
+        "rawPayload": "Raw payload"
+      },
+      "user": {
+        "noName": "No name",
+        "viewPosts": "Show this user’s posts",
+        "banned": "Banned"
+      },
+      "actions": {
+        "hide": "Hide post",
+        "restore": "Restore post",
+        "dismiss": "Dismiss report",
+        "ban": "Ban user",
+        "unban": "Unban user",
+        "approvePhoto": "Approve photo"
+      },
+      "confirm": {
+        "hide": {
+          "title": "Hide this post?",
+          "message": "The post disappears from every feed and its open reports are marked as actioned."
+        },
+        "restore": {
+          "title": "Restore this post?",
+          "message": "The post becomes visible again and its open reports are dismissed."
+        },
+        "dismiss": {
+          "title": "Dismiss this report?",
+          "message": "The report is closed without action. If the post was auto-hidden and fewer than 3 open reports remain, it is shown again."
+        },
+        "ban": {
+          "title": "Ban {{name}} from The Table?",
+          "message": "They can no longer post, like or send requests, and all their posts are hidden from feeds while banned."
+        },
+        "unban": {
+          "title": "Unban {{name}}?",
+          "message": "They can use The Table again and their visible posts return to feeds."
+        },
+        "approvePhoto": {
+          "title": "Approve this photo?",
+          "message": "Gemini could not check it. Approving marks the photo as checked and keeps the post visible."
+        }
+      },
+      "posts": {
+        "status": "Status",
+        "allStatuses": "All statuses",
+        "userId": "User ID",
+        "userIdPlaceholder": "Firebase UID",
+        "apply": "Apply",
+        "clear": "Clear",
+        "photoPending": "Only unchecked photos",
+        "empty": "No posts match these filters",
+        "emptyHint": "Try another status or clear the user filter."
+      },
+      "curated": {
+        "intro": "Shown to users whose feed is empty, in their language (fallback English), ordered by sort order.",
+        "new": "New curated post",
+        "newTitle": "New curated post",
+        "editTitle": "Edit curated post",
+        "save": "Save",
+        "type": "Type",
+        "lang": "Language",
+        "langHint": "Empty = every language",
+        "anyLang": "All languages",
+        "title": "Title",
+        "body": "Body",
+        "ctaLabel": "Button label",
+        "ctaTarget": "Button target",
+        "ctaTargetHint": "App screen or https link, e.g. OrbHunt",
+        "snapshot": "Snapshot (JSON)",
+        "snapshotHint": "Copied as-is into the post; it never links to a live item.",
+        "photo": "Photo (optional)",
+        "startsAt": "Starts",
+        "endsAt": "Ends",
+        "sortOrder": "Sort order",
+        "sortOrderHint": "Lower shows first",
+        "isActive": "Active",
+        "isActiveHint": "Inactive posts are never shown.",
+        "errors": {
+          "titleRequired": "Title is required.",
+          "bodyRequired": "Body is required.",
+          "ctaPair": "Button label and target go together: fill both or neither.",
+          "payloadJson": "The snapshot must be a valid JSON object.",
+          "payloadName": "The snapshot needs a name.",
+          "photoHttps": "The photo must be an https URL.",
+          "dateOrder": "The end must be after the start.",
+          "sortOrder": "Sort order must be a whole number from 0 to 9999.",
+          "noLanguage": "Add at least one language version."
+        },
+        "empty": "No curated posts yet",
+        "emptyHint": "Users with an empty feed will see nothing until you add one.",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteTitle": "Delete this curated post?",
+        "deleteMessage": "It stops showing in empty feeds and leaves this list.",
+        "sortOrderShort": "#{{value}}",
+        "always": "Always",
+        "missingLang": "No {{lang}} version yet",
+        "missingLangHint": "Users with this language see the English version until you add one.",
+        "startFromEnglish": "Start from English",
+        "startEmpty": "Start empty",
+        "removeLang": "Remove {{lang}} version",
+        "restoreLang": "Keep this version",
+        "langRemoved": "The {{lang}} version will be deleted when you save.",
+        "languages": "Languages",
+        "sharedSettings": "Shared by all languages",
+        "sharedSettingsHint": "Photo, button target, dates, order and visibility are saved to every language version.",
+        "saveAll_one": "Save ({{count}} language)",
+        "saveAll_other": "Save ({{count}} languages)",
+        "langCount_one": "{{count}} language",
+        "langCount_other": "{{count}} languages",
+        "deleteGroupMessage_one": "This deletes the post in {{count}} language. Users stop seeing it right away.",
+        "deleteGroupMessage_other": "This deletes the post in all {{count}} languages. Users stop seeing it right away.",
+        "typeLocked": "The type can only be chosen when creating a post.",
+        "ctaLabelHint": "Button text in this language. The screen it opens is a shared setting below."
+      },
+      "curatedState": {
+        "ACTIVE": "Live",
+        "SCHEDULED": "Scheduled",
+        "EXPIRED": "Ended",
+        "INACTIVE": "Inactive"
       }
     }
   }

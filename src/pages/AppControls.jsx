@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { getAppConfig, saveAppConfig } from '../services/adminApi'
+import PausedMessageEditor from './theTable/PausedMessageEditor'
 
 const APP_CHECK_MODES = ['off', 'monitor', 'enforce']
 
@@ -54,10 +55,12 @@ const AppControls = () => {
     setError(null)
     try {
       const data = await getAppConfig({ signal })
+      if (signal?.aborted) return
       setConfig(data.config)
       setTourIds(data.tourIds)
     } catch (err) {
-      if (err.name !== 'AbortError') setError(err.message)
+      if (signal?.aborted || err.name === 'AbortError') return
+      setError(err.message)
     }
   }, [])
 
@@ -109,6 +112,11 @@ const AppControls = () => {
   const quickLauncher = { enabled: true, ...(config?.quickLauncher || {}) }
   const setQuickLauncher = patch =>
     save({ ...config, quickLauncher: { ...quickLauncher, ...patch } })
+
+  // Same for theTable (The Table social feed kill switch, default on).
+  const theTable = { enabled: true, ...(config?.theTable || {}) }
+  const setTheTable = patch =>
+    save({ ...config, theTable: { ...theTable, ...patch } })
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -186,6 +194,21 @@ const AppControls = () => {
               checked={quickLauncher.enabled}
               disabled={isSaving}
               onChange={enabled => setQuickLauncher({ enabled })}
+            />
+          </section>
+
+          <section className="rounded-2xl border border-gray-200 bg-white px-6 py-2 shadow-sm">
+            <ControlRow
+              title={t('admin.appControls.theTable.title')}
+              description={t('admin.appControls.theTable.description')}
+              checked={theTable.enabled}
+              disabled={isSaving}
+              onChange={enabled => setTheTable({ enabled })}
+            />
+            <PausedMessageEditor
+              value={theTable.pausedMessage || {}}
+              disabled={isSaving}
+              onSave={pausedMessage => setTheTable({ pausedMessage })}
             />
           </section>
 

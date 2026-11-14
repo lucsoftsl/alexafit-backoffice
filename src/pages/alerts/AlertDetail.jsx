@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import AiUserDrawer from '../ai/AiUserDrawer'
-import { updateAbuseAlert } from '../../services/adminApi'
+import { deleteAbuseAlert, updateAbuseAlert } from '../../services/adminApi'
 
 import { alertDetails } from './model'
 
@@ -14,6 +14,20 @@ function AlertActions({ alert, onUpdated }) {
   const [hours, setHours] = useState(24)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const remove = async () => {
+    setBusy(true)
+    setError(false)
+    try {
+      await deleteAbuseAlert(alert.id)
+      onUpdated()
+    } catch {
+      setError(true)
+      setConfirmingDelete(false)
+    } finally {
+      setBusy(false)
+    }
+  }
   const run = async (operation, action) => {
     setBusy(true)
     setError(false)
@@ -69,20 +83,30 @@ function AlertActions({ alert, onUpdated }) {
           maxLength={1000}
           value={note}
           onChange={e => setNote(e.target.value)}
+          aria-describedby="alert-note-hint"
           className="mt-1 w-full rounded-xl border border-slate-200 p-2"
         />
       </label>
+      <p id="alert-note-hint" className="text-xs text-slate-500">
+        {note.trim()
+          ? t('admin.alerts.resolveHelp')
+          : t('admin.alerts.noteHint')}
+      </p>
       <div className="flex flex-wrap gap-2">
-        {['acknowledge', 'resolve'].map(operation => (
-          <button
-            key={operation}
-            disabled={busy || !note.trim()}
-            onClick={() => run(operation)}
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:opacity-40"
-          >
-            {t(`admin.alerts.${operation}`)}
-          </button>
-        ))}
+        <button
+          disabled={busy || !note.trim()}
+          onClick={() => run('resolve')}
+          className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-40"
+        >
+          {t('admin.alerts.resolve')}
+        </button>
+        <button
+          disabled={busy || !note.trim()}
+          onClick={() => run('acknowledge')}
+          className="rounded-xl border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-40"
+        >
+          {t('admin.alerts.acknowledge')}
+        </button>
       </div>
       {alert.userId && (
         <>
@@ -119,6 +143,43 @@ function AlertActions({ alert, onUpdated }) {
           </div>
         </>
       )}
+      <div className="border-t border-slate-100 pt-4">
+        {confirmingDelete ? (
+          <div
+            role="group"
+            aria-label={t('admin.alerts.delete')}
+            className="space-y-3 rounded-xl bg-rose-50 p-3"
+          >
+            <p className="text-sm text-rose-800">
+              {t('admin.alerts.deleteConfirm')}
+            </p>
+            <div className="flex gap-2">
+              <button
+                disabled={busy}
+                onClick={remove}
+                className="rounded-xl bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-40"
+              >
+                {t('admin.alerts.deleteYes')}
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => setConfirmingDelete(false)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+              >
+                {t('admin.alerts.cancel')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            disabled={busy}
+            onClick={() => setConfirmingDelete(true)}
+            className="rounded-xl px-3 py-2 text-sm text-rose-700 hover:bg-rose-50 disabled:opacity-40"
+          >
+            {t('admin.alerts.delete')}
+          </button>
+        )}
+      </div>
       {error && (
         <p role="alert" className="text-sm text-rose-700">
           {t('admin.alerts.saveFailed')}

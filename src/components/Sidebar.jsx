@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAlertsSummary } from '../services/adminApi'
-import { openAlertCount } from '../pages/alerts/model'
+import { ALERTS_CHANGED_EVENT, openAlertCount } from '../pages/alerts/model'
 import { useSelector } from 'react-redux'
 import {
   HomeIcon,
@@ -22,7 +22,8 @@ import {
   ExclamationTriangleIcon,
   AdjustmentsHorizontalIcon,
   TrophyIcon,
-  SparklesIcon
+  SparklesIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import { DocumentTextIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
@@ -38,7 +39,8 @@ const Sidebar = ({
   variant = 'main',
   onBackToMain,
   activeClientMenuItem = 'all-clients',
-  onClientMenuSelect
+  onClientMenuSelect,
+  tableReportCount = null
 }) => {
   const { currentUser } = useAuth()
   const { t } = useTranslation()
@@ -59,7 +61,12 @@ const Sidebar = ({
     }
     refresh()
     const timer = window.setInterval(refresh, 60000)
-    return () => { active = false; window.clearInterval(timer) }
+    window.addEventListener(ALERTS_CHANGED_EVENT, refresh)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener(ALERTS_CHANGED_EVENT, refresh)
+    }
   }, [isAdmin])
 
   const allMenuItems = [
@@ -84,6 +91,7 @@ const Sidebar = ({
     { id: 'ai', labelKey: 'sidebar.ai', fallbackLabel: 'AI models', icon: CpuChipIcon, adminOnly: true },
     { id: 'gamification', labelKey: 'sidebar.gamification', fallbackLabel: 'Gamification', icon: TrophyIcon, adminOnly: true },
     { id: 'orb-hunt', labelKey: 'sidebar.orbHunt', fallbackLabel: 'Orb Hunt', icon: SparklesIcon, adminOnly: true },
+    { id: 'the-table', labelKey: 'sidebar.theTable', fallbackLabel: 'The Table', icon: ChatBubbleLeftRightIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
     { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },
     { id: 'tutorials', labelKey: 'sidebar.tutorials', icon: DocumentTextIcon, adminOnly: false },
@@ -238,6 +246,16 @@ const Sidebar = ({
                       <Icon className={`w-5 h-5 mr-3 ${isNestedProgressItem ? 'text-gray-400' : ''}`} />
               {item.fallbackLabel ? t(item.labelKey, item.fallbackLabel) : t(item.labelKey)}
                       {item.id === 'alerts' && alertCount > 0 && <span className="ml-auto rounded-full bg-rose-100 px-2 text-xs font-semibold text-rose-700">{alertCount}</span>}
+                      {item.id === 'the-table' && tableReportCount > 0 && (
+                        <span
+                          className="ml-auto rounded-full bg-rose-600 px-2 text-xs font-semibold text-white"
+                          aria-label={t('admin.theTable.badge.openReports', {
+                            count: tableReportCount
+                          })}
+                        >
+                          {tableReportCount}
+                        </span>
+                      )}
                     </button>
                   )
                 })}

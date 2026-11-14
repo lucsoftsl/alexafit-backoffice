@@ -44,7 +44,9 @@ const call = async (
     let payload = null
     try {
       payload = await res.json()
-    } catch {
+    } catch (parseError) {
+      // Aborted while reading the body: surface the abort, never a null result.
+      if (parseError.name === 'AbortError') throw parseError
       payload = null
     }
     if (!res.ok || payload?.ok === false) {
@@ -57,6 +59,8 @@ const call = async (
     return payload?.data ?? payload
   } catch (error) {
     if (error.name === 'AbortError') {
+      // The caller cancelled (page unmounted): keep it an AbortError so pages ignore it.
+      if (signal?.aborted) throw error
       throw new AdminApiError('Request timed out', { code: 'TIMEOUT' })
     }
     throw error
@@ -196,6 +200,10 @@ export const updateAbuseAlert = (id, operation, body) =>
   call(api(`/backoffice/alerts/${encodeURIComponent(id)}/${operation}`), {
     method: 'POST',
     body
+  })
+export const deleteAbuseAlert = id =>
+  call(api(`/backoffice/alerts/${encodeURIComponent(id)}`), {
+    method: 'DELETE'
   })
 export const getAnalyticsInsights = ({ signal } = {}) =>
   call(`${API_BASE_UTILS_URL}/admin/analytics-insights/alexafit`, { signal })

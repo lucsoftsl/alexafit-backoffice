@@ -14,7 +14,13 @@ const isHttps = value => /^https:\/\/\S{3,990}$/.test(value || '')
  * https URL field with an "Upload" shortcut through the existing
  * /backoffice/images/upload helper (the same one the food photos use).
  */
-const ImageUrlField = ({ label, value, onChange, disabled }) => {
+const ImageUrlField = ({
+  label,
+  value,
+  onChange,
+  disabled,
+  maxPx = ART_MAX_PX
+}) => {
   const { t } = useTranslation()
   const fileRef = useRef(null)
   const inputId = useId()
@@ -30,8 +36,8 @@ const ImageUrlField = ({ label, value, onChange, disabled }) => {
     setError(null)
     try {
       const resized = await resizeImageFile(file, {
-        maxWidth: ART_MAX_PX,
-        maxHeight: ART_MAX_PX
+        maxWidth: maxPx,
+        maxHeight: maxPx
       })
       const result = await saveImageToImgb(resized)
       // Same fallback as SearchItems when imgbb returns only an id.

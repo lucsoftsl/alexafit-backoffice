@@ -42,3 +42,8 @@ export const alertDetails = raw => {
     )
     .map(key => [key, details[key]])
 }
+
+/** Fired after an alert changes so the sidebar badge recounts right away. */
+export const ALERTS_CHANGED_EVENT = 'alexafit:alerts-changed'
+export const notifyAlertsChanged = () =>
+  window.dispatchEvent(new window.Event(ALERTS_CHANGED_EVENT))

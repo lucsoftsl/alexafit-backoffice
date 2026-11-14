@@ -303,7 +303,8 @@
     "gamification": "Gamification",
     "alerts": "Alertes",
     "appControls": "Contrôles de l'app",
-    "orbHunt": "Chasse aux orbes"
+    "orbHunt": "Chasse aux orbes",
+    "theTable": "The Table"
   },
   "pages": {
     "messages": {
@@ -1606,6 +1607,18 @@
       "quickLauncher": {
         "title": "Lanceur rapide du tableau de bord",
         "description": "Raccourci flottant sur le tableau de bord vers Orb Hunt, les quêtes du jour et Slice ’n Dice, avec un badge pour ce qui attend. Désactivé, l’app le masque."
+      },
+      "theTable": {
+        "title": "The Table (fil social)",
+        "description": "Amis et fil partagé de repas, exercices et réussites. Désactivé, les personnes ayant utilisé The Table voient le message ci-dessous ; rien n’est supprimé.",
+        "messageTitle": "Message pendant la désactivation",
+        "messageHint": "Les personnes ayant déjà utilisé The Table voient ce message à la place du fil. Les langues vides utilisent l’anglais, puis le texte intégré de l’app. Leurs amis et publications sont conservés.",
+        "messageHeading": "Titre",
+        "messageHeadingPlaceholder": "The Table fait une pause",
+        "messageBody": "Message",
+        "messageBodyPlaceholder": "Nous préparons quelque chose. Tes amis et tes publications sont en sécurité, et The Table revient bientôt.",
+        "messageSave": "Enregistrer le message",
+        "messageReset": "Annuler les modifications"
       }
     },
     "common": {
@@ -2026,7 +2039,17 @@
         "reason": "Motif",
         "dropped": "Événements rejetés",
         "project": "Projet"
-      }
+      },
+      "refreshing": "Actualisation…",
+      "lastUpdated": "Mis à jour à {{time}}",
+      "review": "Examiner",
+      "actions": "Actions",
+      "noteHint": "Écrivez d'abord une courte note : elle est enregistrée avec l'alerte pour que les autres sachent pourquoi elle a été fermée.",
+      "resolveHelp": "Résoudre ferme l'alerte. Accuser réception la garde visible comme vue.",
+      "delete": "Supprimer l'alerte",
+      "deleteConfirm": "Supprimer définitivement cette alerte ? Son historique et sa note sont effacés. Toute restriction qu'elle a déclenchée reste active jusqu'à son expiration.",
+      "deleteYes": "Oui, supprimer",
+      "cancel": "Annuler"
     },
     "orbHunt": {
       "tabs": {
@@ -2656,6 +2679,255 @@
         "change": "Changement",
         "before": "Avant",
         "after": "Après"
+      }
+    },
+    "theTable": {
+      "page": {
+        "eyebrow": "Communauté",
+        "title": "The Table",
+        "subtitle": "Modérez le fil social : traitez les signalements sous 24 heures, vérifiez les publications et gérez les publications mises en avant pour les nouveaux utilisateurs."
+      },
+      "tabs": {
+        "overview": "Aperçu",
+        "reports": "Signalements",
+        "posts": "Publications",
+        "curated": "Mises en avant"
+      },
+      "badge": {
+        "openReports_one": "{{count}} signalement ouvert",
+        "openReports_many": "{{count}} signalements ouverts",
+        "openReports_other": "{{count}} signalements ouverts"
+      },
+      "common": {
+        "refresh": "Actualiser",
+        "loadMore": "Charger plus"
+      },
+      "overview": {
+        "openReports": "Signalements ouverts",
+        "openReportsHint": "Apple attend un traitement des signalements sous 24 heures.",
+        "reviewNow": "Traiter maintenant",
+        "hiddenAuto": "Publications masquées auto.",
+        "hiddenAutoHint": "Masquées après 3 signalements, en attente de décision",
+        "pendingPhotoChecks": "Photos non vérifiées",
+        "pendingPhotoChecksHint": "Gemini n’a pas pu vérifier ces photos",
+        "review": "Vérifier",
+        "posts24h": "Publications (24 h)",
+        "activeUsers7d": "Utilisateurs actifs (7 j)",
+        "friendships": "Amitiés",
+        "friendshipsHint": "Paires d’amis acceptées"
+      },
+      "reports": {
+        "filterLabel": "Statut du signalement",
+        "slaHint": "Les signalements de plus de 24 heures sont marqués en retard.",
+        "empty": {
+          "OPEN": "Aucun signalement ouvert",
+          "ACTIONED": "Aucun signalement traité",
+          "DISMISSED": "Aucun signalement rejeté"
+        },
+        "emptyOpenHint": "La file est vide. Les nouveaux signalements apparaissent ici et dans le badge du menu.",
+        "targetPost": "Publication",
+        "targetUser": "Utilisateur",
+        "otherReports_one": "+{{count}} autre signalement sur cette cible",
+        "otherReports_many": "+{{count}} autres signalements sur cette cible",
+        "otherReports_other": "+{{count}} autres signalements sur cette cible",
+        "reportedBy": "Signalé par",
+        "overdue": "plus de 24 h",
+        "targetGone": "La publication ou l’utilisateur signalé n’existe plus."
+      },
+      "reportStatus": {
+        "OPEN": "Ouverts",
+        "ACTIONED": "Traités",
+        "DISMISSED": "Rejetés"
+      },
+      "reasons": {
+        "SPAM": "Spam",
+        "NUDITY": "Nudité",
+        "HARASSMENT": "Harcèlement",
+        "HATE": "Haine",
+        "SELF_HARM": "Automutilation",
+        "OTHER": "Autre"
+      },
+      "postStatus": {
+        "VISIBLE": "Visible",
+        "HIDDEN_AUTO": "Masquée auto.",
+        "HIDDEN_ADMIN": "Masquée par un admin",
+        "DELETED": "Supprimée par l’auteur"
+      },
+      "types": {
+        "MEAL_LOGGED": "Repas enregistré",
+        "FOOD_CREATED": "Aliment créé",
+        "RECIPE_CREATED": "Recette créée",
+        "EXERCISE_LOGGED": "Exercice enregistré",
+        "EXERCISE_CREATED": "Exercice créé",
+        "STREAK": "Série",
+        "LEVEL_UP": "Niveau supérieur",
+        "BADGE": "Badge",
+        "CHALLENGE": "Défi",
+        "GOAL_STREAK": "Série d’objectifs",
+        "WEIGHT_MILESTONE": "Étape de poids",
+        "COINS_EARNED": "Pièces gagnées",
+        "GAME_RESULT": "Résultat de jeu",
+        "ORB_FOUND": "Orbe trouvé",
+        "WISH_GRANTED": "Vœu exaucé",
+        "CURATED": "Carte mise en avant"
+      },
+      "groups": {
+        "FOOD": "Alimentation",
+        "EXERCISE": "Exercice",
+        "PROGRESS": "Progrès",
+        "FUN": "Fun"
+      },
+      "audience": {
+        "FRIENDS": "Amis",
+        "PUBLIC": "Public"
+      },
+      "payload": {
+        "MEAL_LOGGED": "{{mealType}} · {{count}} aliments · {{kcal}} kcal · P {{protein}} / G {{carbs}} / L {{fat}}",
+        "FOOD_CREATED": "{{name}} · {{kcal}} kcal pour {{serving}}",
+        "RECIPE_CREATED": "{{name}} · {{kcal}} kcal par portion · {{servings}} portions",
+        "EXERCISE_LOGGED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "EXERCISE_CREATED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "STREAK": "Série de {{days}} jours",
+        "LEVEL_UP": "Niveau {{level}} atteint",
+        "BADGE": "Badge : {{name}}",
+        "CHALLENGE": "{{kind}} · {{title}} · {{result}}",
+        "GOAL_STREAK": "Objectif {{goal}} atteint {{days}} jours de suite",
+        "WEIGHT_MILESTONE": "Variation de poids {{delta}} · objectif atteint {{goal}}",
+        "COINS_EARNED": "{{amount}} pièces · {{reason}}",
+        "GAME_RESULT": "Slice {{mode}} · score {{score}} · {{result}} contre {{opponent}}",
+        "ORB_FOUND": "{{campaignTitle}} · {{orbName}} ({{collected}}/{{total}})",
+        "WISH_GRANTED": "{{campaignTitle}} · {{wishLabel}}",
+        "CURATED": "{{title}}"
+      },
+      "post": {
+        "openPhoto": "Ouvrir la photo dans un nouvel onglet",
+        "reports_one": "{{count}} signalement",
+        "reports_many": "{{count}} signalements",
+        "reports_other": "{{count}} signalements",
+        "photoPending": "Photo non vérifiée",
+        "curatedAuthor": "AlexaFit (mise en avant)",
+        "likes_one": "{{count}} j’aime",
+        "likes_many": "{{count}} j’aime",
+        "likes_other": "{{count}} j’aime",
+        "rawPayload": "Données brutes"
+      },
+      "user": {
+        "noName": "Sans nom",
+        "viewPosts": "Voir les publications de cet utilisateur",
+        "banned": "Banni"
+      },
+      "actions": {
+        "hide": "Masquer la publication",
+        "restore": "Rétablir la publication",
+        "dismiss": "Rejeter le signalement",
+        "ban": "Bannir l’utilisateur",
+        "unban": "Lever le bannissement",
+        "approvePhoto": "Approuver la photo"
+      },
+      "confirm": {
+        "hide": {
+          "title": "Masquer cette publication ?",
+          "message": "Elle disparaît de tous les fils et ses signalements ouverts sont marqués comme traités."
+        },
+        "restore": {
+          "title": "Rétablir cette publication ?",
+          "message": "Elle redevient visible et ses signalements ouverts sont rejetés."
+        },
+        "dismiss": {
+          "title": "Rejeter ce signalement ?",
+          "message": "Le signalement est clos sans action. Si la publication était masquée automatiquement et qu’il reste moins de 3 signalements ouverts, elle réapparaît."
+        },
+        "ban": {
+          "title": "Bannir {{name}} de The Table ?",
+          "message": "Il ou elle ne peut plus publier, aimer ni envoyer de demandes, et toutes ses publications sont masquées pendant le bannissement."
+        },
+        "unban": {
+          "title": "Lever le bannissement de {{name}} ?",
+          "message": "Il ou elle peut de nouveau utiliser The Table et ses publications visibles reviennent dans les fils."
+        },
+        "approvePhoto": {
+          "title": "Approuver cette photo ?",
+          "message": "Gemini n’a pas pu la vérifier. L’approbation la marque comme vérifiée et la publication reste visible."
+        }
+      },
+      "posts": {
+        "status": "Statut",
+        "allStatuses": "Tous les statuts",
+        "userId": "ID utilisateur",
+        "userIdPlaceholder": "UID Firebase",
+        "apply": "Appliquer",
+        "clear": "Effacer",
+        "photoPending": "Photos non vérifiées seulement",
+        "empty": "Aucune publication pour ces filtres",
+        "emptyHint": "Essayez un autre statut ou effacez le filtre utilisateur."
+      },
+      "curated": {
+        "intro": "Affichées aux utilisateurs dont le fil est vide, dans leur langue (anglais par défaut), selon l’ordre de tri.",
+        "new": "Nouvelle publication mise en avant",
+        "newTitle": "Nouvelle publication mise en avant",
+        "editTitle": "Modifier la publication mise en avant",
+        "save": "Enregistrer",
+        "type": "Type",
+        "lang": "Langue",
+        "langHint": "Vide = toutes les langues",
+        "anyLang": "Toutes les langues",
+        "title": "Titre",
+        "body": "Texte",
+        "ctaLabel": "Libellé du bouton",
+        "ctaTarget": "Cible du bouton",
+        "ctaTargetHint": "Écran de l’app ou lien https, ex. OrbHunt",
+        "snapshot": "Instantané (JSON)",
+        "snapshotHint": "Copié tel quel dans la publication ; jamais lié à un élément réel.",
+        "photo": "Photo (facultatif)",
+        "startsAt": "Début",
+        "endsAt": "Fin",
+        "sortOrder": "Ordre",
+        "sortOrderHint": "Les plus petits s’affichent en premier",
+        "isActive": "Active",
+        "isActiveHint": "Les publications inactives ne s’affichent jamais.",
+        "errors": {
+          "titleRequired": "Le titre est obligatoire.",
+          "bodyRequired": "Le texte est obligatoire.",
+          "ctaPair": "Le libellé et la cible du bouton vont ensemble : remplissez les deux ou aucun.",
+          "payloadJson": "L’instantané doit être un objet JSON valide.",
+          "payloadName": "L’instantané doit avoir un nom.",
+          "photoHttps": "La photo doit être une URL https.",
+          "dateOrder": "La fin doit être après le début.",
+          "sortOrder": "L’ordre doit être un entier entre 0 et 9999.",
+          "noLanguage": "Ajoute au moins une version linguistique."
+        },
+        "empty": "Aucune publication mise en avant",
+        "emptyHint": "Les utilisateurs au fil vide ne verront rien tant que vous n’en ajoutez pas.",
+        "edit": "Modifier",
+        "delete": "Supprimer",
+        "deleteTitle": "Supprimer cette publication mise en avant ?",
+        "deleteMessage": "Elle n’apparaît plus dans les fils vides et quitte cette liste.",
+        "sortOrderShort": "#{{value}}",
+        "always": "Toujours",
+        "missingLang": "Pas encore de version {{lang}}",
+        "missingLangHint": "Les utilisateurs de cette langue voient la version anglaise en attendant.",
+        "startFromEnglish": "Partir de l’anglais",
+        "startEmpty": "Partir de zéro",
+        "removeLang": "Supprimer la version {{lang}}",
+        "restoreLang": "Garder cette version",
+        "langRemoved": "La version {{lang}} sera supprimée à l’enregistrement.",
+        "languages": "Langues",
+        "sharedSettings": "Communs à toutes les langues",
+        "sharedSettingsHint": "La photo, l’écran du bouton, les dates, l’ordre et la visibilité sont enregistrés sur chaque version.",
+        "saveAll_one": "Enregistrer ({{count}} langue)",
+        "saveAll_other": "Enregistrer ({{count}} langues)",
+        "langCount_one": "{{count}} langue",
+        "langCount_other": "{{count}} langues",
+        "deleteGroupMessage_one": "La publication sera supprimée dans {{count}} langue. Les utilisateurs ne la verront plus.",
+        "deleteGroupMessage_other": "La publication sera supprimée dans les {{count}} langues. Les utilisateurs ne la verront plus.",
+        "typeLocked": "Le type ne peut être choisi qu’à la création.",
+        "ctaLabelHint": "Texte du bouton dans cette langue. L’écran ouvert est un réglage commun plus bas."
+      },
+      "curatedState": {
+        "ACTIVE": "En ligne",
+        "SCHEDULED": "Programmée",
+        "EXPIRED": "Terminée",
+        "INACTIVE": "Inactive"
       }
     }
   }

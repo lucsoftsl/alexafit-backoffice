@@ -1,6 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { useSelector } from 'react-redux'
 import Sidebar from './components/Sidebar'
+import TableReportsChip from './components/TableReportsChip'
+import useOpenReportsCount from './pages/theTable/useOpenReportsCount'
 import Login from './components/Login'
 import { useAuth } from './contexts/AuthContext'
 import {
@@ -46,6 +48,7 @@ const Gamification = lazy(() => import('./pages/Gamification'))
 const Alerts = lazy(() => import('./pages/Alerts'))
 const AppControls = lazy(() => import('./pages/AppControls'))
 const OrbHunts = lazy(() => import('./pages/OrbHunts'))
+const TheTable = lazy(() => import('./pages/TheTable'))
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -67,6 +70,7 @@ function App() {
   const userLoading = useSelector(selectUserLoading)
   const userError = useSelector(selectUserError)
   const shouldUseNutritionistTopTabs = isNutritionist && !isAdmin
+  const openTableReports = useOpenReportsCount(isAdmin)
   const currentYear = new Date().getFullYear()
   const languageOptions = [
     { value: 'en', label: 'English' },
@@ -182,7 +186,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'ai', 'alerts', 'app-controls', 'orb-hunt', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
+    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'ai', 'alerts', 'app-controls', 'orb-hunt', 'the-table', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems', 'messages', 'surveys']
     // Nutritionist-only pages
@@ -303,6 +307,8 @@ function App() {
         return <AiModels />
       case 'orb-hunt':
         return <OrbHunts />
+      case 'the-table':
+        return <TheTable openReports={openTableReports} />
       case 'gamification':
         return <Gamification onOpenPurchases={() => setActivePage('users')} />
       case 'menus':
@@ -406,6 +412,7 @@ function App() {
         onClientMenuSelect={handleClientMenuSelect}
         isMobileOpen={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        tableReportCount={openTableReports}
       />
 
       <div className="flex flex-1 flex-col overflow-auto">
@@ -425,6 +432,11 @@ function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <TableReportsChip
+              compact
+              count={openTableReports}
+              onClick={() => handleNavigate('the-table')}
+            />
             <select
               value={i18n.language}
               onChange={handleLanguageChange}
@@ -538,6 +550,10 @@ function App() {
             {/* User info badge - desktop */}
             {!shouldUseNutritionistTopTabs && (
               <div className="mb-4 hidden items-center justify-end gap-2 md:flex">
+                <TableReportsChip
+                  count={openTableReports}
+                  onClick={() => handleNavigate('the-table')}
+                />
                 <select
                   value={i18n.language}
                   onChange={handleLanguageChange}

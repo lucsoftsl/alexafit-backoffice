@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import useAdminResource from '../components/admin/useAdminResource'
 import { getAbuseAlerts } from '../services/adminApi'
+import { notifyAlertsChanged } from './alerts/model'
 
 import AlertDetail from './alerts/AlertDetail'
 import RulesEditor from './alerts/RulesEditor'
@@ -53,13 +54,34 @@ export default function Alerts() {
             {t('admin.alerts.subtitle')}
           </p>
         </div>
-        <button
-          onClick={() => resource.reload()}
-          disabled={resource.loading || resource.refreshing}
-          className="rounded-xl border bg-white px-4 py-2 text-sm"
-        >
-          {t('admin.alerts.refresh')}
-        </button>
+        {tab === 'alerts' && (
+          <div className="flex items-center gap-3">
+            {resource.updatedAt && (
+              <span role="status" className="text-xs text-slate-500">
+                {resource.refreshing
+                  ? t('admin.alerts.refreshing')
+                  : t('admin.alerts.lastUpdated', {
+                      time: new Date(resource.updatedAt).toLocaleTimeString(
+                        i18n.language
+                      )
+                    })}
+              </span>
+            )}
+            <button
+              onClick={() => {
+                resource.reload()
+                notifyAlertsChanged()
+              }}
+              disabled={resource.loading || resource.refreshing}
+              aria-busy={resource.refreshing}
+              className="rounded-xl border bg-white px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
+            >
+              {resource.refreshing
+                ? t('admin.alerts.refreshing')
+                : t('admin.alerts.refresh')}
+            </button>
+          </div>
+        )}
       </div>
       <nav className="flex gap-2" aria-label={t('admin.alerts.title')}>
         {['alerts', 'rules', 'insights'].map(id => (
@@ -165,6 +187,11 @@ export default function Alerts() {
                         {t(`admin.alerts.${key}`)}
                       </th>
                     ))}
+                    <th className="p-3">
+                      <span className="sr-only">
+                        {t('admin.alerts.actions')}
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -196,6 +223,14 @@ export default function Alerts() {
                         {new Date(alert.updatedAt).toLocaleString(
                           i18n.language
                         )}
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => setSelected(alert)}
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                        >
+                          {t('admin.alerts.review')}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -240,6 +275,7 @@ export default function Alerts() {
           onUpdated={() => {
             setSelected(null)
             resource.reload()
+            notifyAlertsChanged()
           }}
         />
       )}

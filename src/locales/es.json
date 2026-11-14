@@ -335,7 +335,8 @@
     "gamification": "Gamificación",
     "alerts": "Alertas",
     "appControls": "Controles de la app",
-    "orbHunt": "Caza de Orbes"
+    "orbHunt": "Caza de Orbes",
+    "theTable": "The Table"
   },
   "pages": {
     "messages": {
@@ -1638,6 +1639,18 @@
       "quickLauncher": {
         "title": "Lanzador rápido del panel",
         "description": "Acceso flotante en el panel a Orb Hunt, las misiones diarias y Slice ’n Dice, con una insignia para lo pendiente. Si está desactivado, la app lo oculta."
+      },
+      "theTable": {
+        "title": "The Table (feed social)",
+        "description": "Amigos y el feed compartido de comidas, ejercicios y logros. Si está desactivado, quienes usaron The Table ven el mensaje de abajo; no se borra nada.",
+        "messageTitle": "Mensaje mientras está desactivado",
+        "messageHint": "Quienes ya usaron The Table ven esto en lugar del feed. Los idiomas vacíos usan el inglés y luego el texto integrado de la app. Sus amigos y publicaciones se conservan.",
+        "messageHeading": "Título",
+        "messageHeadingPlaceholder": "The Table se está tomando un descanso",
+        "messageBody": "Mensaje",
+        "messageBodyPlaceholder": "Estamos trabajando en algo. Tus amigos y publicaciones están a salvo, y The Table volverá pronto.",
+        "messageSave": "Guardar mensaje",
+        "messageReset": "Descartar cambios"
       }
     },
     "common": {
@@ -2058,7 +2071,17 @@
         "reason": "Motivo",
         "dropped": "Eventos descartados",
         "project": "Proyecto"
-      }
+      },
+      "refreshing": "Actualizando…",
+      "lastUpdated": "Actualizado a las {{time}}",
+      "review": "Revisar",
+      "actions": "Acciones",
+      "noteHint": "Escribe primero una nota breve: se guarda con la alerta para que otros sepan por qué se cerró.",
+      "resolveHelp": "Resolver cierra la alerta. Reconocer la mantiene visible como vista.",
+      "delete": "Eliminar alerta",
+      "deleteConfirm": "¿Eliminar esta alerta de forma permanente? Se borran su historial y su nota. Cualquier restricción que haya iniciado sigue activa hasta que caduque.",
+      "deleteYes": "Sí, eliminar",
+      "cancel": "Cancelar"
     },
     "orbHunt": {
       "tabs": {
@@ -2688,6 +2711,255 @@
         "change": "Cambio",
         "before": "Antes",
         "after": "Después"
+      }
+    },
+    "theTable": {
+      "page": {
+        "eyebrow": "Comunidad",
+        "title": "The Table",
+        "subtitle": "Modera el feed social: atiende los reportes en 24 horas, revisa publicaciones y gestiona las publicaciones destacadas para usuarios nuevos."
+      },
+      "tabs": {
+        "overview": "Resumen",
+        "reports": "Reportes",
+        "posts": "Publicaciones",
+        "curated": "Destacadas"
+      },
+      "badge": {
+        "openReports_one": "{{count}} reporte abierto",
+        "openReports_many": "{{count}} reportes abiertos",
+        "openReports_other": "{{count}} reportes abiertos"
+      },
+      "common": {
+        "refresh": "Actualizar",
+        "loadMore": "Cargar más"
+      },
+      "overview": {
+        "openReports": "Reportes abiertos",
+        "openReportsHint": "Apple espera que los reportes se atiendan en 24 horas.",
+        "reviewNow": "Revisar ahora",
+        "hiddenAuto": "Ocultas automáticamente",
+        "hiddenAutoHint": "Ocultas tras 3 reportes, esperan una decisión",
+        "pendingPhotoChecks": "Fotos sin revisar",
+        "pendingPhotoChecksHint": "Gemini no pudo revisar estas fotos",
+        "review": "Revisar",
+        "posts24h": "Publicaciones (24 h)",
+        "activeUsers7d": "Usuarios activos (7 d)",
+        "friendships": "Amistades",
+        "friendshipsHint": "Parejas de amigos aceptadas"
+      },
+      "reports": {
+        "filterLabel": "Estado del reporte",
+        "slaHint": "Los reportes con más de 24 horas se marcan como atrasados.",
+        "empty": {
+          "OPEN": "No hay reportes abiertos",
+          "ACTIONED": "Aún no hay reportes resueltos",
+          "DISMISSED": "Aún no hay reportes descartados"
+        },
+        "emptyOpenHint": "La cola está vacía. Los reportes nuevos aparecen aquí y en el indicador del menú.",
+        "targetPost": "Publicación",
+        "targetUser": "Usuario",
+        "otherReports_one": "+{{count}} reporte más sobre este objetivo",
+        "otherReports_many": "+{{count}} reportes más sobre este objetivo",
+        "otherReports_other": "+{{count}} reportes más sobre este objetivo",
+        "reportedBy": "Reportado por",
+        "overdue": "más de 24 h",
+        "targetGone": "La publicación o el usuario reportado ya no existe."
+      },
+      "reportStatus": {
+        "OPEN": "Abiertos",
+        "ACTIONED": "Resueltos",
+        "DISMISSED": "Descartados"
+      },
+      "reasons": {
+        "SPAM": "Spam",
+        "NUDITY": "Desnudez",
+        "HARASSMENT": "Acoso",
+        "HATE": "Odio",
+        "SELF_HARM": "Autolesión",
+        "OTHER": "Otro"
+      },
+      "postStatus": {
+        "VISIBLE": "Visible",
+        "HIDDEN_AUTO": "Oculta automáticamente",
+        "HIDDEN_ADMIN": "Oculta por admin",
+        "DELETED": "Eliminada por el autor"
+      },
+      "types": {
+        "MEAL_LOGGED": "Comida registrada",
+        "FOOD_CREATED": "Alimento creado",
+        "RECIPE_CREATED": "Receta creada",
+        "EXERCISE_LOGGED": "Ejercicio registrado",
+        "EXERCISE_CREATED": "Ejercicio creado",
+        "STREAK": "Racha",
+        "LEVEL_UP": "Subida de nivel",
+        "BADGE": "Insignia",
+        "CHALLENGE": "Reto",
+        "GOAL_STREAK": "Racha de objetivos",
+        "WEIGHT_MILESTONE": "Hito de peso",
+        "COINS_EARNED": "Monedas ganadas",
+        "GAME_RESULT": "Resultado de juego",
+        "ORB_FOUND": "Orbe encontrado",
+        "WISH_GRANTED": "Deseo concedido",
+        "CURATED": "Tarjeta destacada"
+      },
+      "groups": {
+        "FOOD": "Comida",
+        "EXERCISE": "Ejercicio",
+        "PROGRESS": "Progreso",
+        "FUN": "Diversión"
+      },
+      "audience": {
+        "FRIENDS": "Amigos",
+        "PUBLIC": "Público"
+      },
+      "payload": {
+        "MEAL_LOGGED": "{{mealType}} · {{count}} alimentos · {{kcal}} kcal · P {{protein}} / C {{carbs}} / G {{fat}}",
+        "FOOD_CREATED": "{{name}} · {{kcal}} kcal por {{serving}}",
+        "RECIPE_CREATED": "{{name}} · {{kcal}} kcal por ración · {{servings}} raciones",
+        "EXERCISE_LOGGED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "EXERCISE_CREATED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "STREAK": "Racha de {{days}} días",
+        "LEVEL_UP": "Alcanzó el nivel {{level}}",
+        "BADGE": "Insignia: {{name}}",
+        "CHALLENGE": "{{kind}} · {{title}} · {{result}}",
+        "GOAL_STREAK": "Objetivo {{goal}} cumplido {{days}} días seguidos",
+        "WEIGHT_MILESTONE": "Cambio de peso {{delta}} · objetivo alcanzado {{goal}}",
+        "COINS_EARNED": "{{amount}} monedas · {{reason}}",
+        "GAME_RESULT": "Slice {{mode}} · puntuación {{score}} · {{result}} contra {{opponent}}",
+        "ORB_FOUND": "{{campaignTitle}} · {{orbName}} ({{collected}}/{{total}})",
+        "WISH_GRANTED": "{{campaignTitle}} · {{wishLabel}}",
+        "CURATED": "{{title}}"
+      },
+      "post": {
+        "openPhoto": "Abrir la foto en una pestaña nueva",
+        "reports_one": "{{count}} reporte",
+        "reports_many": "{{count}} reportes",
+        "reports_other": "{{count}} reportes",
+        "photoPending": "Foto sin revisar",
+        "curatedAuthor": "AlexaFit (destacada)",
+        "likes_one": "{{count}} me gusta",
+        "likes_many": "{{count}} me gusta",
+        "likes_other": "{{count}} me gusta",
+        "rawPayload": "Datos sin procesar"
+      },
+      "user": {
+        "noName": "Sin nombre",
+        "viewPosts": "Ver las publicaciones de este usuario",
+        "banned": "Bloqueado"
+      },
+      "actions": {
+        "hide": "Ocultar publicación",
+        "restore": "Restaurar publicación",
+        "dismiss": "Descartar reporte",
+        "ban": "Bloquear usuario",
+        "unban": "Desbloquear usuario",
+        "approvePhoto": "Aprobar foto"
+      },
+      "confirm": {
+        "hide": {
+          "title": "¿Ocultar esta publicación?",
+          "message": "Desaparece de todos los feeds y sus reportes abiertos se marcan como resueltos."
+        },
+        "restore": {
+          "title": "¿Restaurar esta publicación?",
+          "message": "Vuelve a ser visible y sus reportes abiertos se descartan."
+        },
+        "dismiss": {
+          "title": "¿Descartar este reporte?",
+          "message": "El reporte se cierra sin acción. Si la publicación estaba oculta automáticamente y quedan menos de 3 reportes abiertos, vuelve a mostrarse."
+        },
+        "ban": {
+          "title": "¿Bloquear a {{name}} en The Table?",
+          "message": "Ya no podrá publicar, dar me gusta ni enviar solicitudes, y todas sus publicaciones se ocultan mientras esté bloqueado."
+        },
+        "unban": {
+          "title": "¿Desbloquear a {{name}}?",
+          "message": "Podrá usar The Table de nuevo y sus publicaciones visibles vuelven a los feeds."
+        },
+        "approvePhoto": {
+          "title": "¿Aprobar esta foto?",
+          "message": "Gemini no pudo revisarla. Al aprobarla se marca como revisada y la publicación sigue visible."
+        }
+      },
+      "posts": {
+        "status": "Estado",
+        "allStatuses": "Todos los estados",
+        "userId": "ID de usuario",
+        "userIdPlaceholder": "UID de Firebase",
+        "apply": "Aplicar",
+        "clear": "Borrar",
+        "photoPending": "Solo fotos sin revisar",
+        "empty": "No hay publicaciones con estos filtros",
+        "emptyHint": "Prueba otro estado o borra el filtro de usuario."
+      },
+      "curated": {
+        "intro": "Se muestran a usuarios con el feed vacío, en su idioma (inglés por defecto), según el orden.",
+        "new": "Nueva publicación destacada",
+        "newTitle": "Nueva publicación destacada",
+        "editTitle": "Editar publicación destacada",
+        "save": "Guardar",
+        "type": "Tipo",
+        "lang": "Idioma",
+        "langHint": "Vacío = todos los idiomas",
+        "anyLang": "Todos los idiomas",
+        "title": "Título",
+        "body": "Texto",
+        "ctaLabel": "Texto del botón",
+        "ctaTarget": "Destino del botón",
+        "ctaTargetHint": "Pantalla de la app o enlace https, p. ej. OrbHunt",
+        "snapshot": "Instantánea (JSON)",
+        "snapshotHint": "Se copia tal cual en la publicación; nunca enlaza a un elemento real.",
+        "photo": "Foto (opcional)",
+        "startsAt": "Inicio",
+        "endsAt": "Fin",
+        "sortOrder": "Orden",
+        "sortOrderHint": "Los menores aparecen primero",
+        "isActive": "Activa",
+        "isActiveHint": "Las publicaciones inactivas nunca se muestran.",
+        "errors": {
+          "titleRequired": "El título es obligatorio.",
+          "bodyRequired": "El texto es obligatorio.",
+          "ctaPair": "El texto y el destino del botón van juntos: rellena ambos o ninguno.",
+          "payloadJson": "La instantánea debe ser un objeto JSON válido.",
+          "payloadName": "La instantánea necesita un nombre.",
+          "photoHttps": "La foto debe ser una URL https.",
+          "dateOrder": "El fin debe ser posterior al inicio.",
+          "sortOrder": "El orden debe ser un número entero de 0 a 9999.",
+          "noLanguage": "Añade al menos una versión de idioma."
+        },
+        "empty": "Aún no hay publicaciones destacadas",
+        "emptyHint": "Los usuarios con el feed vacío no verán nada hasta que añadas una.",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "deleteTitle": "¿Eliminar esta publicación destacada?",
+        "deleteMessage": "Deja de mostrarse en los feeds vacíos y sale de esta lista.",
+        "sortOrderShort": "#{{value}}",
+        "always": "Siempre",
+        "missingLang": "Aún no hay versión {{lang}}",
+        "missingLangHint": "Los usuarios de este idioma ven la versión en inglés hasta que añadas una.",
+        "startFromEnglish": "Partir del inglés",
+        "startEmpty": "Empezar en blanco",
+        "removeLang": "Eliminar versión {{lang}}",
+        "restoreLang": "Mantener esta versión",
+        "langRemoved": "La versión {{lang}} se eliminará al guardar.",
+        "languages": "Idiomas",
+        "sharedSettings": "Comunes a todos los idiomas",
+        "sharedSettingsHint": "La foto, la pantalla del botón, las fechas, el orden y la visibilidad se guardan en cada versión.",
+        "saveAll_one": "Guardar ({{count}} idioma)",
+        "saveAll_other": "Guardar ({{count}} idiomas)",
+        "langCount_one": "{{count}} idioma",
+        "langCount_other": "{{count}} idiomas",
+        "deleteGroupMessage_one": "Se eliminará la publicación en {{count}} idioma. Los usuarios dejarán de verla.",
+        "deleteGroupMessage_other": "Se eliminará la publicación en los {{count}} idiomas. Los usuarios dejarán de verla.",
+        "typeLocked": "El tipo solo se puede elegir al crear la publicación.",
+        "ctaLabelHint": "Texto del botón en este idioma. La pantalla que abre es un ajuste común más abajo."
+      },
+      "curatedState": {
+        "ACTIVE": "Activa",
+        "SCHEDULED": "Programada",
+        "EXPIRED": "Finalizada",
+        "INACTIVE": "Inactiva"
       }
     }
   }

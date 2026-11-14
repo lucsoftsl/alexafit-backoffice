@@ -303,7 +303,8 @@
     "gamification": "Gamificare",
     "alerts": "Alerte",
     "appControls": "Control aplicație",
-    "orbHunt": "Vânătoarea de Globuri"
+    "orbHunt": "Vânătoarea de Globuri",
+    "theTable": "The Table"
   },
   "pages": {
     "messages": {
@@ -1608,6 +1609,18 @@
       "quickLauncher": {
         "title": "Lansator rapid pe Dashboard",
         "description": "Scurtătură plutitoare pe Dashboard către Orb Hunt, misiunile zilnice și Slice ’n Dice, cu o insignă pentru ce așteaptă. Când este oprit, aplicația îl ascunde."
+      },
+      "theTable": {
+        "title": "The Table (feed social)",
+        "description": "Prieteni și feed-ul comun cu mese, exerciții și realizări. Când este oprit, cei care au folosit The Table văd mesajul de mai jos; nu se șterge nimic.",
+        "messageTitle": "Mesaj cât timp este oprit",
+        "messageHint": "Cei care au folosit deja The Table văd acest mesaj în locul feed-ului. Limbile goale folosesc engleza, apoi textul implicit din aplicație. Prietenii și postările lor se păstrează.",
+        "messageHeading": "Titlu",
+        "messageHeadingPlaceholder": "The Table ia o pauză",
+        "messageBody": "Mesaj",
+        "messageBodyPlaceholder": "Lucrăm la ceva. Prietenii și postările tale sunt în siguranță, iar The Table revine în curând.",
+        "messageSave": "Salvează mesajul",
+        "messageReset": "Renunță la modificări"
       }
     },
     "common": {
@@ -2028,7 +2041,17 @@
         "reason": "Motiv",
         "dropped": "Evenimente respinse",
         "project": "Proiect"
-      }
+      },
+      "refreshing": "Se reîncarcă…",
+      "lastUpdated": "Actualizat la {{time}}",
+      "review": "Revizuiește",
+      "actions": "Acțiuni",
+      "noteHint": "Scrie mai întâi o notă scurtă — se salvează cu alerta ca ceilalți să știe de ce a fost închisă.",
+      "resolveHelp": "Rezolvă închide alerta. Confirmă o păstrează vizibilă ca văzută.",
+      "delete": "Șterge alerta",
+      "deleteConfirm": "Ștergi definitiv această alertă? Istoricul și nota se pierd. Orice restricție pornită de ea rămâne activă până expiră.",
+      "deleteYes": "Da, șterge",
+      "cancel": "Anulează"
     },
     "orbHunt": {
       "tabs": {
@@ -2658,6 +2681,258 @@
         "change": "Modificare",
         "before": "Înainte",
         "after": "După"
+      }
+    },
+    "theTable": {
+      "page": {
+        "eyebrow": "Comunitate",
+        "title": "The Table",
+        "subtitle": "Moderează feed-ul social: tratează raportările în 24 de ore, verifică postările și gestionează postările recomandate pentru utilizatorii noi."
+      },
+      "tabs": {
+        "overview": "Prezentare",
+        "reports": "Raportări",
+        "posts": "Postări",
+        "curated": "Recomandate"
+      },
+      "badge": {
+        "openReports_one": "{{count}} raportare deschisă",
+        "openReports_few": "{{count}} raportări deschise",
+        "openReports_other": "{{count}} de raportări deschise"
+      },
+      "common": {
+        "refresh": "Reîmprospătează",
+        "loadMore": "Încarcă mai multe"
+      },
+      "overview": {
+        "openReports": "Raportări deschise",
+        "openReportsHint": "Apple cere ca raportările să fie tratate în 24 de ore.",
+        "reviewNow": "Verifică acum",
+        "hiddenAuto": "Postări ascunse automat",
+        "hiddenAutoHint": "Ascunse după 3 raportări, așteaptă o decizie",
+        "pendingPhotoChecks": "Fotografii neverificate",
+        "pendingPhotoChecksHint": "Gemini nu a putut verifica aceste fotografii",
+        "review": "Verifică",
+        "posts24h": "Postări (24 h)",
+        "activeUsers7d": "Utilizatori activi (7 z)",
+        "friendships": "Prietenii",
+        "friendshipsHint": "Perechi de prieteni acceptate"
+      },
+      "reports": {
+        "filterLabel": "Starea raportării",
+        "slaHint": "Raportările mai vechi de 24 de ore sunt marcate ca întârziate.",
+        "empty": {
+          "OPEN": "Nicio raportare deschisă",
+          "ACTIONED": "Nicio raportare rezolvată încă",
+          "DISMISSED": "Nicio raportare respinsă încă"
+        },
+        "emptyOpenHint": "Coada e goală. Raportările noi apar aici și în insigna din meniu.",
+        "targetPost": "Postare",
+        "targetUser": "Utilizator",
+        "otherReports_one": "+{{count}} altă raportare pentru această țintă",
+        "otherReports_few": "+{{count}} alte raportări pentru această țintă",
+        "otherReports_other": "+{{count}} de alte raportări pentru această țintă",
+        "reportedBy": "Raportat de",
+        "overdue": "peste 24 h",
+        "targetGone": "Postarea sau utilizatorul raportat nu mai există."
+      },
+      "reportStatus": {
+        "OPEN": "Deschise",
+        "ACTIONED": "Rezolvate",
+        "DISMISSED": "Respinse"
+      },
+      "reasons": {
+        "SPAM": "Spam",
+        "NUDITY": "Nuditate",
+        "HARASSMENT": "Hărțuire",
+        "HATE": "Ură",
+        "SELF_HARM": "Autovătămare",
+        "OTHER": "Altceva"
+      },
+      "postStatus": {
+        "VISIBLE": "Vizibilă",
+        "HIDDEN_AUTO": "Ascunsă automat",
+        "HIDDEN_ADMIN": "Ascunsă de admin",
+        "DELETED": "Ștearsă de autor"
+      },
+      "types": {
+        "MEAL_LOGGED": "Masă înregistrată",
+        "FOOD_CREATED": "Aliment creat",
+        "RECIPE_CREATED": "Rețetă creată",
+        "EXERCISE_LOGGED": "Exercițiu înregistrat",
+        "EXERCISE_CREATED": "Exercițiu creat",
+        "STREAK": "Serie",
+        "LEVEL_UP": "Nivel nou",
+        "BADGE": "Insignă",
+        "CHALLENGE": "Provocare",
+        "GOAL_STREAK": "Serie de obiective",
+        "WEIGHT_MILESTONE": "Etapă de greutate",
+        "COINS_EARNED": "Monede câștigate",
+        "GAME_RESULT": "Rezultat joc",
+        "ORB_FOUND": "Orb găsit",
+        "WISH_GRANTED": "Dorință îndeplinită",
+        "CURATED": "Card recomandat"
+      },
+      "groups": {
+        "FOOD": "Mâncare",
+        "EXERCISE": "Exerciții",
+        "PROGRESS": "Progres",
+        "FUN": "Distracție"
+      },
+      "audience": {
+        "FRIENDS": "Prieteni",
+        "PUBLIC": "Public"
+      },
+      "payload": {
+        "MEAL_LOGGED": "{{mealType}} · {{count}} produse · {{kcal}} kcal · P {{protein}} / C {{carbs}} / G {{fat}}",
+        "FOOD_CREATED": "{{name}} · {{kcal}} kcal la {{serving}}",
+        "RECIPE_CREATED": "{{name}} · {{kcal}} kcal/porție · {{servings}} porții",
+        "EXERCISE_LOGGED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "EXERCISE_CREATED": "{{name}} · {{minutes}} min · {{kcal}} kcal",
+        "STREAK": "Serie de {{days}} zile",
+        "LEVEL_UP": "A ajuns la nivelul {{level}}",
+        "BADGE": "Insignă: {{name}}",
+        "CHALLENGE": "{{kind}} · {{title}} · {{result}}",
+        "GOAL_STREAK": "Obiectiv {{goal}} atins {{days}} zile la rând",
+        "WEIGHT_MILESTONE": "Schimbare de greutate {{delta}} · obiectiv atins {{goal}}",
+        "COINS_EARNED": "{{amount}} monede · {{reason}}",
+        "GAME_RESULT": "Slice {{mode}} · scor {{score}} · {{result}} vs {{opponent}}",
+        "ORB_FOUND": "{{campaignTitle}} · {{orbName}} ({{collected}}/{{total}})",
+        "WISH_GRANTED": "{{campaignTitle}} · {{wishLabel}}",
+        "CURATED": "{{title}}"
+      },
+      "post": {
+        "openPhoto": "Deschide fotografia într-o filă nouă",
+        "reports_one": "{{count}} raportare",
+        "reports_few": "{{count}} raportări",
+        "reports_other": "{{count}} de raportări",
+        "photoPending": "Fotografie neverificată",
+        "curatedAuthor": "AlexaFit (recomandat)",
+        "likes_one": "{{count}} aprecieri",
+        "likes_few": "{{count}} aprecieri",
+        "likes_other": "{{count}} de aprecieri",
+        "rawPayload": "Date brute"
+      },
+      "user": {
+        "noName": "Fără nume",
+        "viewPosts": "Arată postările acestui utilizator",
+        "banned": "Blocat"
+      },
+      "actions": {
+        "hide": "Ascunde postarea",
+        "restore": "Restaurează postarea",
+        "dismiss": "Respinge raportarea",
+        "ban": "Blochează utilizatorul",
+        "unban": "Deblochează utilizatorul",
+        "approvePhoto": "Aprobă fotografia"
+      },
+      "confirm": {
+        "hide": {
+          "title": "Ascunzi această postare?",
+          "message": "Postarea dispare din toate feed-urile, iar raportările deschise sunt marcate ca rezolvate."
+        },
+        "restore": {
+          "title": "Restaurezi această postare?",
+          "message": "Postarea redevine vizibilă, iar raportările deschise sunt respinse."
+        },
+        "dismiss": {
+          "title": "Respingi această raportare?",
+          "message": "Raportarea se închide fără acțiune. Dacă postarea a fost ascunsă automat și rămân mai puțin de 3 raportări deschise, ea reapare."
+        },
+        "ban": {
+          "title": "Blochezi pe {{name}} în The Table?",
+          "message": "Nu mai poate posta, aprecia sau trimite cereri, iar toate postările sale sunt ascunse cât timp e blocat."
+        },
+        "unban": {
+          "title": "Deblochezi pe {{name}}?",
+          "message": "Poate folosi din nou The Table, iar postările vizibile revin în feed-uri."
+        },
+        "approvePhoto": {
+          "title": "Aprobi această fotografie?",
+          "message": "Gemini nu a putut-o verifica. Aprobarea o marchează ca verificată, iar postarea rămâne vizibilă."
+        }
+      },
+      "posts": {
+        "status": "Stare",
+        "allStatuses": "Toate stările",
+        "userId": "ID utilizator",
+        "userIdPlaceholder": "UID Firebase",
+        "apply": "Aplică",
+        "clear": "Șterge",
+        "photoPending": "Doar fotografii neverificate",
+        "empty": "Nicio postare pentru aceste filtre",
+        "emptyHint": "Încearcă altă stare sau șterge filtrul de utilizator."
+      },
+      "curated": {
+        "intro": "Afișate utilizatorilor cu feed gol, în limba lor (implicit engleză), în ordinea de sortare.",
+        "new": "Postare recomandată nouă",
+        "newTitle": "Postare recomandată nouă",
+        "editTitle": "Editează postarea recomandată",
+        "save": "Salvează",
+        "type": "Tip",
+        "lang": "Limbă",
+        "langHint": "Gol = toate limbile",
+        "anyLang": "Toate limbile",
+        "title": "Titlu",
+        "body": "Text",
+        "ctaLabel": "Eticheta butonului",
+        "ctaTarget": "Ținta butonului",
+        "ctaTargetHint": "Ecran din aplicație sau link https, ex. OrbHunt",
+        "snapshot": "Instantaneu (JSON)",
+        "snapshotHint": "Copiat ca atare în postare; nu se leagă de un produs real.",
+        "photo": "Fotografie (opțional)",
+        "startsAt": "Începe",
+        "endsAt": "Se termină",
+        "sortOrder": "Ordine",
+        "sortOrderHint": "Valorile mici apar primele",
+        "isActive": "Activă",
+        "isActiveHint": "Postările inactive nu se afișează niciodată.",
+        "errors": {
+          "titleRequired": "Titlul este obligatoriu.",
+          "bodyRequired": "Textul este obligatoriu.",
+          "ctaPair": "Eticheta și ținta butonului merg împreună: completează-le pe amândouă sau niciuna.",
+          "payloadJson": "Instantaneul trebuie să fie un obiect JSON valid.",
+          "payloadName": "Instantaneul are nevoie de un nume.",
+          "photoHttps": "Fotografia trebuie să fie un URL https.",
+          "dateOrder": "Sfârșitul trebuie să fie după început.",
+          "sortOrder": "Ordinea trebuie să fie un număr întreg între 0 și 9999.",
+          "noLanguage": "Adaugă cel puțin o versiune de limbă."
+        },
+        "empty": "Nicio postare recomandată",
+        "emptyHint": "Utilizatorii cu feed gol nu vor vedea nimic până nu adaugi una.",
+        "edit": "Editează",
+        "delete": "Șterge",
+        "deleteTitle": "Ștergi această postare recomandată?",
+        "deleteMessage": "Nu mai apare în feed-urile goale și dispare din această listă.",
+        "sortOrderShort": "#{{value}}",
+        "always": "Mereu",
+        "missingLang": "Nu există încă versiunea {{lang}}",
+        "missingLangHint": "Utilizatorii cu această limbă văd versiunea în engleză până când adaugi una.",
+        "startFromEnglish": "Pornește din engleză",
+        "startEmpty": "Pornește de la zero",
+        "removeLang": "Elimină versiunea {{lang}}",
+        "restoreLang": "Păstrează versiunea",
+        "langRemoved": "Versiunea {{lang}} va fi ștearsă la salvare.",
+        "languages": "Limbi",
+        "sharedSettings": "Comune pentru toate limbile",
+        "sharedSettingsHint": "Fotografia, ecranul butonului, datele, ordinea și vizibilitatea se salvează pe fiecare versiune.",
+        "saveAll_one": "Salvează ({{count}} limbă)",
+        "saveAll_few": "Salvează ({{count}} limbi)",
+        "saveAll_other": "Salvează ({{count}} de limbi)",
+        "langCount_one": "{{count}} limbă",
+        "langCount_few": "{{count}} limbi",
+        "langCount_other": "{{count}} de limbi",
+        "deleteGroupMessage_one": "Postarea va fi ștearsă în {{count}} limbă. Utilizatorii nu o mai văd imediat.",
+        "deleteGroupMessage_few": "Postarea va fi ștearsă în toate cele {{count}} limbi. Utilizatorii nu o mai văd imediat.",
+        "deleteGroupMessage_other": "Postarea va fi ștearsă în toate cele {{count}} de limbi. Utilizatorii nu o mai văd imediat.",
+        "typeLocked": "Tipul se poate alege doar la crearea postării.",
+        "ctaLabelHint": "Textul butonului în această limbă. Ecranul deschis e o setare comună mai jos."
+      },
+      "curatedState": {
+        "ACTIVE": "Activă",
+        "SCHEDULED": "Programată",
+        "EXPIRED": "Încheiată",
+        "INACTIVE": "Inactivă"
       }
     }
   }
