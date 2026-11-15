@@ -183,7 +183,8 @@
       "requestDeletion": "Eliminar usuario",
       "rename": "Renombrar",
       "copyContainer": "Copiar contenedor",
-      "copyToCountry": "Copiar al país"
+      "copyToCountry": "Copiar al país",
+      "giveCoins": "Dar monedas"
     },
     "whitelistModal": {
       "title": "Lista blanca de suscripción",
@@ -203,6 +204,21 @@
       "keyPlaceholder": "clave",
       "valuePlaceholder": "valor",
       "suggestions": "Campos sugeridos"
+    },
+    "giveCoins": {
+      "title": "Dar monedas",
+      "balance": "Saldo actual",
+      "amount": "Cantidad",
+      "amountHelp": "Número entero hasta {{max}}. Usa un signo menos para quitar monedas.",
+      "note": "Motivo",
+      "notePlaceholder": "p. ej. Soporte: racha perdida por un error",
+      "insufficient": "El usuario no tiene tantas monedas.",
+      "duplicate": "Este ajuste ya se aplicó.",
+      "done": "Hecho: {{amount}} monedas. Nuevo saldo: {{balance}}.",
+      "recent": "Historial reciente de monedas",
+      "saving": "Guardando…",
+      "give": "Dar {{n}} monedas",
+      "take": "Quitar {{n}} monedas"
     }
   },
   "login": {

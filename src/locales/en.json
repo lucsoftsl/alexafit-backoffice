@@ -151,7 +151,8 @@
       "requestDeletion": "Delete user",
       "rename": "Rename",
       "copyContainer": "Copy container",
-      "copyToCountry": "Copy to country"
+      "copyToCountry": "Copy to country",
+      "giveCoins": "Give coins"
     },
     "whitelistModal": {
       "title": "Subscription Whitelist",
@@ -171,6 +172,21 @@
       "keyPlaceholder": "key",
       "valuePlaceholder": "value",
       "suggestions": "Suggested fields"
+    },
+    "giveCoins": {
+      "title": "Give coins",
+      "balance": "Current balance",
+      "amount": "Amount",
+      "amountHelp": "Whole number up to {{max}}. Use a minus sign to take coins away.",
+      "note": "Reason",
+      "notePlaceholder": "e.g. Support: lost streak after app bug",
+      "insufficient": "The user doesn't have that many coins.",
+      "duplicate": "This adjustment was already applied.",
+      "done": "Done: {{amount}} coins. New balance: {{balance}}.",
+      "recent": "Recent coin history",
+      "saving": "Saving…",
+      "give": "Give {{n}} coins",
+      "take": "Take {{n}} coins"
     }
   },
   "login": {

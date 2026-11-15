@@ -10,6 +10,7 @@ import {
   EnvelopeIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
+  CircleStackIcon,
   ShieldCheckIcon,
   TrashIcon
 } from '@heroicons/react/24/outline'
@@ -27,6 +28,7 @@ import { getUsersCaloriesActivity, sendReminderEmail, getUserCaloriesHistory } f
 import UserDetailModal from '../components/UserDetailModal'
 import ControlsDropdown from '../components/ControlsDropdown'
 import WhitelistModal from '../components/WhitelistModal'
+import GiveCoinsModal from '../components/GiveCoinsModal'
 import CreateLeadModal from '../components/CreateLeadModal'
 import { selectIsAdmin } from '../store/userSlice'
 
@@ -278,6 +280,7 @@ const Users = ({ onOpenChat = () => {} }) => {
 
   const [activityByUserId, setActivityByUserId] = useState({})
   const [reminderRow, setReminderRow] = useState(null)
+  const [coinsRow, setCoinsRow] = useState(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState(null)
   const [sendingReminder, setSendingReminder] = useState(false)
   const [reminderResult, setReminderResult] = useState(null)
@@ -941,6 +944,16 @@ const Users = ({ onOpenChat = () => {} }) => {
                       setReminderRow(row)
                     }
                   },
+                  ...(isAdmin
+                    ? [
+                        {
+                          icon: CircleStackIcon,
+                          labelKey: 'common.controls.giveCoins',
+                          colorClass: 'text-amber-600',
+                          onClick: () => setCoinsRow(row)
+                        }
+                      ]
+                    : []),
                   {
                     icon: ShieldCheckIcon,
                     labelKey: 'common.controls.whitelist',
@@ -1120,6 +1133,16 @@ const Users = ({ onOpenChat = () => {} }) => {
                           setReminderRow(row)
                         }
                       },
+                      ...(isAdmin
+                        ? [
+                            {
+                              icon: CircleStackIcon,
+                              labelKey: 'common.controls.giveCoins',
+                              colorClass: 'text-amber-600',
+                              onClick: () => setCoinsRow(row)
+                            }
+                          ]
+                        : []),
                       {
                         icon: ShieldCheckIcon,
                         labelKey: 'common.controls.whitelist',
@@ -1598,6 +1621,9 @@ const Users = ({ onOpenChat = () => {} }) => {
         />
       )}
 
+      {coinsRow && (
+        <GiveCoinsModal user={coinsRow} onClose={() => setCoinsRow(null)} />
+      )}
       {whitelistRow ? (
         <WhitelistModal
           userMeta={{ name: whitelistRow.name, email: whitelistRow.email }}

@@ -151,7 +151,8 @@
       "requestDeletion": "Supprimer l'utilisateur",
       "rename": "Renommer",
       "copyContainer": "Copier le conteneur",
-      "copyToCountry": "Copier vers le pays"
+      "copyToCountry": "Copier vers le pays",
+      "giveCoins": "Donner des pièces"
     },
     "whitelistModal": {
       "title": "Liste blanche d'abonnement",
@@ -171,6 +172,21 @@
       "keyPlaceholder": "clé",
       "valuePlaceholder": "valeur",
       "suggestions": "Champs suggérés"
+    },
+    "giveCoins": {
+      "title": "Donner des pièces",
+      "balance": "Solde actuel",
+      "amount": "Montant",
+      "amountHelp": "Nombre entier jusqu'à {{max}}. Utilisez un signe moins pour retirer des pièces.",
+      "note": "Motif",
+      "notePlaceholder": "ex. Support : série perdue après un bug",
+      "insufficient": "L'utilisateur n'a pas autant de pièces.",
+      "duplicate": "Cet ajustement a déjà été appliqué.",
+      "done": "Fait : {{amount}} pièces. Nouveau solde : {{balance}}.",
+      "recent": "Historique récent des pièces",
+      "saving": "Enregistrement…",
+      "give": "Donner {{n}} pièces",
+      "take": "Retirer {{n}} pièces"
     }
   },
   "login": {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { WrenchScrewdriverIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useTranslation } from 'react-i18next'
 
@@ -8,7 +9,10 @@ import { useTranslation } from 'react-i18next'
  *
  * @param {Array<{ icon: Component, labelKey: string, onClick: fn, colorClass?: string }>} actions
  * @param {boolean} absolute - when true, uses CSS absolute positioning relative to the wrapper
- *                             (use this when a backdrop-filter ancestor breaks position:fixed)
+ *
+ * The fixed menu is portaled to <body>: inside a table, an ancestor with a
+ * transform / filter / backdrop-filter or overflow clipping would otherwise
+ * position or hide it, and the button looked like it did nothing.
  */
 const ControlsDropdown = ({ actions = [], absolute = false }) => {
   const { t } = useTranslation()
@@ -117,7 +121,7 @@ const ControlsDropdown = ({ actions = [], absolute = false }) => {
         <WrenchScrewdriverIcon className="h-3.5 w-3.5 text-slate-500" />
         {t('common.controls.label')}
       </button>
-      {dropdown}
+      {dropdown ? createPortal(dropdown, document.body) : null}
     </>
   )
 }

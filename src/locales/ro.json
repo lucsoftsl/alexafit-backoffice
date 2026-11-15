@@ -151,7 +151,8 @@
       "requestDeletion": "Șterge utilizator",
       "rename": "Redenumire",
       "copyContainer": "Copiați containerul",
-      "copyToCountry": "Copiați în țară"
+      "copyToCountry": "Copiați în țară",
+      "giveCoins": "Acordă monede"
     },
     "whitelistModal": {
       "title": "Listă albă abonament",
@@ -171,6 +172,21 @@
       "keyPlaceholder": "cheie",
       "valuePlaceholder": "valoare",
       "suggestions": "Câmpuri sugerate"
+    },
+    "giveCoins": {
+      "title": "Acordă monede",
+      "balance": "Sold curent",
+      "amount": "Sumă",
+      "amountHelp": "Număr întreg până la {{max}}. Folosește minus pentru a retrage monede.",
+      "note": "Motiv",
+      "notePlaceholder": "ex. Suport: serie pierdută din cauza unei erori",
+      "insufficient": "Utilizatorul nu are atâtea monede.",
+      "duplicate": "Această ajustare a fost deja aplicată.",
+      "done": "Gata: {{amount}} monede. Sold nou: {{balance}}.",
+      "recent": "Istoric recent monede",
+      "saving": "Se salvează…",
+      "give": "Acordă {{n}} monede",
+      "take": "Retrage {{n}} monede"
     }
   },
   "login": {

@@ -735,3 +735,46 @@ export async function getBackofficeAnalyticsFeed({
   analyticsFeedInFlightRequests.set(requestKey, requestPromise)
   return requestPromise
 }
+
+/**
+ * Admin: JSON call that keeps the API's error message ({ ok:false, error })
+ * so forms can show "Not enough coins" instead of "HTTP 409".
+ */
+async function adminJson(path, { method = 'GET', body } = {}) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
+  try {
+    const res = await fetch(`${API_BASE_FOODSYNC_URL}${path}`, {
+      method,
+      headers: await getBearerHeaders(true),
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || data?.ok === false) {
+      const error = new Error(data?.error || `HTTP error! status: ${res.status}`)
+      error.code = data?.code
+      throw error
+    }
+    return data?.data
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Admin: { balance, items } — the user's coin balance and latest ledger rows. */
+export function getUserCoinLedger(userId, { limit = 5 } = {}) {
+  const query = new URLSearchParams({ userId, limit: String(limit) })
+  return adminJson(`/backoffice/gamification/ledger?${query}`)
+}
+
+/**
+ * Admin: add (amount > 0) or take away (amount < 0) coins. `requestId` makes
+ * a retry or double click apply once. Resolves { applied, balance, duplicate }.
+ */
+export function grantUserCoins({ userId, amount, note, requestId }) {
+  return adminJson(`/backoffice/gamification/users/${encodeURIComponent(userId)}/coins`, {
+    method: 'POST',
+    body: { amount, note, requestId }
+  })
+}
