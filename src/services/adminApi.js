@@ -207,3 +207,15 @@ export const deleteAbuseAlert = id =>
   })
 export const getAnalyticsInsights = ({ signal } = {}) =>
   call(`${API_BASE_UTILS_URL}/admin/analytics-insights/alexafit`, { signal })
+
+// Arcade minigames (ADMIN): who plays what. Switches live in app-config.arcade.
+export const getArcadeOverview = ({ days, gameId, signal } = {}) =>
+  call(api(`/backoffice/arcade/overview${query({ days, gameId })}`), { signal })
+
+export const getArcadeRuns = ({ gameId, user, limit, before, signal } = {}) =>
+  call(
+    api(`/backoffice/arcade/runs${query({ gameId, user, limit, before })}`),
+    {
+      signal
+    }
+  )

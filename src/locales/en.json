@@ -320,7 +320,8 @@
     "alerts": "Alerts",
     "appControls": "App controls",
     "orbHunt": "Orb Hunt",
-    "theTable": "The Table"
+    "theTable": "The Table",
+    "arcade": "Arcade"
   },
   "pages": {
     "messages": {
@@ -2941,6 +2942,91 @@
         "SCHEDULED": "Scheduled",
         "EXPIRED": "Ended",
         "INACTIVE": "Inactive"
+      }
+    },
+    "arcade": {
+      "title": "Arcade",
+      "subtitle": "Switch minigames on or off and see who plays what.",
+      "period": "Period",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "refresh": "Refresh",
+      "tableMissing": "Runs aren't being stored yet: apply migration P_001_arcade_runs.sql. Coins are still paid and shown from the coin ledger.",
+      "tabs": {
+        "overview": "Overview",
+        "players": "Players",
+        "runs": "Runs"
+      },
+      "games": {
+        "higherLower": "Higher or Lower",
+        "nutriScore": "Nutri-Score A–E",
+        "foodWord": "Food Word",
+        "plateBuilder": "Plate Builder",
+        "sortIt": "Sort It",
+        "marketDash": "Market Dash",
+        "fridgeMemory": "Fridge Memory",
+        "harvestGarden": "Harvest Garden",
+        "repChallenge": "Rep Challenges"
+      },
+      "stats": {
+        "runs": "Runs",
+        "players": "Players",
+        "coins": "Coins paid",
+        "coinsHint": "From the coin ledger (1–4 per game per day, max 20 a day per user)",
+        "gamesOn": "Games on",
+        "gamesOnHint": "of {{total}}"
+      },
+      "switches": {
+        "eyebrow": "App controls",
+        "title": "Games",
+        "master": "Arcade minigames",
+        "on": "Arcade on",
+        "off": "Arcade off",
+        "help": "Switched-off games disappear from the app on its next config refresh, and the API stops recording and paying them right away. Orb Hunt and Slice 'n Dice keep their own switches in App controls."
+      },
+      "table": {
+        "game": "Game",
+        "on": "On",
+        "runs": "Runs",
+        "players": "Players",
+        "avgScore": "Avg score",
+        "bestScore": "Best",
+        "avgDuration": "Avg time",
+        "coins": "Coins",
+        "offline": "Offline runs",
+        "openRuns": "Show this game's runs",
+        "toggle": "Switch {{game}} on or off"
+      },
+      "chart": {
+        "eyebrow": "Activity",
+        "title": "Runs per day",
+        "empty": "No runs in this period",
+        "emptyHint": "Runs appear here as soon as people finish a game."
+      },
+      "players": {
+        "user": "User",
+        "games": "Games",
+        "lastPlayed": "Last played",
+        "viewRuns": "View runs",
+        "empty": "No players in this period",
+        "emptyHint": "Try a longer period."
+      },
+      "runs": {
+        "game": "Game",
+        "allGames": "All games",
+        "user": "User",
+        "userPlaceholder": "User id or email",
+        "search": "Search",
+        "clear": "Clear",
+        "when": "When",
+        "score": "Score",
+        "tier": "Tier",
+        "duration": "Time",
+        "device": "Device",
+        "offline": "offline",
+        "loadMore": "Load more",
+        "empty": "No runs found",
+        "emptyHint": "Change the filters or the period."
       }
     }
   }

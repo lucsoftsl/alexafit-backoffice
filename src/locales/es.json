@@ -352,7 +352,8 @@
     "alerts": "Alertas",
     "appControls": "Controles de la app",
     "orbHunt": "Caza de Orbes",
-    "theTable": "The Table"
+    "theTable": "The Table",
+    "arcade": "Arcade"
   },
   "pages": {
     "messages": {
@@ -2976,6 +2977,91 @@
         "SCHEDULED": "Programada",
         "EXPIRED": "Finalizada",
         "INACTIVE": "Inactiva"
+      }
+    },
+    "arcade": {
+      "title": "Arcade",
+      "subtitle": "Activa o desactiva los minijuegos y mira quién juega a qué.",
+      "period": "Periodo",
+      "days_one": "{{count}} día",
+      "days_other": "{{count}} días",
+      "refresh": "Actualizar",
+      "tableMissing": "Las partidas aún no se guardan: aplica la migración P_001_arcade_runs.sql. Las monedas se siguen pagando y se muestran desde el registro de monedas.",
+      "tabs": {
+        "overview": "Resumen",
+        "players": "Jugadores",
+        "runs": "Partidas"
+      },
+      "games": {
+        "higherLower": "Más o menos",
+        "nutriScore": "Nutri-Score A–E",
+        "foodWord": "Palabra del día",
+        "plateBuilder": "Plato perfecto",
+        "sortIt": "Clasifícalo",
+        "marketDash": "Carrera al mercado",
+        "fridgeMemory": "Memoria de nevera",
+        "harvestGarden": "Huerto",
+        "repChallenge": "Retos de repeticiones"
+      },
+      "stats": {
+        "runs": "Partidas",
+        "players": "Jugadores",
+        "coins": "Monedas pagadas",
+        "coinsHint": "Del registro de monedas (1–4 por juego al día, máximo 20 al día por usuario)",
+        "gamesOn": "Juegos activos",
+        "gamesOnHint": "de {{total}}"
+      },
+      "switches": {
+        "eyebrow": "Controles de la app",
+        "title": "Juegos",
+        "master": "Minijuegos Arcade",
+        "on": "Arcade activado",
+        "off": "Arcade desactivado",
+        "help": "Los juegos desactivados desaparecen de la app en la próxima actualización de la configuración, y la API deja de registrarlos y pagarlos de inmediato. Orb Hunt y Slice 'n Dice tienen sus propios interruptores en Controles de la app."
+      },
+      "table": {
+        "game": "Juego",
+        "on": "Activo",
+        "runs": "Partidas",
+        "players": "Jugadores",
+        "avgScore": "Puntuación media",
+        "bestScore": "Mejor",
+        "avgDuration": "Tiempo medio",
+        "coins": "Monedas",
+        "offline": "Partidas sin conexión",
+        "openRuns": "Ver las partidas de este juego",
+        "toggle": "Activar o desactivar {{game}}"
+      },
+      "chart": {
+        "eyebrow": "Actividad",
+        "title": "Partidas por día",
+        "empty": "No hay partidas en este periodo",
+        "emptyHint": "Las partidas aparecen aquí en cuanto alguien termina un juego."
+      },
+      "players": {
+        "user": "Usuario",
+        "games": "Juegos",
+        "lastPlayed": "Última partida",
+        "viewRuns": "Ver partidas",
+        "empty": "No hay jugadores en este periodo",
+        "emptyHint": "Prueba un periodo más largo."
+      },
+      "runs": {
+        "game": "Juego",
+        "allGames": "Todos los juegos",
+        "user": "Usuario",
+        "userPlaceholder": "Id de usuario o email",
+        "search": "Buscar",
+        "clear": "Limpiar",
+        "when": "Cuándo",
+        "score": "Puntuación",
+        "tier": "Nivel",
+        "duration": "Tiempo",
+        "device": "Dispositivo",
+        "offline": "sin conexión",
+        "loadMore": "Cargar más",
+        "empty": "No se encontraron partidas",
+        "emptyHint": "Cambia los filtros o el periodo."
       }
     }
   }

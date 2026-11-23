@@ -22,6 +22,7 @@ import {
   ExclamationTriangleIcon,
   AdjustmentsHorizontalIcon,
   TrophyIcon,
+  PuzzlePieceIcon,
   SparklesIcon,
   ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
@@ -91,6 +92,7 @@ const Sidebar = ({
     { id: 'ai', labelKey: 'sidebar.ai', fallbackLabel: 'AI models', icon: CpuChipIcon, adminOnly: true },
     { id: 'gamification', labelKey: 'sidebar.gamification', fallbackLabel: 'Gamification', icon: TrophyIcon, adminOnly: true },
     { id: 'orb-hunt', labelKey: 'sidebar.orbHunt', fallbackLabel: 'Orb Hunt', icon: SparklesIcon, adminOnly: true },
+    { id: 'arcade', labelKey: 'sidebar.arcade', fallbackLabel: 'Arcade', icon: PuzzlePieceIcon, adminOnly: true },
     { id: 'the-table', labelKey: 'sidebar.theTable', fallbackLabel: 'The Table', icon: ChatBubbleLeftRightIcon, adminOnly: true },
     { id: 'settings', labelKey: 'sidebar.settings', icon: CogIcon, adminOnly: false },
     { id: 'user-notes', labelKey: 'sidebar.userNotes', icon: DocumentTextIcon, adminOnly: false },

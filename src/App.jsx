@@ -49,6 +49,7 @@ const Alerts = lazy(() => import('./pages/Alerts'))
 const AppControls = lazy(() => import('./pages/AppControls'))
 const OrbHunts = lazy(() => import('./pages/OrbHunts'))
 const TheTable = lazy(() => import('./pages/TheTable'))
+const Arcade = lazy(() => import('./pages/Arcade'))
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -186,7 +187,7 @@ function App() {
 
   const renderPage = () => {
     // Admin-only pages
-    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'ai', 'alerts', 'app-controls', 'orb-hunt', 'the-table', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
+    const adminPages = ['users', 'deleted-users', 'subscribers', 'unapprovedItems', 'analytics', 'ai', 'alerts', 'app-controls', 'orb-hunt', 'the-table', 'arcade', 'dashboard', 'bug-hunting', 'admin-chat', 'default-recipes']
     // Admin + Nutritionist pages
     const adminOrNutritionistPages = ['menus', 'recipes', 'mymenus', 'myrecipes', 'myfooditems', 'messages', 'surveys']
     // Nutritionist-only pages
@@ -307,6 +308,8 @@ function App() {
         return <AiModels />
       case 'orb-hunt':
         return <OrbHunts />
+      case 'arcade':
+        return <Arcade />
       case 'the-table':
         return <TheTable openReports={openTableReports} />
       case 'gamification':

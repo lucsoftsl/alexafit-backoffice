@@ -320,7 +320,8 @@
     "alerts": "Alertes",
     "appControls": "Contrôles de l'app",
     "orbHunt": "Chasse aux orbes",
-    "theTable": "The Table"
+    "theTable": "The Table",
+    "arcade": "Arcade"
   },
   "pages": {
     "messages": {
@@ -2944,6 +2945,91 @@
         "SCHEDULED": "Programmée",
         "EXPIRED": "Terminée",
         "INACTIVE": "Inactive"
+      }
+    },
+    "arcade": {
+      "title": "Arcade",
+      "subtitle": "Activez ou désactivez les mini-jeux et voyez qui joue à quoi.",
+      "period": "Période",
+      "days_one": "{{count}} jour",
+      "days_other": "{{count}} jours",
+      "refresh": "Actualiser",
+      "tableMissing": "Les parties ne sont pas encore enregistrées : appliquez la migration P_001_arcade_runs.sql. Les pièces sont toujours versées et affichées depuis le registre des pièces.",
+      "tabs": {
+        "overview": "Vue d'ensemble",
+        "players": "Joueurs",
+        "runs": "Parties"
+      },
+      "games": {
+        "higherLower": "Plus ou moins",
+        "nutriScore": "Nutri-Score A–E",
+        "foodWord": "Mot du jour",
+        "plateBuilder": "Assiette parfaite",
+        "sortIt": "Trie-les",
+        "marketDash": "Course au marché",
+        "fridgeMemory": "Mémoire du frigo",
+        "harvestGarden": "Potager",
+        "repChallenge": "Défis de répétitions"
+      },
+      "stats": {
+        "runs": "Parties",
+        "players": "Joueurs",
+        "coins": "Pièces versées",
+        "coinsHint": "Depuis le registre des pièces (1 à 4 par jeu et par jour, 20 max par jour et par utilisateur)",
+        "gamesOn": "Jeux activés",
+        "gamesOnHint": "sur {{total}}"
+      },
+      "switches": {
+        "eyebrow": "Contrôles de l'app",
+        "title": "Jeux",
+        "master": "Mini-jeux Arcade",
+        "on": "Arcade activée",
+        "off": "Arcade désactivée",
+        "help": "Les jeux désactivés disparaissent de l'app au prochain rafraîchissement de la configuration, et l'API cesse immédiatement de les enregistrer et de les payer. Orb Hunt et Slice 'n Dice gardent leurs propres interrupteurs dans Contrôles de l'app."
+      },
+      "table": {
+        "game": "Jeu",
+        "on": "Activé",
+        "runs": "Parties",
+        "players": "Joueurs",
+        "avgScore": "Score moyen",
+        "bestScore": "Meilleur",
+        "avgDuration": "Durée moyenne",
+        "coins": "Pièces",
+        "offline": "Parties hors ligne",
+        "openRuns": "Voir les parties de ce jeu",
+        "toggle": "Activer ou désactiver {{game}}"
+      },
+      "chart": {
+        "eyebrow": "Activité",
+        "title": "Parties par jour",
+        "empty": "Aucune partie sur cette période",
+        "emptyHint": "Les parties apparaissent ici dès qu'un joueur termine un jeu."
+      },
+      "players": {
+        "user": "Utilisateur",
+        "games": "Jeux",
+        "lastPlayed": "Dernière partie",
+        "viewRuns": "Voir les parties",
+        "empty": "Aucun joueur sur cette période",
+        "emptyHint": "Essayez une période plus longue."
+      },
+      "runs": {
+        "game": "Jeu",
+        "allGames": "Tous les jeux",
+        "user": "Utilisateur",
+        "userPlaceholder": "Id utilisateur ou e-mail",
+        "search": "Rechercher",
+        "clear": "Effacer",
+        "when": "Quand",
+        "score": "Score",
+        "tier": "Niveau",
+        "duration": "Durée",
+        "device": "Appareil",
+        "offline": "hors ligne",
+        "loadMore": "Charger plus",
+        "empty": "Aucune partie trouvée",
+        "emptyHint": "Modifiez les filtres ou la période."
       }
     }
   }

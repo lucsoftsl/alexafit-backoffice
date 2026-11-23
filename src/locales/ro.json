@@ -320,7 +320,8 @@
     "alerts": "Alerte",
     "appControls": "Control aplicație",
     "orbHunt": "Vânătoarea de Globuri",
-    "theTable": "The Table"
+    "theTable": "The Table",
+    "arcade": "Arcade"
   },
   "pages": {
     "messages": {
@@ -2949,6 +2950,92 @@
         "SCHEDULED": "Programată",
         "EXPIRED": "Încheiată",
         "INACTIVE": "Inactivă"
+      }
+    },
+    "arcade": {
+      "title": "Arcade",
+      "subtitle": "Pornește sau oprește minijocurile și vezi cine ce joacă.",
+      "period": "Perioadă",
+      "days_one": "{{count}} zi",
+      "days_few": "{{count}} zile",
+      "days_other": "{{count}} de zile",
+      "refresh": "Reîmprospătează",
+      "tableMissing": "Rundele nu sunt încă salvate: aplică migrarea P_001_arcade_runs.sql. Monedele se plătesc în continuare și apar din registrul de monede.",
+      "tabs": {
+        "overview": "Prezentare",
+        "players": "Jucători",
+        "runs": "Runde"
+      },
+      "games": {
+        "higherLower": "Mai mult sau mai puțin",
+        "nutriScore": "Nutri-Score A–E",
+        "foodWord": "Cuvântul zilei",
+        "plateBuilder": "Farfuria perfectă",
+        "sortIt": "Sortează",
+        "marketDash": "Fuga prin piață",
+        "fridgeMemory": "Memoria frigiderului",
+        "harvestGarden": "Grădina",
+        "repChallenge": "Provocări de repetări"
+      },
+      "stats": {
+        "runs": "Runde",
+        "players": "Jucători",
+        "coins": "Monede plătite",
+        "coinsHint": "Din registrul de monede (1–4 per joc pe zi, maximum 20 pe zi per utilizator)",
+        "gamesOn": "Jocuri pornite",
+        "gamesOnHint": "din {{total}}"
+      },
+      "switches": {
+        "eyebrow": "Controale aplicație",
+        "title": "Jocuri",
+        "master": "Minijocuri Arcade",
+        "on": "Arcade pornit",
+        "off": "Arcade oprit",
+        "help": "Jocurile oprite dispar din aplicație la următoarea actualizare a configurației, iar API-ul nu le mai înregistrează și nu le mai plătește imediat. Orb Hunt și Slice 'n Dice au propriile comutatoare în Controale aplicație."
+      },
+      "table": {
+        "game": "Joc",
+        "on": "Pornit",
+        "runs": "Runde",
+        "players": "Jucători",
+        "avgScore": "Scor mediu",
+        "bestScore": "Cel mai bun",
+        "avgDuration": "Timp mediu",
+        "coins": "Monede",
+        "offline": "Runde offline",
+        "openRuns": "Vezi rundele acestui joc",
+        "toggle": "Pornește sau oprește {{game}}"
+      },
+      "chart": {
+        "eyebrow": "Activitate",
+        "title": "Runde pe zi",
+        "empty": "Nicio rundă în această perioadă",
+        "emptyHint": "Rundele apar aici imediat ce cineva termină un joc."
+      },
+      "players": {
+        "user": "Utilizator",
+        "games": "Jocuri",
+        "lastPlayed": "Ultima dată",
+        "viewRuns": "Vezi rundele",
+        "empty": "Niciun jucător în această perioadă",
+        "emptyHint": "Încearcă o perioadă mai lungă."
+      },
+      "runs": {
+        "game": "Joc",
+        "allGames": "Toate jocurile",
+        "user": "Utilizator",
+        "userPlaceholder": "Id utilizator sau email",
+        "search": "Caută",
+        "clear": "Șterge filtrele",
+        "when": "Când",
+        "score": "Scor",
+        "tier": "Nivel",
+        "duration": "Timp",
+        "device": "Dispozitiv",
+        "offline": "offline",
+        "loadMore": "Încarcă mai multe",
+        "empty": "Nicio rundă găsită",
+        "emptyHint": "Schimbă filtrele sau perioada."
       }
     }
   }
