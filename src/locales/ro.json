@@ -1623,6 +1623,10 @@
         "title": "Minijocul Slice ’n Dice",
         "description": "Când e oprit, aplicația ascunde orice acces la joc: iconița de pe Dashboard, rândul din Profil și linkurile de duel."
       },
+      "ratingPrompt": {
+        "title": "Cerere de evaluare în magazin",
+        "description": "Cere o evaluare în App Store / Google Play imediat după un moment pozitiv (obiectiv de calorii atins, serie de 3 zile, monede revendicate). Niciodată în prima sesiune, de cel mult 3 ori pe an. Oprit implicit."
+      },
       "quickLauncher": {
         "title": "Lansator rapid pe Dashboard",
         "description": "Scurtătură plutitoare pe Dashboard către Orb Hunt, misiunile zilnice și Slice ’n Dice, cu o insignă pentru ce așteaptă. Când este oprit, aplicația îl ascunde."

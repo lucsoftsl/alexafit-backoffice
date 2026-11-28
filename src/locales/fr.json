@@ -1621,6 +1621,10 @@
         "title": "Mini-jeu Slice ’n Dice",
         "description": "Désactivé, l’app masque tous les accès au jeu : l’icône du tableau de bord, la ligne du profil et les liens de duel."
       },
+      "ratingPrompt": {
+        "title": "Demande de note sur le store",
+        "description": "Demande une note sur l’App Store / Google Play juste après un moment positif (objectif calorique atteint, série de 3 jours, pièces récupérées). Jamais lors de la première session, au plus 3 fois par an. Désactivé par défaut."
+      },
       "quickLauncher": {
         "title": "Lanceur rapide du tableau de bord",
         "description": "Raccourci flottant sur le tableau de bord vers Orb Hunt, les quêtes du jour et Slice ’n Dice, avec un badge pour ce qui attend. Désactivé, l’app le masque."

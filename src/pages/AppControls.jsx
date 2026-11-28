@@ -113,6 +113,11 @@ const AppControls = () => {
   const setQuickLauncher = patch =>
     save({ ...config, quickLauncher: { ...quickLauncher, ...patch } })
 
+  // ratingPrompt (store-rating prompt) is the exception: default off.
+  const ratingPrompt = { enabled: false, ...(config?.ratingPrompt || {}) }
+  const setRatingPrompt = patch =>
+    save({ ...config, ratingPrompt: { ...ratingPrompt, ...patch } })
+
   // Same for theTable (The Table social feed kill switch, default on).
   const theTable = { enabled: true, ...(config?.theTable || {}) }
   const setTheTable = patch =>
@@ -194,6 +199,16 @@ const AppControls = () => {
               checked={quickLauncher.enabled}
               disabled={isSaving}
               onChange={enabled => setQuickLauncher({ enabled })}
+            />
+          </section>
+
+          <section className="rounded-2xl border border-gray-200 bg-white px-6 py-2 shadow-sm">
+            <ControlRow
+              title={t('admin.appControls.ratingPrompt.title')}
+              description={t('admin.appControls.ratingPrompt.description')}
+              checked={ratingPrompt.enabled}
+              disabled={isSaving}
+              onChange={enabled => setRatingPrompt({ enabled })}
             />
           </section>
 
